@@ -71,6 +71,9 @@ button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .top { display: grid; gap: 2px; }
+.eq-btn { display: block; width: 100%; background: none; border: 0; padding: 4px 0; text-align: left; cursor: pointer; font-family: inherit; overflow-wrap: anywhere; }
+.eq-btn::after { content: " ▾"; }
+.eq-btn[aria-expanded="true"]::after { content: " ▴"; }
 .eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; text-wrap: balance; }
 .sync { margin: 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }
@@ -293,10 +296,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 <body>
 <div class="wrap">
   <header class="top">
-    <p class="eyebrow">Tasty Coffee · фильтр · V60 Cafec · Abaca+</p>
+    <button type="button" class="eyebrow eq-btn" id="eqBtn" aria-expanded="false" aria-controls="eqPanel"></button>
     <h1>Утренняя воронка</h1>
     <p class="sync" id="sync" aria-live="polite">Подключаю журнал…</p>
   </header>
+
+  <section class="panel" id="eqPanel" hidden></section>
 
   <div class="controls">
     <div class="beans" role="tablist" aria-label="Зерно" id="beanTabs"></div>
@@ -358,7 +363,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       <li>Лейте тонкой струёй по спирали от центра, не на стенки фильтра.</li>
       <li>После последнего пролива один раз покрутите воронку и ждите слива.</li>
     </ol>
-    <p class="hint">Помол записан как положение на C5 ESP: один полный оборот от нуля плюс деление на лимбе. Температура указана по датчику чайника Kitfort.</p>
+    <p class="hint">Помол записан как положение на C5 ESP: один полный оборот от нуля плюс деление на лимбе. Температура указана по датчику вашего чайника.</p>
   </section>
 
   <section class="block">
@@ -431,6 +436,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     "хани": { temp: 93, grind: { 1: "9", 2: "9,5" }, target: { 1: "2:45–3:15", 2: "3:15–3:30" },
       tips: ["Хани-обработка даёт сладость. 93 °C и слив около 3:00 подойдут для старта.", "Слишком приторно и тяжело: помол крупнее на ½.", "Кисло и пусто: помол мельче на ½."] }
   };
+  var EQ_FIELDS = [["dripper", "Воронка", "Cafec V60, пластик"], ["filters", "Фильтры", "Cafec Abaca+"], ["grinder", "Мельница", "Timemore Chestnut C5 ESP"],
+    ["server", "Сервер", "Timemore"], ["kettle", "Чайник", "Kitfort с датчиком температуры"], ["scales", "Весы", "с таймером"], ["other", "Другое", ""]];
+  function defaultEquipment() { var o = {}; EQ_FIELDS.forEach(function (f) { o[f[0]] = f[2]; }); return o; }
   var BEAN_COLORS = ["#F29E7C", "#E8607A", "#D59A5C", "#E3C04A", "#A77CD6", "#6FBF9B", "#5FA8D3", "#C7856B"];
   var DEF_STEPS = {
     "1": [[0, 45], [40, 120], [70, 185], [100, 240]],
@@ -508,7 +516,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     idx: 0, dose: "1",
     beanDocs: {},     // beans/<id>: { recipes: {"1": recipe}, confirmed: {"1": bool} }
     brews: [],        // brews/*
-    catalog: [], view: "panel", collForm: null, delBean: null,
+    equipment: defaultEquipment(), catalog: [], view: "panel", collForm: null, delBean: null,
     dbState: "ready", writable: true,
     editing: false, editDraft: null,
     logOpen: false,
@@ -521,6 +529,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (cache && cache.beanDocs) state.beanDocs = cache.beanDocs;
     if (cache && Array.isArray(cache.brews)) state.brews = cache.brews;
     if (cache && Array.isArray(cache.catalog)) state.catalog = cache.catalog;
+    if (cache && cache.equipment && typeof cache.equipment === "object") state.equipment = Object.assign(defaultEquipment(), cache.equipment);
   } catch (e) {}
 
   // First run: start from the two geisha brews of 29.09 (the recipe for 1 mug is confirmed).
@@ -570,7 +579,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
   function persist() {
     try {
-      localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog }));
+      localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog, equipment: state.equipment }));
       return true;
     } catch (e) { handleWriteError(); return false; }
   }
@@ -1179,7 +1188,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var out = [];
     out.push("Разбери мои заварки фильтр-кофе и скажи, что поменять в следующий раз. Меняй один параметр за раз.");
     out.push("");
-    out.push("Оборудование: воронка Cafec V60, фильтры Cafec Abaca+, мельница Timemore C5 ESP (помол в формате «1 оборот + деление»), чайник Kitfort, весы с таймером.");
+    out.push("Оборудование: " + EQ_FIELDS.filter(function (f) { return state.equipment[f[0]]; }).map(function (f) { return f[1].toLowerCase() + " " + state.equipment[f[0]]; }).join(", ") + ". Помол записан в формате «1 оборот + деление».");
     out.push("Зерно: " + b.country + ", " + b.name + " (" + b.process + "). Заявленные ноты: " + b.notes.join(", ") + "." + (b.roast ? " Обжарка " + ddmm(b.roast) + "." : ""));
     out.push("");
     [ "1", "2" ].forEach(function (dz) {
@@ -1237,7 +1246,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 
   // ---------- export / import ----------
   $("exportBtn").onclick = function () {
-    var payload = JSON.stringify({ app: "voronka", version: 1, exportedAt: new Date().toISOString(), beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog }, null, 2);
+    var payload = JSON.stringify({ app: "voronka", version: 1, exportedAt: new Date().toISOString(), beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog, equipment: state.equipment }, null, 2);
     var blob = new Blob([payload], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1260,6 +1269,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         if (Array.isArray(d.catalog)) d.catalog.forEach(function (c) {
           if (c && c.id && c.name && !beanById(c.id)) { state.catalog.push(c); }
         });
+        if (d.equipment && typeof d.equipment === "object" && JSON.stringify(state.equipment) === JSON.stringify(defaultEquipment())) {
+          state.equipment = Object.assign(defaultEquipment(), d.equipment); renderEquipment();
+        }
         rebuildBeans(); buildTabs();
         Object.keys(d.beanDocs).forEach(function (k) {
           var inc = d.beanDocs[k], cur = state.beanDocs[k];
@@ -1470,6 +1482,35 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (state.collForm && e.target.tagName === "DETAILS") state.collForm.photoOpen = e.target.open;
   }, true);
 
+  // ---------- equipment ----------
+  function eqSummary() {
+    var e = state.equipment, parts = [e.dripper, e.filters, e.grinder].map(function (x) { return String(x || "").trim(); }).filter(Boolean);
+    return parts.length ? parts.join(" · ") : "Моё оборудование";
+  }
+  function renderEquipment() {
+    var btn = $("eqBtn"), panel = $("eqPanel");
+    btn.textContent = eqSummary();
+    var open = !panel.hidden;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (!open) return;
+    panel.innerHTML = '<div><h3>Моё оборудование</h3><p class="sub">Впишите, чем вы завариваете сейчас. Первая строка над названием страницы и текст для разбора заварок берутся отсюда.</p></div>' +
+      '<div class="pgrid">' + EQ_FIELDS.map(function (f) {
+        return '<label class="pfld' + (f[0] === "other" ? " wide" : "") + '"><span>' + f[1] + '</span><input id="q-' + f[0] + '" type="text" value="' + esc(state.equipment[f[0]] || "") + '"' + (f[0] === "other" ? ' placeholder="Вода, ситечко, второй фильтр"' : "") + '></label>';
+      }).join("") + '</div>' +
+      '<div class="pactions"><button type="button" class="p-solid" id="eqSave">Сохранить</button>' +
+      '<button type="button" class="p-ghost" id="eqCancel">Закрыть</button>' +
+      '<button type="button" class="p-ghost" id="eqReset">Вернуть как было</button></div>';
+    $("eqSave").onclick = function () {
+      var o = {}; EQ_FIELDS.forEach(function (f) { o[f[0]] = $("q-" + f[0]).value.trim(); });
+      state.equipment = o;
+      if (persist()) setSync("Оборудование сохранено");
+      panel.hidden = true; renderEquipment();
+    };
+    $("eqCancel").onclick = function () { panel.hidden = true; renderEquipment(); };
+    $("eqReset").onclick = function () { EQ_FIELDS.forEach(function (f) { $("q-" + f[0]).value = f[2]; }); };
+  }
+  $("eqBtn").onclick = function () { var p = $("eqPanel"); p.hidden = !p.hidden; renderEquipment(); };
+
   // ---------- swipe ----------
   var sx = 0, sy = 0, tracking = false;
   labelEl.addEventListener("touchstart", function (e) {
@@ -1501,6 +1542,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
 
   buildTabs();
+  renderEquipment();
   renderAll(0);
   var active = bean() ? $("tab-" + bean().id) : null;
   if (active && state.idx > 0) active.scrollIntoView({ block: "nearest", inline: "center" });
