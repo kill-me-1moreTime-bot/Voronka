@@ -205,6 +205,21 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .addrow { justify-self: start; border: 1px dashed var(--line); background: transparent; border-radius: 9px; padding: 8px 12px; font: 700 14px/1.2 var(--f-body); }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .seg button { border: 1px solid var(--line); background: var(--field); border-radius: 10px; padding: 10px 8px; font: 700 14px/1.2 var(--f-body); }
+.seg3 { grid-template-columns: repeat(3, 1fr); }
+.seg button.pick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.bloompick { display: grid; gap: 8px; }
+.seg button.pick { color: var(--fg); }
+.label .seg button.pick { background: var(--bag-field); color: var(--bag-fg); border-color: var(--bag-line); }
+.label .bloompick .hint { color: var(--bag-muted); }
+.seg button.pick:disabled { opacity: .5; }
+.glink { color: inherit; font-size: 12px; text-transform: none; letter-spacing: 0; text-decoration: underline; padding: 8px 0; }
+.guide { display: grid; gap: 10px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.guide h3 { margin: 0; font: 700 22px/1.1 var(--f-display); }
+.guide ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.guide p { margin: 0; }
+.vlinks { display: grid; gap: 8px; }
+.vlink { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 12px; color: inherit; text-decoration: none; font-weight: 700; }
+.vlink small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .seg button[aria-pressed="true"].yes { border-color: var(--good); color: var(--good); background: var(--good-bg); }
 .seg button[aria-pressed="true"].no { border-color: var(--bad); color: var(--bad); background: var(--bad-bg); }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
@@ -341,6 +356,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   </section>
 
   <section class="block" id="collection" hidden></section>
+  <section class="block" id="guides" hidden></section>
 
   <section class="block">
     <h2>Если чашка не та</h2>
@@ -359,7 +375,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       <li>Поставьте чайник на нужную температуру.</li>
       <li>Промойте фильтр горячей водой, воду из сервера слейте. Сервер заодно прогреется.</li>
       <li>Смелите кофе, засыпьте, сделайте лунку в центре, обнулите весы.</li>
-      <li>Запустите таймер вместе с блюмом. Ложкой не мешайте, только покрутите воронку.</li>
+      <li>Запустите таймер вместе с блюмом. Блюм делайте так, как выбрано в рецепте (см. «Гайды»).</li>
       <li>Лейте тонкой струёй по спирали от центра, не на стенки фильтра.</li>
       <li>После последнего пролива один раз покрутите воронку и ждите слива.</li>
     </ol>
@@ -496,8 +512,37 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function ddmm(iso) { var p = iso.split("-"); return p[2] + "." + p[1]; }
   function ratio(r) { return r.coffee > 0 ? "1:" + fmtNum(r.water / r.coffee) : "—"; }
   function stepLabel(i) { return i === 0 ? "Блюм" : "Пролив " + i; }
-  function stepAction(i, n) {
-    if (i === 0) return "Смочить весь кофе, покрутить воронку. Без ложки.";
+  var BLOOM = {
+    swirl: { name: "Покрутить", act: "Смочить весь кофе, 2–3 раза покрутить воронку. Без ложки.", hint: "Мягкий вариант: гуща выравнивается, фильтр не забивается." },
+    spoon: { name: "Ложка", act: "Смочить весь кофе, 3–4 раза мягко перемешать ложкой, не задевая фильтр.", hint: "Для комков сухого кофе. На тонком помоле может забить фильтр и затянуть слив." },
+    none: { name: "Не трогать", act: "Смочить весь кофе тонкой струёй. Не мешать и не крутить.", hint: "Для крупного помола и свежей обжарки: слив быстрее, вкус чище." }
+  };
+  var BLOOM_KEYS = ["swirl", "spoon", "none"];
+  function bloomOf(x) { return x && BLOOM[x.bloom] ? x.bloom : "swirl"; }
+  function bloomPickHtml(id, cur) {
+    return '<div class="bloompick"><p class="sched-title"><span>Блюм</span><a href="#" class="glink" data-guide="bloom">как выбрать</a></p>' +
+      '<div class="seg seg3" role="radiogroup" aria-label="Техника блума" id="' + id + '">' +
+      BLOOM_KEYS.map(function (k) {
+        return '<button type="button" class="pick" role="radio" data-bloom="' + k + '" aria-checked="' + (k === cur) + '" aria-pressed="' + (k === cur) + '">' + BLOOM[k].name + '</button>';
+      }).join("") + '</div><p class="hint" id="' + id + '-hint">' + BLOOM[cur].hint + '</p></div>';
+  }
+  function bindBloomPick(id, onPick) {
+    var box = $(id); if (!box) return;
+    box.querySelectorAll("[data-bloom]").forEach(function (btn) {
+      btn.onclick = function () {
+        var k = btn.getAttribute("data-bloom");
+        box.querySelectorAll("[data-bloom]").forEach(function (o) {
+          var on = o === btn; o.setAttribute("aria-pressed", on); o.setAttribute("aria-checked", on);
+        });
+        $(id + "-hint").textContent = BLOOM[k].hint;
+        onPick(k);
+      };
+    });
+    var g = box.parentNode.querySelector("[data-guide]");
+    if (g) g.onclick = function (e) { e.preventDefault(); openGuides(g.getAttribute("data-guide")); };
+  }
+  function stepAction(i, n, bl) {
+    if (i === 0) return BLOOM[bl || "swirl"].act;
     if (i === n - 1) return "Долить и один раз покрутить воронку.";
     return "Спираль от центра, тонкая струя, не на стенки.";
   }
@@ -506,7 +551,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function defaultRecipe(b, dose) {
     return {
       coffee: DEF_DOSE[dose].coffee, water: DEF_DOSE[dose].water, temp: b.temp,
-      grind: b.grind[dose], target: b.target[dose],
+      grind: b.grind[dose], target: b.target[dose], bloom: "swirl",
       steps: DEF_STEPS[dose].map(function (p) { return { t: p[0], to: p[1] }; })
     };
   }
@@ -610,6 +655,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     c.type = "button"; c.className = "bean-tab coll-tab"; c.id = "collTab";
     c.addEventListener("click", function () { toggleCollection(); });
     tabsEl.appendChild(c);
+    var g = document.createElement("button");
+    g.type = "button"; g.className = "bean-tab coll-tab"; g.id = "guideTab"; g.textContent = "Гайды";
+    g.addEventListener("click", function () { if (state.view === "guides") toggleGuides(); else openGuides(); });
+    tabsEl.appendChild(g);
   }
   tabsEl.addEventListener("keydown", function (e) {
     if (!BEANS.length || state.view !== "panel") return;
@@ -631,6 +680,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       c.innerHTML = 'Коллекция <span class="count">' + state.catalog.length + '</span>';
       c.setAttribute("aria-pressed", state.view === "collection" ? "true" : "false");
     }
+    var gt = $("guideTab");
+    if (gt) gt.setAttribute("aria-pressed", state.view === "guides" ? "true" : "false");
   }
   var doseBtns = document.querySelectorAll("#doseToggle button");
   doseBtns.forEach(function (btn) {
@@ -677,7 +728,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var add = s.to - last; last = s.to;
       return '<li class="step"><span class="t">' + fmtTime(s.t) + '</span>' +
         '<span class="w">' + s.to + '<small> г</small></span>' +
-        '<span class="a"><i>' + stepLabel(i) + ' · +' + add + ' г</i>' + stepAction(i, n) + '</span></li>';
+        '<span class="a"><i>' + stepLabel(i) + ' · +' + add + ' г</i>' + stepAction(i, n, bloomOf(r)) + '</span></li>';
     }).join("");
 
     labelEl.innerHTML =
@@ -698,6 +749,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       '</div>' +
       '<div><p class="sched-title"><span>Весы, нарастающим итогом</span><span>блюм + ' + poursWord(n - 1) + '</span></p>' +
         '<ol class="sched">' + steps + '</ol>' +
+        bloomPickHtml("cardBloom", bloomOf(r)) +
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
       '<button type="button" class="confirm' + (ok ? " on" : "") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") + '>' +
         (ok ? "✓ Рецепт подтверждён · нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '</button>' +
@@ -711,6 +763,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       $("prevBean").onclick = function () { go((state.idx - 1 + BEANS.length) % BEANS.length, -1); };
       $("nextBean").onclick = function () { go((state.idx + 1) % BEANS.length, 1); };
     }
+    bindBloomPick("cardBloom", function (k) {
+      if (!canSave()) return;
+      var id = b.id, dz = dose;
+      writeBean(id, function (doc) { var base = clone(doc.recipes[dz] || defaultRecipe(b, dz)); base.bloom = k; doc.recipes[dz] = base; });
+      renderCard(0);
+    });
+    if (!canSave()) labelEl.querySelectorAll("#cardBloom [data-bloom]").forEach(function (x) { x.disabled = true; });
     $("editBtn").onclick = startEdit;
     $("shelveBtn").onclick = function () { setStatus(b.id, "shelf"); };
     $("confirmBtn").onclick = function () {
@@ -728,7 +787,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var b = bean();
     var r = clone(recipeFor(b, state.dose));
     state.editDraft = {
-      coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind), target: String(r.target || ""),
+      coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind), target: String(r.target || ""), bloom: bloomOf(r),
       steps: r.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; })
     };
     state.editing = true;
@@ -763,6 +822,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         fld("e-grind", "Помол, 1 об. +", dr.grind, "decimal") +
         '<label class="fld wide"><span>Слив закончится (цель)</span><input id="e-target" type="text" value="' + esc(dr.target) + '" placeholder="3:00–3:15"></label>' +
       '</div>' +
+      bloomPickHtml("editBloom", bloomOf(dr)) +
       '<div class="stepper"><span>Проливов после блюма</span><div>' +
         '<button type="button" class="round" id="e-minus" aria-label="Меньше проливов"' + (pours <= 1 ? " disabled" : "") + '>−</button>' +
         '<b id="e-count">' + pours + '</b>' +
@@ -777,6 +837,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         (custom ? '<button type="button" class="btn-ghost" id="e-reset">Вернуть рекомендацию</button>' : "") +
       '</div>';
     renderEditSteps();
+    bindBloomPick("editBloom", function (k) { dr.bloom = k; });
 
     bindDraft("e-coffee", "coffee"); bindDraft("e-temp", "temp"); bindDraft("e-grind", "grind"); bindDraft("e-target", "target");
     $("e-water").addEventListener("input", function () {
@@ -843,7 +904,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function validateRecipe(o) {
     var r = {
       coffee: num(o.coffee), water: num(o.water), temp: num(o.temp), grind: String(o.grind || "").trim(),
-      target: String(o.target || "").trim(),
+      target: String(o.target || "").trim(), bloom: bloomOf(o),
       steps: o.steps.map(function (s, i) { return { t: i === 0 ? 0 : parseTime(s.t), to: num(s.to) }; })
     };
     if (!(r.coffee > 0)) return { err: "Укажите вес кофе." };
@@ -881,6 +942,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var r = recipeFor(bean(), state.dose);
     return {
       coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind),
+      bloom: bloomOf(r),
       steps: r.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; }),
       drawdown: "", descriptors: "", hot: "", cooled: "", notes: "", verdict: null, apply: false
     };
@@ -898,6 +960,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var key = draftKey();
     if (!drafts[key]) drafts[key] = freshDraft();
     var dr = drafts[key], b = bean();
+    if (!BLOOM[dr.bloom]) dr.bloom = bloomOf(recipeFor(b, state.dose));
     var panel = $("logPanel");
     panel.innerHTML =
       '<div><h3>Заварка ' + esc(b.short) + '</h3><p class="sub">Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.</p></div>' +
@@ -906,6 +969,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         pfld("l-coffee", "Кофе, г", dr.coffee) + pfld("l-water", "Вода, г", dr.water) +
         pfld("l-temp", "Чайник, °C", dr.temp) + pfld("l-grind", "Помол", dr.grind) +
       '</div>' +
+      bloomPickHtml("logBloom", dr.bloom) +
       '<div class="pfld"><span>Проливы по факту, время и вес на весах</span></div>' +
       '<div class="esteps" id="l-steps"></div>' +
       '<button type="button" class="addrow" id="l-add">+ пролив</button>' +
@@ -927,6 +991,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<button type="button" class="p-ghost" id="l-clear">Очистить</button>' +
       '</div>';
     renderLogSteps();
+    bindBloomPick("logBloom", function (k) { dr.bloom = k; saveDrafts(); });
     bindTimer();
     panel.querySelectorAll("[data-adj-draw]").forEach(function (btn) {
       btn.onclick = function () {
@@ -1081,14 +1146,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function saveBrew() {
     if (tm.on) { tmStopTimer(); tm.done = false; }
     var key = draftKey(), dr = drafts[key], b = bean(), dz = state.dose;
-    var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", steps: dr.steps });
+    var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", bloom: dr.bloom, steps: dr.steps });
     if (v.err) { $("l-err").textContent = v.err; return; }
     var dd = parseTime(dr.drawdown);
     if (dr.drawdown.trim() && !isFinite(dd)) { $("l-err").textContent = "Время слива в формате 3:30."; return; }
     var r = v.ok;
     var doc = {
       bean: b.id, dose: dz, at: new Date().toISOString(),
-      coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, steps: r.steps,
+      coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, steps: r.steps,
       drawdown: dd == null ? null : dd,
       descriptors: dr.descriptors.trim(), hot: dr.hot.trim(), cooled: dr.cooled.trim(), notes: dr.notes.trim(),
       verdict: dr.verdict || null
@@ -1107,7 +1172,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         if (dr.verdict) bd.confirmed[dz] = dr.verdict === "confirmed";
         if (dr.apply) {
           var old = bd.recipes[dz] || defaultRecipe(b, dz);
-          bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, target: old.target || "", steps: r.steps };
+          bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, target: old.target || "", steps: r.steps };
         }
       });
     }
@@ -1137,6 +1202,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var params = [fmtNum(x.coffee) + " г", fmtNum(x.water) + " г", fmtNum(x.temp) + " °C", "помол " + esc(x.grind)];
       if (x.drawdown != null) params.push("слив " + fmtTime(x.drawdown));
       if (pours > 0) params.push("блюм + " + pours);
+      if (x.bloom && BLOOM[x.bloom]) params.push("блюм: " + BLOOM[x.bloom].name.toLowerCase());
       var verdict = x.verdict === "confirmed" ? '<span class="bpill yes">подтверждён</span>' : x.verdict === "rejected" ? '<span class="bpill no">не подтверждён</span>' : "";
       var rows = [["Горячая", x.hot], ["Остывшая", x.cooled], ["Заметки", x.notes]].filter(function (p) { return p[1]; })
         .map(function (p) { return '<div><dt>' + p[0] + '</dt><dd>' + esc(p[1]) + '</dd></div>'; }).join("");
@@ -1169,7 +1235,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         var dz = x.dose === "2" ? "2" : "1", bb = beanById(x.bean);
         writeBean(x.bean, function (bd) {
           var old = bd.recipes[dz] || defaultRecipe(bb, dz);
-          bd.recipes[dz] = { coffee: x.coffee, water: x.water, temp: x.temp, grind: x.grind, target: old.target || "", steps: x.steps };
+          bd.recipes[dz] = { coffee: x.coffee, water: x.water, temp: x.temp, grind: x.grind, bloom: bloomOf(x), target: old.target || "", steps: x.steps };
         });
         if (dz !== state.dose) { state.dose = dz; store("voronka-dose", dz); renderDose(); }
         state.editing = false;
@@ -1194,7 +1260,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     [ "1", "2" ].forEach(function (dz) {
       var r = recipeFor(b, dz);
       out.push("Текущий рецепт, " + DOSE_LABEL[dz] + " (" + (isConfirmed(b.id, dz) ? "подтверждён" : "не подтверждён") + "): " +
-        fmtNum(r.coffee) + " г кофе, " + fmtNum(r.water) + " г воды, " + fmtNum(r.temp) + " °C, помол " + r.grind + ", цель слива " + (r.target || "—") + ". Шаги: " +
+        fmtNum(r.coffee) + " г кофе, " + fmtNum(r.water) + " г воды, " + fmtNum(r.temp) + " °C, помол " + r.grind + ", блюм: " + BLOOM[bloomOf(r)].name.toLowerCase() + ", цель слива " + (r.target || "—") + ". Шаги: " +
         r.steps.map(function (st) { return fmtTime(st.t) + " до " + st.to + " г"; }).join("; ") + ".");
     });
     out.push("");
@@ -1205,6 +1271,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       list.forEach(function (x, i) {
         var dt = new Date(x.at), when = isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
         var line = (i + 1) + ") " + when + ", " + (DOSE_LABEL[x.dose] || "") + ": " + fmtNum(x.coffee) + " г / " + fmtNum(x.water) + " г, " + fmtNum(x.temp) + " °C, помол " + x.grind;
+        if (x.bloom && BLOOM[x.bloom]) line += ", блюм: " + BLOOM[x.bloom].name.toLowerCase();
         if (Array.isArray(x.steps)) line += ", шаги " + x.steps.map(function (st) { return fmtTime(st.t) + "→" + st.to; }).join(" ");
         if (x.drawdown != null) line += ", слив закончился на " + fmtTime(x.drawdown);
         if (x.verdict) line += ", итог: " + (x.verdict === "confirmed" ? "рецепт подтверждён" : "не подтверждён");
@@ -1216,7 +1283,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       });
     }
     out.push("");
-    out.push("Ответь по пунктам: 1) что говорят мои ноты о недоэкстракции или перевытяжке; 2) какой один параметр изменить следующим и на сколько; 3) что оставить без изменений; 4) чего не хватает в моих записях, чтобы советы были точнее.");
+    out.push("Ответь по пунктам: 1) что говорят мои ноты о недоэкстракции или перевытяжке; 2) какой один параметр изменить следующим и на сколько; 3) что оставить без изменений; 4) подходит ли мой способ блума (покрутить, ложка или не трогать) для этого зерна и помола; 5) чего не хватает в моих записях, чтобы советы были точнее.");
     return out.join("\n");
   }
   function renderAnalyze() {
@@ -1308,6 +1375,55 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     renderAll();
     if (state.view === "panel") window.scrollTo(0, 0);
   }
+  var GUIDES = [
+    { id: "bloom", title: "Блум: как смочить кофе", lead: "Блюм: первая порция воды, 2–3 веса кофе (у вас 45 г на 15 г и 60 г на 22 г), пауза 30–45 секунд. Газ выходит, и дальше вода проходит слой ровнее.",
+      steps: [
+        "Поставьте воронку на сервер, налейте кофе, обнулите весы.",
+        "Запустите секундомер и лейте блюм 3–5 секунд, чтобы смочить весь кофе, включая края.",
+        "Выберите движение: покрутить воронку 2–3 раза, мягко перемешать ложкой 3–4 раза или не трогать совсем.",
+        "Ждите до времени следующего пролива по рецепту. Гуща должна лежать ровно и слегка вспучиться.",
+        "Смотрите на слив. Если дольше цели или на финише орех и сухость, в следующий раз выберите «Покрутить» или «Не трогать», а помол сделайте на ½ крупнее."
+      ],
+      pick: [
+        ["Покрутить", "по умолчанию. Так делает Хоффман: гуща выравнивается, риск засора минимальный."],
+        ["Ложка", "если остаются сухие комки. С Abaca+ и тонким помолом у вас однажды забило фильтр (слив 4:10)."],
+        ["Не трогать", "для крупного помола и метода 4:6 Тэцу Касуя; слив быстрее, вкус чище."]
+      ],
+      videos: [
+        ["The Ultimate V60 Technique", "James Hoffmann · блюм с кручением воронки", "https://www.youtube.com/watch?v=AI4ynXzkSQo"],
+        ["A Better 1 Cup V60 Technique", "James Hoffmann · вариант на одну чашку", "https://www.youtube.com/watch?v=1oB1oDrDkHM"],
+        ["3 Essential Hario V60 Recipes", "European Coffee Trip · Хоффман, Касуя и другие рядом", "https://www.youtube.com/watch?v=P0mI6Ue8BKc"]
+      ] },
+    { id: "filter", title: "Подготовка фильтра", lead: "Промывка убирает бумажный привкус и прогревает пластиковую воронку и сервер: температура в первые секунды не падает.",
+      steps: [
+        "Сложите фильтр по шву и вставьте в воронку, прижмите к стенкам.",
+        "Нагрейте воду в чайнике до рабочей температуры рецепта.",
+        "Смочите весь фильтр по кругу, включая складки. Хватит примерно 100 г, вода пусть стекает полностью.",
+        "Слейте воду из сервера и поставьте воронку обратно. Сервер уже тёплый.",
+        "Насыпьте кофе, слегка встряхните, чтобы слой лёг ровно, и обнулите весы."
+      ],
+      pick: [],
+      videos: [
+        ["The Ultimate V60 Technique", "James Hoffmann · промывка фильтра показана в начале", "https://www.youtube.com/watch?v=AI4ynXzkSQo"]
+      ] }
+  ];
+  function renderGuides() {
+    $("guides").innerHTML = '<h2>Гайды</h2><p class="hint">Короткие шаги и ссылки на видео. Ролики открываются на YouTube.</p>' + GUIDES.map(function (g) {
+      return '<article class="guide" id="guide-' + g.id + '"><h3>' + esc(g.title) + '</h3><p>' + esc(g.lead) + '</p>' +
+        '<ol>' + g.steps.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ol>' +
+        (g.pick.length ? '<p class="sched-title"><span>Что выбрать</span></p><ul class="tips">' + g.pick.map(function (x) { return '<li><b>' + esc(x[0]) + '</b>: ' + esc(x[1]) + '</li>'; }).join("") + '</ul>' : '') +
+        '<p class="sched-title"><span>Видео</span></p><div class="vlinks">' + g.videos.map(function (v) {
+          return '<a class="vlink" href="' + v[2] + '" target="_blank" rel="noopener noreferrer">' + esc(v[0]) + '<small>' + esc(v[1]) + '</small></a>';
+        }).join("") + '</div></article>';
+    }).join("");
+  }
+  function openGuides(id) {
+    state.view = "guides"; state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
+    renderAll();
+    var el = id ? $("guide-" + id) : null;
+    if (el) el.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0);
+  }
+  function toggleGuides() { state.view = "panel"; renderAll(); window.scrollTo(0, 0); }
   function toggleCollection() {
     state.view = state.view === "collection" ? "panel" : "collection";
     state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
@@ -1526,14 +1642,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }, { passive: true });
 
   function renderAll(dir) {
-    var inColl = state.view === "collection", has = BEANS.length > 0;
+    var inColl = state.view === "collection", inGuides = state.view === "guides", has = BEANS.length > 0;
     if ((tm.on || tm.done) && (!has || inColl || tm.key !== draftKeySafe())) timerReset();
     if (state.idx >= BEANS.length) state.idx = Math.max(0, BEANS.length - 1);
     renderTabs(); renderDose();
-    $("doseToggle").hidden = inColl || !has;
-    $("panel").hidden = inColl || !has;
-    $("emptyPanel").hidden = inColl || has;
+    $("doseToggle").hidden = inColl || inGuides || !has;
+    $("panel").hidden = inColl || inGuides || !has;
+    $("emptyPanel").hidden = inColl || inGuides || has;
     $("collection").hidden = !inColl;
+    $("guides").hidden = !inGuides;
+    if (inGuides) { renderGuides(); return; }
     if (inColl) { renderCollection(); return; }
     if (!has) return;
     renderCard(dir || 0); renderTips(); renderLogButton();
