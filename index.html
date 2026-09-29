@@ -30,6 +30,7 @@ body{margin:0}
   --good: #2E7A4D;
   --bad: #A64B2A;
   --bag: #161413;
+  --splash-bg: #161413; --splash-fg: #F3F1EE; --splash-muted: #A8A19A;
   --bag-fg: #F3F1EE;
   --bag-muted: #A8A19A;
   --bag-line: #35312E;
@@ -84,8 +85,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .beans::-webkit-scrollbar { display: none; }
 .bean-tab {
   flex: 0 0 auto; scroll-snap-align: start; display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
-  font: 700 15px/1.2 var(--f-body);
+  padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  font: 700 17px/1.2 var(--f-body);
 }
 .bean-tab .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
 .bean-tab .ok { color: var(--good); font-size: 14px; }
@@ -262,10 +263,18 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   .key b { font-size: 44px; }
   .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-.coll-tab { border-style: dashed; }
-.coll-tab .count { font: 500 12px/1 var(--f-mono); color: var(--muted); }
-.coll-tab[aria-pressed="true"] { background: var(--bag); color: var(--bag-fg); border-color: var(--bag); border-style: solid; }
-.coll-tab[aria-pressed="true"] .count { color: var(--bag-muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mainnav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.nav-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font: 700 26px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.nav-tab .count { font: 500 14px/1 var(--f-mono); color: var(--muted); }
+.nav-tab[aria-pressed="true"] { background: var(--bag); color: var(--bag-fg); border-color: var(--bag); }
+.nav-tab[aria-pressed="true"] .count { color: var(--bag-muted); }
+#splash { position: fixed; inset: 0; z-index: 50; background: var(--splash-bg); color: var(--splash-fg); display: grid; place-content: center; justify-items: center; gap: 18px; text-align: center; transition: opacity .3s ease; }
+#splash.off { opacity: 0; }
+#splash img { width: 152px; height: 152px; border-radius: 34px; }
+#splash b { font: 700 44px/0.95 var(--f-display); letter-spacing: .02em; }
+#splash span { font-size: 14px; color: var(--splash-muted); }
+@media (prefers-reduced-motion: reduce) { #splash { transition: none; } }
 .btn-ghost.wide { width: 100%; }
 .coll-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .coll-head h2 { margin: 0; font: 700 28px/1 var(--f-display); }
@@ -309,10 +318,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 
 </head>
 <body>
+<div id="splash" role="presentation"><img src="icon-192.png" alt=""><b>Утренняя воронка</b><span>V60 · журнал заварок</span></div>
 <div class="wrap">
   <header class="top">
     <button type="button" class="eyebrow eq-btn" id="eqBtn" aria-expanded="false" aria-controls="eqPanel"></button>
-    <h1>Утренняя воронка</h1>
+    <h1 class="sr">Утренняя воронка</h1>
+    <nav class="mainnav" id="mainNav" aria-label="Разделы"></nav>
     <p class="sync" id="sync" aria-live="polite">Подключаю журнал…</p>
   </header>
 
@@ -652,13 +663,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       tabsEl.appendChild(t);
     });
     var c = document.createElement("button");
-    c.type = "button"; c.className = "bean-tab coll-tab"; c.id = "collTab";
+    c.type = "button"; c.className = "nav-tab"; c.id = "collTab";
     c.addEventListener("click", function () { toggleCollection(); });
-    tabsEl.appendChild(c);
+    $("mainNav").appendChild(c);
     var g = document.createElement("button");
-    g.type = "button"; g.className = "bean-tab coll-tab"; g.id = "guideTab"; g.textContent = "Гайды";
+    g.type = "button"; g.className = "nav-tab"; g.id = "guideTab"; g.textContent = "Гайды";
     g.addEventListener("click", function () { if (state.view === "guides") toggleGuides(); else openGuides(); });
-    tabsEl.appendChild(g);
+    $("mainNav").appendChild(g);
   }
   tabsEl.addEventListener("keydown", function (e) {
     if (!BEANS.length || state.view !== "panel") return;
@@ -1668,6 +1679,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
   }
+})();
+</script>
+<script>
+(function () {
+  var sp = document.getElementById("splash"); if (!sp) return;
+  var seen = false;
+  try { seen = sessionStorage.getItem("voronka-splash") === "1"; sessionStorage.setItem("voronka-splash", "1"); } catch (e) {}
+  if (seen) { sp.hidden = true; return; }
+  function hide() { sp.classList.add("off"); setTimeout(function () { sp.hidden = true; }, 350); }
+  sp.onclick = hide; setTimeout(hide, 1400);
 })();
 </script>
 
