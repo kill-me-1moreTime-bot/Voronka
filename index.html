@@ -12,6 +12,7 @@
 <style>
 :root{color-scheme:light}
 body{margin:0}
+[hidden]{display:none!important}
 </style>
 <title>Утренняя воронка</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -188,10 +189,11 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .pfld { display: grid; gap: 4px; min-width: 0; }
 .pfld > span { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .pfld.wide { grid-column: 1 / -1; }
-.panel input, .panel textarea {
+.panel input, .panel textarea, .panel select {
   width: 100%; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 9px;
   padding: 9px 10px; font-size: 16px; line-height: 1.35;
 }
+.panel select { appearance: auto; }
 .panel input.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .panel textarea { resize: vertical; min-height: 64px; }
 .prow { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) 38px; gap: 8px; align-items: center; }
@@ -242,6 +244,31 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   .key b { font-size: 44px; }
   .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+.coll-tab { border-style: dashed; }
+.coll-tab .count { font: 500 12px/1 var(--f-mono); color: var(--muted); }
+.coll-tab[aria-pressed="true"] { background: var(--bag); color: var(--bag-fg); border-color: var(--bag); border-style: solid; }
+.coll-tab[aria-pressed="true"] .count { color: var(--bag-muted); }
+.btn-ghost.wide { width: 100%; }
+.coll-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.coll-head h2 { margin: 0; font: 700 28px/1 var(--f-display); }
+.coll-group { display: grid; gap: 10px; }
+.coll-group h3 { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.bean-item { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 8px; }
+.bean-item header { display: flex; align-items: flex-start; gap: 10px; }
+.bean-item .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; margin-top: 7px; }
+.bean-item header div { min-width: 0; }
+.bean-item h4 { margin: 0; font: 700 22px/1.1 var(--f-display); text-transform: uppercase; overflow-wrap: anywhere; }
+.bean-item .meta { margin: 0; font-size: 13px; color: var(--muted); }
+.bean-item .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bean-item .tags li { font-size: 13px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); }
+.bean-item .facts { margin: 0; font: 500 13px/1.45 var(--f-mono); color: var(--muted); }
+.bean-item footer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); background: var(--c); padding: 0; }
+.sw[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 3px var(--surface) inset; }
+details.photo { border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; }
+details.photo summary { cursor: pointer; font-weight: 700; }
+details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; }
 .analyze { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .analyze .hint { flex-basis: 100%; }
 .filebtn { display: inline-block; cursor: pointer; }
@@ -287,6 +314,14 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     </section>
   </main>
 
+  <section class="panel" id="emptyPanel" hidden>
+    <h3>На панели нет открытых пачек</h3>
+    <p class="sub">Откройте коллекцию, поставьте на панель зерно, которое сейчас завариваете, или добавьте новое.</p>
+    <div class="pactions"><button type="button" class="p-solid" id="emptyOpen">Открыть коллекцию</button></div>
+  </section>
+
+  <section class="block" id="collection" hidden></section>
+
   <section class="block">
     <h2>Если чашка не та</h2>
     <div class="fix">
@@ -328,7 +363,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   "use strict";
 
   // ---------- reference data (recommendations) ----------
-  var BEANS = [
+  var SEED_BEANS = [
     { id: "geisha", short: "Гейша", country: "Колумбия", name: "Гейша Хоан Гаска", process: "мытый", score: "87+",
       roast: "2026-07-21", color: "#F29E7C", notes: ["грейпфрут", "маракуйя", "персик", "гибискус"],
       temp: 94, grind: { 1: "8,5", 2: "9" }, target: { 1: "3:15–3:30", 2: "3:30–3:45" },
@@ -368,6 +403,20 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
         "Красный виноград сильнее на чуть остывшей чашке."
       ] }
   ];
+  var PROCESSES = ["мытый", "натуральный", "натуральный фанки", "анаэробный", "хани"];
+  var PROC = {
+    "мытый": { temp: 94, grind: { 1: "8,5", 2: "9" }, target: { 1: "3:15–3:30", 2: "3:30–3:45" },
+      tips: ["Мытые светлые кофе лучше раскрываются при 93–94 °C. Ориентир по сливу 3:15–3:30.", "Кисло и пусто: помол мельче на ½. Горчит или сухо: крупнее на ½.", "Ложкой в блюме не мешайте, достаточно покрутить воронку."] },
+    "натуральный": { temp: 93, grind: { 1: "9", 2: "9,5" }, target: { 1: "2:45–3:15", 2: "3:15–3:30" },
+      tips: ["Натуральные кофе легко перевытягиваются. Начните с 93 °C и слива около 3:00.", "Вкус браги или сухо на финише: температура на 1 °C ниже или помол крупнее.", "Кисло и пусто: помол мельче на ½."] },
+    "натуральный фанки": { temp: 92, grind: { 1: "9", 2: "9,5" }, target: { 1: "2:45–3:15", 2: "3:15–3:30" },
+      tips: ["Фанки-натуралы лучше держать около 92 °C, иначе выходят ликёр и брага.", "Сухо на финише: помол 9,5 или чайник на 1 °C ниже.", "Через 5 минут остывшая чашка часто раскрывает больше ягод."] },
+    "анаэробный": { temp: 92, grind: { 1: "9", 2: "9,5" }, target: { 1: "2:45–3:15", 2: "3:15–3:30" },
+      tips: ["Анаэробы яркие и плотные. Начните с 92 °C и следите, чтобы слив не затянулся.", "Слишком сладко и тяжело: помол крупнее на ½.", "Сравните вкус горячей и остывшей чашки."] },
+    "хани": { temp: 93, grind: { 1: "9", 2: "9,5" }, target: { 1: "2:45–3:15", 2: "3:15–3:30" },
+      tips: ["Хани-обработка даёт сладость. 93 °C и слив около 3:00 подойдут для старта.", "Слишком приторно и тяжело: помол крупнее на ½.", "Кисло и пусто: помол мельче на ½."] }
+  };
+  var BEAN_COLORS = ["#F29E7C", "#E8607A", "#D59A5C", "#E3C04A", "#A77CD6", "#6FBF9B", "#5FA8D3", "#C7856B"];
   var DEF_STEPS = {
     "1": [[0, 45], [40, 120], [70, 185], [100, 240]],
     "2": [[0, 60], [45, 150], [80, 250], [115, 350]]
@@ -444,6 +493,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     idx: 0, dose: "1",
     beanDocs: {},     // beans/<id>: { recipes: {"1": recipe}, confirmed: {"1": bool} }
     brews: [],        // brews/*
+    catalog: [], view: "panel", collForm: null, delBean: null,
     dbState: "ready", writable: true,
     editing: false, editDraft: null,
     logOpen: false,
@@ -455,6 +505,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     var cache = JSON.parse(load("voronka-data") || "null");
     if (cache && cache.beanDocs) state.beanDocs = cache.beanDocs;
     if (cache && Array.isArray(cache.brews)) state.brews = cache.brews;
+    if (cache && Array.isArray(cache.catalog)) state.catalog = cache.catalog;
   } catch (e) {}
 
   // First run: start from the two geisha brews of 29.09 (the recipe for 1 mug is confirmed).
@@ -470,8 +521,16 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
         descriptors: "курага, персик, грейпфрут", hot: "Кислинка мягкая, приятная. Ореха нет.", cooled: "", verdict: "confirmed",
         notes: "Блюм без ложки." }
     ];
-    try { localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews })); } catch (e) {}
   }
+
+  // Каталог зёрен: пять исходных, если своего ещё нет
+  if (!state.catalog.length) {
+    state.catalog = clone(SEED_BEANS).map(function (b) { b.status = "active"; return b; });
+  }
+  var BEANS = [];
+  function rebuildBeans() { BEANS = state.catalog.filter(function (b) { return b.status !== "shelf"; }); }
+  function beanById(id) { return state.catalog.find(function (b) { return b.id === id; }) || null; }
+  rebuildBeans();
 
   var fromHash = BEANS.findIndex(function (b) { return "#" + b.id === location.hash; });
   var saved = BEANS.findIndex(function (b) { return b.id === load("voronka-bean"); });
@@ -496,7 +555,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   }
   function persist() {
     try {
-      localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews }));
+      localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog }));
       return true;
     } catch (e) { handleWriteError(); return false; }
   }
@@ -513,26 +572,41 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 
   // ---------- tabs & dose ----------
   var tabsEl = $("beanTabs");
-  BEANS.forEach(function (b, i) {
-    var t = document.createElement("button");
-    t.type = "button"; t.className = "bean-tab"; t.id = "tab-" + b.id;
-    t.setAttribute("role", "tab"); t.setAttribute("aria-controls", "panel");
-    t.style.setProperty("--c", b.color);
-    t.addEventListener("click", function () { go(i); });
-    tabsEl.appendChild(t);
-  });
+  function buildTabs() {
+    tabsEl.innerHTML = "";
+    BEANS.forEach(function (b, i) {
+      var t = document.createElement("button");
+      t.type = "button"; t.className = "bean-tab"; t.id = "tab-" + b.id;
+      t.setAttribute("role", "tab");
+      t.style.setProperty("--c", b.color);
+      t.addEventListener("click", function () { go(i); });
+      tabsEl.appendChild(t);
+    });
+    var c = document.createElement("button");
+    c.type = "button"; c.className = "bean-tab coll-tab"; c.id = "collTab";
+    c.addEventListener("click", function () { toggleCollection(); });
+    tabsEl.appendChild(c);
+  }
   tabsEl.addEventListener("keydown", function (e) {
+    if (!BEANS.length || state.view !== "panel") return;
     if (e.key === "ArrowRight") { e.preventDefault(); go((state.idx + 1) % BEANS.length, 1, true); }
     if (e.key === "ArrowLeft") { e.preventDefault(); go((state.idx - 1 + BEANS.length) % BEANS.length, -1, true); }
   });
   function renderTabs() {
     BEANS.forEach(function (b, i) {
       var t = $("tab-" + b.id);
+      if (!t) return;
       var ok = isConfirmed(b.id, state.dose);
       t.innerHTML = '<span class="dot" aria-hidden="true"></span>' + esc(b.short) + (ok ? ' <span class="ok" aria-label="рецепт подтверждён">✓</span>' : "");
-      t.setAttribute("aria-selected", i === state.idx ? "true" : "false");
-      t.tabIndex = i === state.idx ? 0 : -1;
+      var sel = state.view === "panel" && i === state.idx;
+      t.setAttribute("aria-selected", sel ? "true" : "false");
+      t.tabIndex = sel ? 0 : -1;
     });
+    var c = $("collTab");
+    if (c) {
+      c.innerHTML = 'Коллекция <span class="count">' + state.catalog.length + '</span>';
+      c.setAttribute("aria-pressed", state.view === "collection" ? "true" : "false");
+    }
   }
   var doseBtns = document.querySelectorAll("#doseToggle button");
   doseBtns.forEach(function (btn) {
@@ -549,8 +623,10 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   }
 
   function go(i, dir, focusTab) {
-    if (i === state.idx) return;
+    if (!BEANS[i]) return;
+    if (i === state.idx && state.view === "panel") return;
     var d = dir || (i > state.idx ? 1 : -1);
+    state.view = "panel";
     state.idx = i; store("voronka-bean", BEANS[i].id);
     state.editing = false; state.editDraft = null; state.logOpen = false; state.delAsk = null;
     try { history.replaceState(null, "", "#" + BEANS[i].id); } catch (e) {}
@@ -569,7 +645,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     document.documentElement.style.setProperty("--accent", b.color);
     if (state.editing) { renderEditor(); return; }
     var r = recipeFor(b, dose), custom = !!customRecipe(b.id, dose), ok = isConfirmed(b.id, dose);
-    var d = daysSince(b.roast), f = freshness(d);
+    var d = b.roast ? daysSince(b.roast) : null, f = d == null ? null : freshness(d);
     var prev = BEANS[(state.idx - 1 + BEANS.length) % BEANS.length];
     var next = BEANS[(state.idx + 1) % BEANS.length];
     var n = r.steps.length, last = 0;
@@ -587,7 +663,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
         '<button type="button" class="btn-ghost" id="editBtn"' + (canSave() ? "" : " disabled") + '>Изменить</button>' +
       '</div>' +
       '<ul class="notes">' + b.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' +
-      '<div class="chips"><span>Обжарка ' + ddmm(b.roast) + ' · ' + d + ' ' + plural(d, "день", "дня", "дней") + '</span><span class="pill ' + f.cls + '">' + f.text + '</span></div>' +
+      (d == null ? '' : '<div class="chips"><span>Обжарка ' + ddmm(b.roast) + ' · ' + d + ' ' + plural(d, "день", "дня", "дней") + '</span><span class="pill ' + f.cls + '">' + f.text + '</span></div>') +
       '<div class="chips"><span class="pill ' + (ok ? "good" : "plain") + '">' + (ok ? "рецепт подтверждён" : "не подтверждён") + '</span>' +
         '<span class="pill plain">' + (custom ? "ваш рецепт" : "рекомендация") + '</span></div>' +
       '<div class="keys">' +
@@ -601,14 +677,18 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
       '<button type="button" class="confirm' + (ok ? " on" : "") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") + '>' +
         (ok ? "✓ Рецепт подтверждён · нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '</button>' +
-      '<div class="nav-row">' +
+      '<button type="button" class="btn-ghost wide" id="shelveBtn"' + (canSave() ? "" : " disabled") + '>Пачка закончилась: убрать в коллекцию</button>' +
+      (BEANS.length > 1 ? '<div class="nav-row">' +
         '<button type="button" class="btn-ghost" id="prevBean" aria-label="Предыдущее зерно: ' + esc(prev.short) + '">← ' + esc(prev.short) + '</button>' +
         '<button type="button" class="btn-ghost" id="nextBean" aria-label="Следующее зерно: ' + esc(next.short) + '">' + esc(next.short) + ' →</button>' +
-      '</div>';
+      '</div>' : '');
 
-    $("prevBean").onclick = function () { go((state.idx - 1 + BEANS.length) % BEANS.length, -1); };
-    $("nextBean").onclick = function () { go((state.idx + 1) % BEANS.length, 1); };
+    if ($("prevBean")) {
+      $("prevBean").onclick = function () { go((state.idx - 1 + BEANS.length) % BEANS.length, -1); };
+      $("nextBean").onclick = function () { go((state.idx + 1) % BEANS.length, 1); };
+    }
     $("editBtn").onclick = startEdit;
+    $("shelveBtn").onclick = function () { setStatus(b.id, "shelf"); };
     $("confirmBtn").onclick = function () {
       var id = b.id, dz = dose, val = !isConfirmed(id, dz);
       writeBean(id, function (doc) { doc.confirmed[dz] = val; });
@@ -969,7 +1049,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
       btn.onclick = function () {
         var x = state.brews.find(function (y) { return y.id === btn.getAttribute("data-apply"); });
         if (!x || !Array.isArray(x.steps) || !x.steps.length) return;
-        var dz = x.dose === "2" ? "2" : "1", bb = BEANS.find(function (q) { return q.id === x.bean; });
+        var dz = x.dose === "2" ? "2" : "1", bb = beanById(x.bean);
         writeBean(x.bean, function (bd) {
           var old = bd.recipes[dz] || defaultRecipe(bb, dz);
           bd.recipes[dz] = { coffee: x.coffee, water: x.water, temp: x.temp, grind: x.grind, target: old.target || "", steps: x.steps };
@@ -992,7 +1072,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     out.push("Разбери мои заварки фильтр-кофе и скажи, что поменять в следующий раз. Меняй один параметр за раз.");
     out.push("");
     out.push("Оборудование: воронка Cafec V60, фильтры Cafec Abaca+, мельница Timemore C5 ESP (помол в формате «1 оборот + деление»), чайник Kitfort, весы с таймером.");
-    out.push("Зерно: " + b.country + ", " + b.name + " (" + b.process + "). Заявленные ноты: " + b.notes.join(", ") + ". Обжарка " + ddmm(b.roast) + ".");
+    out.push("Зерно: " + b.country + ", " + b.name + " (" + b.process + "). Заявленные ноты: " + b.notes.join(", ") + "." + (b.roast ? " Обжарка " + ddmm(b.roast) + "." : ""));
     out.push("");
     [ "1", "2" ].forEach(function (dz) {
       var r = recipeFor(b, dz);
@@ -1049,7 +1129,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 
   // ---------- export / import ----------
   $("exportBtn").onclick = function () {
-    var payload = JSON.stringify({ app: "voronka", version: 1, exportedAt: new Date().toISOString(), beanDocs: state.beanDocs, brews: state.brews }, null, 2);
+    var payload = JSON.stringify({ app: "voronka", version: 1, exportedAt: new Date().toISOString(), beanDocs: state.beanDocs, brews: state.brews, catalog: state.catalog }, null, 2);
     var blob = new Blob([payload], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -1069,6 +1149,10 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
         var known = {}; state.brews.forEach(function (x) { known[x.id] = true; });
         var added = 0;
         d.brews.forEach(function (x) { if (x && x.id && x.bean && !known[x.id]) { state.brews.push(x); added++; } });
+        if (Array.isArray(d.catalog)) d.catalog.forEach(function (c) {
+          if (c && c.id && c.name && !beanById(c.id)) { state.catalog.push(c); }
+        });
+        rebuildBeans(); buildTabs();
         Object.keys(d.beanDocs).forEach(function (k) {
           var inc = d.beanDocs[k], cur = state.beanDocs[k];
           if (!cur || String(inc.updatedAt || "") > String(cur.updatedAt || "")) state.beanDocs[k] = inc;
@@ -1081,10 +1165,207 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     rd.readAsText(f);
   };
 
+  // ---------- collection ----------
+  function shortName(n) {
+    n = String(n || "").trim();
+    if (n.length <= 14) return n;
+    var w = n.split(/\s+/), r = w[0];
+    if (w[1] && (r + " " + w[1]).length <= 14) r += " " + w[1];
+    return r.slice(0, 14);
+  }
+  function brewCount(id) { return state.brews.filter(function (x) { return x.bean === id; }).length; }
+  function setStatus(id, status) {
+    var b = beanById(id); if (!b) return;
+    var prevStatus = b.status, curId = bean() ? bean().id : null;
+    b.status = status;
+    if (!persist()) { b.status = prevStatus; return; }
+    rebuildBeans(); buildTabs();
+    var ni = BEANS.findIndex(function (x) { return x.id === curId; });
+    state.idx = ni >= 0 ? ni : Math.min(state.idx, Math.max(BEANS.length - 1, 0));
+    state.editing = false; state.editDraft = null; state.logOpen = false;
+    if (BEANS[state.idx]) store("voronka-bean", BEANS[state.idx].id);
+    setSync(status === "shelf" ? "«" + b.short + "» ушла в коллекцию" : "«" + b.short + "» на панели");
+    renderAll();
+    if (state.view === "panel") window.scrollTo(0, 0);
+  }
+  function toggleCollection() {
+    state.view = state.view === "collection" ? "panel" : "collection";
+    state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
+    renderAll();
+    window.scrollTo(0, 0);
+  }
+  $("emptyOpen").onclick = toggleCollection;
+
+  function newForm() {
+    var used = state.catalog.map(function (b) { return b.color; });
+    var color = BEAN_COLORS.find(function (c) { return used.indexOf(c) < 0; }) || BEAN_COLORS[state.catalog.length % BEAN_COLORS.length];
+    return { id: null, name: "", country: "", process: "натуральный", score: "", roast: "", notes: "", color: color, panel: true, photoOpen: false, err: "" };
+  }
+  function formFromBean(b) {
+    return { id: b.id, name: b.name, country: b.country || "", process: b.process || "натуральный", score: b.score || "", roast: b.roast || "",
+      notes: (b.notes || []).join(", "), color: b.color, panel: b.status !== "shelf", photoOpen: false, err: "" };
+  }
+  function normProcess(p) {
+    p = String(p || "").toLowerCase();
+    if (/анаэроб|anaerob/.test(p)) return "анаэробный";
+    if (/хани|honey/.test(p)) return "хани";
+    if (/фанки|funk/.test(p)) return "натуральный фанки";
+    if (/натур|natural|dry/.test(p)) return "натуральный";
+    if (/мыт|wash/.test(p)) return "мытый";
+    return "";
+  }
+  function photoPrompt() {
+    return 'К этому сообщению приложено фото пачки кофе. Прочитай этикетку и ответь ТОЛЬКО одним JSON-объектом, без пояснений и без markdown, по такой схеме: ' +
+      '{"name": "название зерна без страны", "country": "страна", "process": "одно из: мытый, натуральный, натуральный фанки, анаэробный, хани", ' +
+      '"score": "оценка, например 87+, или пустая строка", "roast": "дата обжарки в формате ГГГГ-ММ-ДД или пустая строка", "notes": ["вкусовые ноты по одной"]}. ' +
+      'Если чего-то нет на этикетке, оставь пустую строку или пустой список. Ничего не выдумывай.';
+  }
+  function beanFormHtml(f) {
+    var procOpts = PROCESSES.map(function (p) { return '<option value="' + esc(p) + '"' + (p === f.process ? " selected" : "") + '>' + esc(p) + '</option>'; }).join("");
+    var sw = BEAN_COLORS.map(function (c) { return '<button type="button" class="sw" data-color="' + c + '" style="--c:' + c + '" aria-label="Цвет ' + c + '" aria-pressed="' + (c === f.color) + '"></button>'; }).join("");
+    return '<div class="panel" id="beanForm">' +
+      '<div><h3>' + (f.id ? "Изменить зерно" : "Новое зерно") + '</h3><p class="sub">' + (f.id ? "Рецепты и записи заварок не меняются." : "Температура и помол подставятся по обработке, потом подстроите как обычно.") + '</p></div>' +
+      '<details class="photo"' + (f.photoOpen ? " open" : "") + '><summary>Заполнить по фото пачки</summary><ol>' +
+        '<li>Нажмите кнопку, откроется чат Claude с готовой просьбой. Приложите фото пачки и отправьте.<br><button type="button" class="p-ghost" data-act="photo-open" style="margin-top:6px">Открыть чат Claude</button></li>' +
+        '<li>Скопируйте ответ (там будет короткий текст в фигурных скобках) и вставьте сюда.<br><textarea id="f-paste" rows="3" placeholder=\'{"name": "...", ...}\' style="margin-top:6px"></textarea>' +
+        '<button type="button" class="p-ghost" data-act="photo-fill" style="margin-top:6px">Заполнить форму</button><p class="hint" id="f-photo-msg"></p></li>' +
+      '</ol></details>' +
+      '<label class="pfld wide"><span>Название</span><input id="f-name" type="text" value="' + esc(f.name) + '" placeholder="Например, Гуджи Ханчер"></label>' +
+      '<div class="pgrid">' +
+        '<label class="pfld"><span>Страна</span><input id="f-country" type="text" value="' + esc(f.country) + '" placeholder="Эфиопия"></label>' +
+        '<label class="pfld"><span>Обработка</span><select id="f-process">' + procOpts + '</select></label>' +
+        '<label class="pfld"><span>Оценка</span><input id="f-score" type="text" value="' + esc(f.score) + '" placeholder="87+"></label>' +
+        '<label class="pfld"><span>Дата обжарки</span><input id="f-roast" type="date" value="' + esc(f.roast) + '"></label>' +
+      '</div>' +
+      '<label class="pfld wide"><span>Ноты с пачки, через запятую</span><input id="f-notes" type="text" value="' + esc(f.notes) + '" placeholder="персик, жасмин, бергамот"></label>' +
+      '<div class="pfld"><span>Цвет вкладки</span><div class="swatches">' + sw + '</div></div>' +
+      (f.id ? '' : '<label class="check"><input id="f-panel" type="checkbox"' + (f.panel ? " checked" : "") + '><span>Сразу поставить на панель</span></label>') +
+      '<p class="perr" id="f-err">' + esc(f.err || "") + '</p>' +
+      '<div class="pactions"><button type="button" class="p-solid" data-act="save-bean">' + (f.id ? "Сохранить" : "Добавить в коллекцию") + '</button>' +
+      '<button type="button" class="p-ghost" data-act="cancel-form">Отмена</button></div></div>';
+  }
+  function beanItemHtml(b) {
+    var n = brewCount(b.id), conf = ["1", "2"].filter(function (dz) { return isConfirmed(b.id, dz); }).map(function (dz) { return "✓ " + DOSE_LABEL[dz]; });
+    var facts = [];
+    if (b.roast) { var d = daysSince(b.roast); facts.push("обжарка " + ddmm(b.roast) + ", " + d + " " + plural(d, "день", "дня", "дней")); }
+    facts.push("заварок: " + n);
+    if (conf.length) facts.push(conf.join(", "));
+    var onPanel = b.status !== "shelf";
+    var del;
+    if (state.delBean === b.id) {
+      del = '<span style="font-size:14px">Удалить зерно?</span><button type="button" class="mini danger" data-act="del-yes" data-id="' + esc(b.id) + '">Удалить</button><button type="button" class="mini" data-act="del-no">Нет</button>';
+    } else if (n > 0) {
+      del = '<span class="hint">Есть записи заварок, удалить нельзя</span>';
+    } else {
+      del = '<button type="button" class="mini danger" data-act="del-bean" data-id="' + esc(b.id) + '">Удалить</button>';
+    }
+    return '<article class="bean-item" style="--c:' + esc(b.color) + '"><header><span class="dot" aria-hidden="true"></span><div><h4>' + esc(b.name) + '</h4>' +
+      '<p class="meta">' + [b.country, b.process, b.score].filter(Boolean).map(esc).join(" · ") + '</p></div></header>' +
+      ((b.notes && b.notes.length) ? '<ul class="tags">' + b.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' : '') +
+      '<p class="facts">' + facts.join(" · ") + '</p>' +
+      '<footer><button type="button" class="mini" data-act="' + (onPanel ? "shelve" : "unshelve") + '" data-id="' + esc(b.id) + '">' + (onPanel ? "В коллекцию" : "На панель") + '</button>' +
+      '<button type="button" class="mini" data-act="edit-bean" data-id="' + esc(b.id) + '">Изменить</button>' + del + '</footer></article>';
+  }
+  function renderCollection() {
+    var box = $("collection");
+    var on = state.catalog.filter(function (b) { return b.status !== "shelf"; });
+    var off = state.catalog.filter(function (b) { return b.status === "shelf"; });
+    var html = '<div class="coll-head"><h2>Коллекция</h2><button type="button" class="p-solid" data-act="add-bean"' + (state.collForm ? " disabled" : "") + '>+ Кофе</button></div>' +
+      '<p class="hint">Здесь все зёрна, которые вы пробовали. На панели сверху остаются только открытые пачки.</p>';
+    if (state.collForm) html += beanFormHtml(state.collForm);
+    html += '<div class="coll-group"><h3>На панели · ' + on.length + '</h3>' + (on.length ? on.map(beanItemHtml).join("") : '<p class="empty">Пусто. Нажмите «На панель» у зерна ниже.</p>') + '</div>';
+    html += '<div class="coll-group"><h3>В коллекции · ' + off.length + '</h3>' + (off.length ? off.map(beanItemHtml).join("") : '<p class="empty">Здесь появятся зёрна, которые закончились.</p>') + '</div>';
+    box.innerHTML = html;
+  }
+  function fillFromPhoto(txt) {
+    var i = txt.indexOf("{"), j = txt.lastIndexOf("}"), msg = $("f-photo-msg"), f = state.collForm;
+    if (i < 0 || j < i) { msg.textContent = "Не нашёл данные. Скопируйте ответ Claude целиком, вместе с фигурными скобками."; return; }
+    var o; try { o = JSON.parse(txt.slice(i, j + 1)); } catch (e) { msg.textContent = "Не получилось прочитать ответ. Попросите Claude ответить только JSON."; return; }
+    if (o.name) f.name = String(o.name);
+    if (o.country) f.country = String(o.country);
+    var p = normProcess(o.process); if (p) f.process = p;
+    if (o.score) f.score = String(o.score);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(o.roast || ""))) f.roast = o.roast;
+    var notes = Array.isArray(o.notes) ? o.notes : String(o.notes || "").split(/[,;]/);
+    if (notes.length) f.notes = notes.map(function (x) { return String(x).trim(); }).filter(Boolean).join(", ");
+    f.photoOpen = true; f.err = "";
+    renderCollection();
+    var m2 = $("f-photo-msg"); if (m2) m2.textContent = "Форма заполнена. Проверьте поля и нажмите «Добавить в коллекцию».";
+  }
+  function saveBeanForm() {
+    var f = state.collForm, name = f.name.trim();
+    if (!name) { f.err = "Введите название зерна."; $("f-err").textContent = f.err; return; }
+    var notes = f.notes.split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var P = PROC[f.process] || PROC["натуральный"], b;
+    if (f.id) {
+      b = beanById(f.id);
+      var oldName = b.name;
+      b.name = name; b.country = f.country.trim(); b.process = f.process; b.score = f.score.trim(); b.roast = f.roast; b.notes = notes; b.color = f.color;
+      if (name !== oldName) b.short = shortName(name);
+    } else {
+      b = { id: newId(), name: name, short: shortName(name), country: f.country.trim(), process: f.process, score: f.score.trim(), roast: f.roast, color: f.color,
+        notes: notes, temp: P.temp, grind: clone(P.grind), target: clone(P.target), tips: clone(P.tips), status: f.panel ? "active" : "shelf", added: true };
+      state.catalog.push(b);
+    }
+    if (!persist()) return;
+    rebuildBeans(); buildTabs();
+    if (!f.id && f.panel) { state.idx = BEANS.findIndex(function (x) { return x.id === b.id; }); store("voronka-bean", b.id); }
+    state.collForm = null;
+    setSync(f.id ? "Зерно обновлено" : "«" + b.short + "» добавлено");
+    renderAll();
+  }
+  $("collection").addEventListener("click", function (e) {
+    var sw = e.target.closest && e.target.closest("[data-color]");
+    if (sw && state.collForm) {
+      state.collForm.color = sw.getAttribute("data-color");
+      $("collection").querySelectorAll("[data-color]").forEach(function (x) { x.setAttribute("aria-pressed", x === sw ? "true" : "false"); });
+      return;
+    }
+    var el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    var act = el.getAttribute("data-act"), id = el.getAttribute("data-id");
+    if (act === "add-bean") { state.collForm = newForm(); renderCollection(); var n = $("f-name"); $("beanForm").scrollIntoView({ block: "start" }); }
+    else if (act === "cancel-form") { state.collForm = null; renderCollection(); }
+    else if (act === "edit-bean") { state.collForm = formFromBean(beanById(id)); renderCollection(); $("beanForm").scrollIntoView({ block: "start" }); }
+    else if (act === "save-bean") saveBeanForm();
+    else if (act === "shelve") setStatus(id, "shelf");
+    else if (act === "unshelve") setStatus(id, "active");
+    else if (act === "del-bean") { state.delBean = id; renderCollection(); }
+    else if (act === "del-no") { state.delBean = null; renderCollection(); }
+    else if (act === "del-yes") {
+      if (brewCount(id) > 0) return;
+      state.catalog = state.catalog.filter(function (b) { return b.id !== id; });
+      delete state.beanDocs[id];
+      state.delBean = null;
+      if (persist()) { rebuildBeans(); buildTabs(); state.idx = Math.min(state.idx, Math.max(BEANS.length - 1, 0)); setSync("Зерно удалено"); }
+      renderAll();
+    }
+    else if (act === "photo-open") { var w = window.open("https://claude.ai/new?q=" + encodeURIComponent(photoPrompt()), "_blank", "noopener"); if (!w) $("f-photo-msg").textContent = "Браузер не открыл ссылку. Разрешите всплывающие окна и повторите."; }
+    else if (act === "photo-fill") fillFromPhoto($("f-paste").value);
+  });
+  $("collection").addEventListener("input", function (e) {
+    var f = state.collForm, t = e.target;
+    if (!f || !t.id || t.id.indexOf("f-") !== 0) return;
+    var map = { "f-name": "name", "f-country": "country", "f-score": "score", "f-roast": "roast", "f-notes": "notes" };
+    if (map[t.id]) f[map[t.id]] = t.value;
+    if (t.id === "f-process") f.process = t.value;
+    if (t.id === "f-panel") f.panel = t.checked;
+    if (t.id === "f-name" && f.err) { f.err = ""; var er = $("f-err"); if (er) er.textContent = ""; }
+  });
+  $("collection").addEventListener("change", function (e) {
+    var f = state.collForm, t = e.target;
+    if (f && t.id === "f-process") f.process = t.value;
+    if (f && t.id === "f-panel") f.panel = t.checked;
+    if (f && t.id === "f-roast") f.roast = t.value;
+  });
+  $("collection").addEventListener("toggle", function (e) {
+    if (state.collForm && e.target.tagName === "DETAILS") state.collForm.photoOpen = e.target.open;
+  }, true);
+
   // ---------- swipe ----------
   var sx = 0, sy = 0, tracking = false;
   labelEl.addEventListener("touchstart", function (e) {
-    if (state.editing || e.touches.length !== 1) return;
+    if (state.editing || BEANS.length < 2 || e.touches.length !== 1) return;
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
   }, { passive: true });
   labelEl.addEventListener("touchend", function (e) {
@@ -1096,13 +1377,23 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   }, { passive: true });
 
   function renderAll(dir) {
-    renderTabs(); renderDose(); renderCard(dir || 0); renderTips(); renderLogButton();
+    var inColl = state.view === "collection", has = BEANS.length > 0;
+    if (state.idx >= BEANS.length) state.idx = Math.max(0, BEANS.length - 1);
+    renderTabs(); renderDose();
+    $("doseToggle").hidden = inColl || !has;
+    $("panel").hidden = inColl || !has;
+    $("emptyPanel").hidden = inColl || has;
+    $("collection").hidden = !inColl;
+    if (inColl) { renderCollection(); return; }
+    if (!has) return;
+    renderCard(dir || 0); renderTips(); renderLogButton();
     if (state.logOpen) renderLogForm();
     renderHistory();
   }
 
+  buildTabs();
   renderAll(0);
-  var active = $("tab-" + bean().id);
+  var active = bean() ? $("tab-" + bean().id) : null;
   if (active && state.idx > 0) active.scrollIntoView({ block: "nearest", inline: "center" });
   setSync("");
   if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
