@@ -236,7 +236,9 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   .key b { font-size: 44px; }
   .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
-.repaint .wrap { opacity: .999; }
+.analyze { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.analyze .hint { flex-basis: 100%; }
+.filebtn { display: inline-block; cursor: pointer; }
 </style>
 
 </head>
@@ -271,6 +273,11 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     <section class="block">
       <h2 id="histTitle">Заварки</h2>
       <div class="history" id="history"></div>
+      <div class="analyze" id="analyzeBox" hidden>
+        <button type="button" class="p-solid" id="analyzeBtn">Разобрать заварки в Claude</button>
+        <button type="button" class="p-ghost" id="copyBtn">Скопировать текст</button>
+        <p class="hint" id="analyzeHint">Откроется чат Claude с вашим рецептом и записями по этому зерну. Он подскажет, что поменять.</p>
+      </div>
     </section>
   </main>
 
@@ -296,6 +303,17 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
       <li>После последнего пролива один раз покрутите воронку и ждите слива.</li>
     </ol>
     <p class="hint">Помол записан как положение на C5 ESP: один полный оборот от нуля плюс деление на лимбе. Температура указана по датчику чайника Kitfort.</p>
+  </section>
+
+  <section class="block">
+    <h2>Данные</h2>
+    <p class="hint">Записи хранятся только в этом браузере на этом телефоне. Сделайте копию, если меняете телефон или чистите данные браузера.</p>
+    <div class="pactions">
+      <button type="button" class="p-ghost" id="exportBtn">Скачать копию</button>
+      <label class="p-ghost filebtn" for="importFile">Загрузить копию</label>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <p class="hint" id="dataMsg" role="status"></p>
   </section>
 </div>
 
@@ -420,7 +438,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     idx: 0, dose: "1",
     beanDocs: {},     // beans/<id>: { recipes: {"1": recipe}, confirmed: {"1": bool} }
     brews: [],        // brews/*
-    db: null, dbState: "wait", writable: true,
+    dbState: "ready", writable: true,
     editing: false, editDraft: null,
     logOpen: false,
     delAsk: null
@@ -428,10 +446,26 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   var drafts = {};
   try { drafts = JSON.parse(load("voronka-drafts") || "{}") || {}; } catch (e) { drafts = {}; }
   try {
-    var cache = JSON.parse(load("voronka-cache") || "null");
+    var cache = JSON.parse(load("voronka-data") || "null");
     if (cache && cache.beanDocs) state.beanDocs = cache.beanDocs;
     if (cache && Array.isArray(cache.brews)) state.brews = cache.brews;
   } catch (e) {}
+
+  // First run: start from the two geisha brews of 29.09 (the recipe for 1 mug is confirmed).
+  if (load("voronka-data") == null) {
+    state.beanDocs = { geisha: { recipes: {}, confirmed: { "1": true }, updatedAt: "2026-09-29T09:40:00.000Z" } };
+    state.brews = [
+      { id: "seed-geisha-1", bean: "geisha", dose: "2", at: "2026-09-29T04:00:00.000Z", timeKnown: false, coffee: 22, water: 350, temp: 94, grind: "8",
+        steps: [{ t: 0, to: 60 }, { t: 40, to: 150 }, { t: 70, to: 250 }, { t: 100, to: 350 }], drawdown: 250,
+        descriptors: "персик, немного ореха", hot: "", cooled: "", verdict: null,
+        notes: "Мешал блюм ложкой, фильтр забился. Фруктов мало, вкус чуть в сторону обжарки и орехов." },
+      { id: "seed-geisha-2", bean: "geisha", dose: "1", at: "2026-09-29T08:30:00.000Z", timeKnown: false, coffee: 15, water: 245, temp: 94, grind: "8,5",
+        steps: [{ t: 0, to: 45 }, { t: 40, to: 120 }, { t: 70, to: 185 }, { t: 100, to: 245 }], drawdown: 210,
+        descriptors: "курага, персик, грейпфрут", hot: "Кислинка мягкая, приятная. Ореха нет.", cooled: "", verdict: "confirmed",
+        notes: "Блюм без ложки." }
+    ];
+    try { localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews })); } catch (e) {}
+  }
 
   var fromHash = BEANS.findIndex(function (b) { return "#" + b.id === location.hash; });
   var saved = BEANS.findIndex(function (b) { return b.id === load("voronka-bean"); });
@@ -445,27 +479,20 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   function isConfirmed(id, dose) { var d = beanDoc(id); return !!(d && d.confirmed && d.confirmed[dose] === true); }
   function canSave() { return state.dbState === "ready" && state.writable; }
 
-  function saveCache() { store("voronka-cache", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews })); }
   var draftTimer = null;
   function saveDrafts() { clearTimeout(draftTimer); draftTimer = setTimeout(function () { store("voronka-drafts", JSON.stringify(drafts)); }, 300); }
 
   function setSync(text, isErr) { var el = $("sync"); el.textContent = text; el.className = "sync" + (isErr ? " err" : ""); }
 
-  // ---------- db ----------
-  var chains = {};
-  function handleWriteError(e) {
-    var code = e && e.code;
-    if (code === "invalid_argument") { state.writable = false; setSync("Сохранять может только владелец страницы.", true); renderAll(); }
-    else if (code === "quota_exceeded") { setSync("Журнал заполнен. Удалите старые записи, чтобы добавить новые.", true); }
-    else { setSync("Не сохранилось: нет связи с журналом. Попробуйте ещё раз.", true); }
+  // ---------- storage (localStorage) ----------
+  function handleWriteError() {
+    setSync("Не сохранилось: память браузера недоступна или заполнена. Сделайте экспорт данных.", true);
   }
-  function withRetry(fn) {
-    return fn().catch(function (e) {
-      if (e && e.code === "unavailable") {
-        return new Promise(function (res) { setTimeout(res, 600 + Math.random() * 900); }).then(fn);
-      }
-      throw e;
-    });
+  function persist() {
+    try {
+      localStorage.setItem("voronka-data", JSON.stringify({ beanDocs: state.beanDocs, brews: state.brews }));
+      return true;
+    } catch (e) { handleWriteError(); return false; }
   }
   function writeBean(id, mutate) {
     var cur = clone(beanDoc(id) || { recipes: {}, confirmed: {} });
@@ -474,36 +501,9 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     mutate(cur);
     cur.updatedAt = new Date().toISOString();
     state.beanDocs[id] = cur;
-    saveCache();
-    var body = clone(cur);
-    chains[id] = (chains[id] || Promise.resolve()).then(function () {
-      return withRetry(function () { return state.db.doc("beans/" + id).set(body); });
-    }).then(function () { setSync("Сохранено"); }, handleWriteError);
-    return chains[id];
+    if (persist()) setSync("Сохранено");
   }
-
-  function initDb() {
-    var c = window.claude;
-    if (!c || typeof c.use !== "function") { state.dbState = "off"; setSync("Журнал недоступен в этом окне: запись и правка рецептов отключены.", true); renderAll(); return; }
-    c.use("db").then(function (db) {
-      if (!db) { state.dbState = "off"; setSync("Журнал недоступен в этом окне: запись и правка рецептов отключены.", true); renderAll(); return; }
-      state.db = db; state.dbState = "ready"; setSync("");
-      renderAll();
-      db.collection("beans").onSnapshot(function (snap) {
-        var map = {};
-        snap.docs.forEach(function (d) { if (d.exists) map[d.id] = clone(d.data()); });
-        state.beanDocs = map; saveCache();
-        renderTabs();
-        if (!state.editing) renderCard(0);
-        renderLogButton();
-      }, function (e) { setSync("Журнал отключился. Обновите страницу.", true); });
-      db.collection("brews").onSnapshot(function (snap) {
-        state.brews = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { var o = clone(d.data()); o.id = d.id; return o; });
-        saveCache();
-        renderHistory();
-      }, function (e) { setSync("Журнал отключился. Обновите страницу.", true); });
-    }, function () { state.dbState = "off"; setSync("Журнал недоступен в этом окне.", true); renderAll(); });
-  }
+  function newId() { return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   // ---------- tabs & dose ----------
   var tabsEl = $("beanTabs");
@@ -610,23 +610,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     };
     animate(dir);
   }
-  function animate() { /* no motion: slide animations caused repaint glitches in the Android viewer */ }
+  function animate() {}
 
-  // Android WebView sometimes leaves parts of the page unpainted when the keyboard opens
-  // or the viewport resizes. Nudge a full repaint after those moments.
-  var repaintTimer = null;
-  function repaint() {
-    document.body.classList.add("repaint");
-    requestAnimationFrame(function () { requestAnimationFrame(function () { document.body.classList.remove("repaint"); }); });
-  }
-  function repaintSoon(ms) { clearTimeout(repaintTimer); repaintTimer = setTimeout(repaint, ms); }
-  document.addEventListener("focusin", function (e) {
-    if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) { repaintSoon(120); setTimeout(repaint, 450); }
-  });
-  document.addEventListener("focusout", function () { repaintSoon(300); });
-  window.addEventListener("resize", function () { repaintSoon(150); });
-  if (window.visualViewport) window.visualViewport.addEventListener("resize", function () { repaintSoon(150); });
-  window.addEventListener("scroll", function () { repaintSoon(200); }, { passive: true });
 
   // ---------- card: editor ----------
   function startEdit() {
@@ -906,26 +891,27 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
       verdict: dr.verdict || null
     };
     var btn = $("l-save"); btn.disabled = true; btn.textContent = "Сохраняю…";
-    var ref = state.db.collection("brews").doc();
-    withRetry(function () { return ref.set(doc); }).then(function () {
-      if (dr.verdict || dr.apply) {
-        writeBean(b.id, function (bd) {
-          if (dr.verdict) bd.confirmed[dz] = dr.verdict === "confirmed";
-          if (dr.apply) {
-            var old = bd.recipes[dz] || defaultRecipe(b, dz);
-            bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, target: old.target || "", steps: r.steps };
-          }
-        });
-      }
-      delete drafts[key]; saveDrafts();
-      state.logOpen = false;
-      setSync("Заварка записана");
-      renderLogButton(); renderTabs(); renderCard(0);
-    }, function (e) {
+    doc.id = newId();
+    state.brews.push(doc);
+    if (!persist()) {
+      state.brews.pop();
       btn.disabled = false; btn.textContent = "Сохранить заварку";
-      handleWriteError(e);
       $("l-err").textContent = "Запись не сохранилась. Черновик остался, попробуйте ещё раз.";
-    });
+      return;
+    }
+    if (dr.verdict || dr.apply) {
+      writeBean(b.id, function (bd) {
+        if (dr.verdict) bd.confirmed[dz] = dr.verdict === "confirmed";
+        if (dr.apply) {
+          var old = bd.recipes[dz] || defaultRecipe(b, dz);
+          bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, target: old.target || "", steps: r.steps };
+        }
+      });
+    }
+    delete drafts[key]; saveDrafts();
+    state.logOpen = false;
+    setSync("Заварка записана");
+    renderLogButton(); renderTabs(); renderCard(0); renderHistory();
   }
 
   // ---------- history ----------
@@ -935,6 +921,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
     var list = state.brews.filter(function (x) { return x.bean === b.id; })
       .sort(function (a, c) { return String(c.at).localeCompare(String(a.at)); });
     var box = $("history");
+    renderAnalyze();
     if (!list.length) {
       box.innerHTML = '<p class="empty">Записей пока нет. После чашки нажмите «Записать заварку» и отметьте, что получилось.</p>';
       return;
@@ -967,8 +954,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
       btn.onclick = function () {
         var id = btn.getAttribute("data-del-yes");
         state.delAsk = null;
-        withRetry(function () { return state.db.doc("brews/" + id).delete(); }).then(function () { setSync("Запись удалена"); }, handleWriteError);
         state.brews = state.brews.filter(function (x) { return x.id !== id; });
+        if (persist()) setSync("Запись удалена");
         renderHistory();
       };
     });
@@ -989,6 +976,104 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
       };
     });
   }
+
+  // ---------- analysis ----------
+  function analysisText() {
+    var b = bean();
+    var list = state.brews.filter(function (x) { return x.bean === b.id; })
+      .sort(function (a, c) { return String(a.at).localeCompare(String(c.at)); });
+    var out = [];
+    out.push("Разбери мои заварки фильтр-кофе и скажи, что поменять в следующий раз. Меняй один параметр за раз.");
+    out.push("");
+    out.push("Оборудование: воронка Cafec V60, фильтры Cafec Abaca+, мельница Timemore C5 ESP (помол в формате «1 оборот + деление»), чайник Kitfort, весы с таймером.");
+    out.push("Зерно: " + b.country + ", " + b.name + " (" + b.process + "). Заявленные ноты: " + b.notes.join(", ") + ". Обжарка " + ddmm(b.roast) + ".");
+    out.push("");
+    [ "1", "2" ].forEach(function (dz) {
+      var r = recipeFor(b, dz);
+      out.push("Текущий рецепт, " + DOSE_LABEL[dz] + " (" + (isConfirmed(b.id, dz) ? "подтверждён" : "не подтверждён") + "): " +
+        fmtNum(r.coffee) + " г кофе, " + fmtNum(r.water) + " г воды, " + fmtNum(r.temp) + " °C, помол " + r.grind + ", цель слива " + (r.target || "—") + ". Шаги: " +
+        r.steps.map(function (st) { return fmtTime(st.t) + " до " + st.to + " г"; }).join("; ") + ".");
+    });
+    out.push("");
+    if (!list.length) {
+      out.push("Записей заварок пока нет.");
+    } else {
+      out.push("Мои заварки (от старой к новой):");
+      list.forEach(function (x, i) {
+        var dt = new Date(x.at), when = isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+        var line = (i + 1) + ") " + when + ", " + (DOSE_LABEL[x.dose] || "") + ": " + fmtNum(x.coffee) + " г / " + fmtNum(x.water) + " г, " + fmtNum(x.temp) + " °C, помол " + x.grind;
+        if (Array.isArray(x.steps)) line += ", шаги " + x.steps.map(function (st) { return fmtTime(st.t) + "→" + st.to; }).join(" ");
+        if (x.drawdown != null) line += ", слив закончился на " + fmtTime(x.drawdown);
+        if (x.verdict) line += ", итог: " + (x.verdict === "confirmed" ? "рецепт подтверждён" : "не подтверждён");
+        out.push(line);
+        if (x.descriptors) out.push("   Дескрипторы: " + x.descriptors);
+        if (x.hot) out.push("   Горячая чашка: " + x.hot);
+        if (x.cooled) out.push("   Остывшая чашка: " + x.cooled);
+        if (x.notes) out.push("   Заметки: " + x.notes);
+      });
+    }
+    out.push("");
+    out.push("Ответь по пунктам: 1) что говорят мои ноты о недоэкстракции или перевытяжке; 2) какой один параметр изменить следующим и на сколько; 3) что оставить без изменений; 4) чего не хватает в моих записях, чтобы советы были точнее.");
+    return out.join("\n");
+  }
+  function renderAnalyze() {
+    var b = bean();
+    var has = state.brews.some(function (x) { return x.bean === b.id; });
+    $("analyzeBox").hidden = !has;
+  }
+  $("analyzeBtn").onclick = function () {
+    var url = "https://claude.ai/new?q=" + encodeURIComponent(analysisText());
+    var w = window.open(url, "_blank", "noopener");
+    if (!w) { $("analyzeHint").textContent = "Браузер не открыл ссылку. Нажмите «Скопировать текст» и вставьте его в чат Claude."; }
+  };
+  $("copyBtn").onclick = function () {
+    var text = analysisText(), hint = $("analyzeHint");
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.top = "0"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      hint.textContent = ok ? "Текст скопирован. Вставьте его в чат Claude." : "Не удалось скопировать автоматически.";
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { hint.textContent = "Текст скопирован. Вставьте его в чат Claude."; }, fallback);
+    } else { fallback(); }
+  };
+
+  // ---------- export / import ----------
+  $("exportBtn").onclick = function () {
+    var payload = JSON.stringify({ app: "voronka", version: 1, exportedAt: new Date().toISOString(), beanDocs: state.beanDocs, brews: state.brews }, null, 2);
+    var blob = new Blob([payload], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "voronka-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    $("dataMsg").textContent = "Копия сохранена в загрузки: " + state.brews.length + " " + plural(state.brews.length, "запись", "записи", "записей") + ".";
+  };
+  $("importFile").onchange = function () {
+    var f = this.files && this.files[0], input = this;
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var d = JSON.parse(rd.result);
+        if (!d || typeof d.beanDocs !== "object" || !Array.isArray(d.brews)) throw new Error("bad");
+        var known = {}; state.brews.forEach(function (x) { known[x.id] = true; });
+        var added = 0;
+        d.brews.forEach(function (x) { if (x && x.id && x.bean && !known[x.id]) { state.brews.push(x); added++; } });
+        Object.keys(d.beanDocs).forEach(function (k) {
+          var inc = d.beanDocs[k], cur = state.beanDocs[k];
+          if (!cur || String(inc.updatedAt || "") > String(cur.updatedAt || "")) state.beanDocs[k] = inc;
+        });
+        if (persist()) $("dataMsg").textContent = "Загружено: новых записей " + added + ".";
+        renderAll();
+      } catch (e) { $("dataMsg").textContent = "Файл не подошёл. Нужна копия, скачанная из этой страницы."; }
+      input.value = "";
+    };
+    rd.readAsText(f);
+  };
 
   // ---------- swipe ----------
   var sx = 0, sy = 0, tracking = false;
@@ -1013,7 +1098,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   renderAll(0);
   var active = $("tab-" + bean().id);
   if (active && state.idx > 0) active.scrollIntoView({ block: "nearest", inline: "center" });
-  initDb();
+  setSync("");
 })();
 </script>
 
