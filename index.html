@@ -218,6 +218,15 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .guide h3 { margin: 0; font: 700 22px/1.1 var(--f-display); }
 .guide ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
 .guide p { margin: 0; }
+.mpanel { display: grid; gap: 10px; }
+.mpanel h4 { margin: 0; font: 700 20px/1.15 var(--f-display); }
+.mfacts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 15px; }
+.mfacts dt { color: var(--muted); }
+.mfacts dd { margin: 0; }
+.mstep { display: grid; grid-template-columns: 48px 52px 1fr; gap: 8px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
+.mstep .mt { font: 500 14px/1 var(--f-mono); color: var(--muted); }
+.mstep b { font: 700 24px/1 var(--f-display); }
+.mwarn { border-left: 3px solid var(--bad); padding-left: 10px; font-size: 15px; }
 .vlinks { display: grid; gap: 8px; }
 .vlink { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 12px; color: inherit; text-decoration: none; font-weight: 700; }
 .vlink small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
@@ -1418,8 +1427,57 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         ["The Ultimate V60 Technique", "James Hoffmann · промывка фильтра показана в начале", "https://www.youtube.com/watch?v=AI4ynXzkSQo"]
       ] }
   ];
+  var VIDEO3 = "https://www.youtube.com/watch?v=P0mI6Ue8BKc";
+  var METHODS = [
+    { tab: "Хоффман", title: "Ultimate V60 · Джеймс Хоффман", t: 46, bloom: "swirl",
+      lead: "Два больших пролива и мягкое перемешивание в конце. Даёт чистую сладкую чашку, если помол не слишком тонкий.",
+      facts: [["Помол", "средний, ваш обычный"], ["Блюм", "вдвое больше веса кофе, покрутить, 45 с"], ["Мешание", "один раз после последнего пролива, потом покрутить"], ["Слив", "около 3:30"]],
+      steps: [[0, 30, "Блюм, покрутить воронку"], [45, 145, "Пролив до 60% воды"], [75, 240, "Долить, размешать, покрутить"]],
+      warn: "У вас ложка забивала фильтр. Мешайте один раз у самой поверхности или замените ложку вращением воронки." },
+    { tab: "Касуя 4:6", title: "Метод 4:6 · Тэцу Касуя", t: 321, bloom: "none",
+      lead: "Первые 40% воды задают баланс сладости и кислоты, остальные 60% дают крепость. Пять проливов через 45 секунд, без мешания.",
+      facts: [["Помол", "крупнее обычного: на 1–2 деления"], ["Температура", "в оригинале 93 °C"], ["Мешание", "нет, только ждать"], ["Слив", "3:30–4:00"]],
+      steps: [[0, 40, "Первый пролив (40% воды делятся на два)"], [45, 96, "Второй пролив"], [90, 144, "Пролив 3 из остальных 60%"], [135, 192, "Пролив 4"], [180, 240, "Пролив 5"]],
+      warn: "" },
+    { tab: "Осмотик", title: "Osmotic Flow", t: 651, bloom: "none",
+      lead: "Самый спокойный способ: очень крупный помол, тонкая струя в центр и никакого мешания, чтобы слой кофе не разрушался.",
+      facts: [["Помол", "самый крупный из трёх"], ["Струя", "тонкая, в центр, низко над слоем"], ["Мешание", "нет, воронку не крутить"], ["Слив", "около 3–4 минут"]],
+      steps: [],
+      warn: "Граммы и время проливов у меня для этого способа не подтверждены. Смотрите ролик с 10:51 и запишите, как у вас получилось." }
+  ];
+  var methodIdx = 0;
+  function methodPanelHtml() {
+    var m = METHODS[methodIdx];
+    return '<h4>' + esc(m.title) + '</h4><p>' + esc(m.lead) + '</p>' +
+      '<dl class="mfacts">' + m.facts.map(function (f) { return '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; }).join("") +
+        '<dt>Блюм в приложении</dt><dd>' + BLOOM[m.bloom].name + '</dd></dl>' +
+      (m.steps.length ? '<p class="sched-title"><span>Для вас: 15 г кофе, 240 г воды</span><span>весы, г</span></p>' +
+        m.steps.map(function (x) { return '<div class="mstep"><span class="mt">' + fmtTime(x[0]) + '</span><b>' + x[1] + '</b><span>' + esc(x[2]) + '</span></div>'; }).join("") +
+        '<p class="hint">Пересчитано по принципу способа на вашу порцию. Чтобы записать свой вариант, поправьте шаги в «Изменить» на карточке зерна.</p>' : '') +
+      (m.warn ? '<p class="mwarn">' + esc(m.warn) + '</p>' : '') +
+      '<div class="vlinks"><a class="vlink" href="' + VIDEO3 + '&t=' + m.t + 's" target="_blank" rel="noopener noreferrer">Смотреть в ролике с ' + fmtTime(m.t) + '<small>3 Essential Hario V60 Recipes · European Coffee Trip</small></a></div>';
+  }
+  function methodsHtml() {
+    return '<article class="guide" id="guide-methods"><h3>Три способа заваривания</h3>' +
+      '<p>Из ролика «3 Essential Hario V60 Recipes». Выберите способ.</p>' +
+      '<div class="seg seg3" role="tablist" aria-label="Способ заваривания">' + METHODS.map(function (m, i) {
+        return '<button type="button" class="pick" role="tab" id="mtab-' + i + '" aria-selected="' + (i === methodIdx) + '" aria-pressed="' + (i === methodIdx) + '" aria-controls="methodPanel" data-m="' + i + '">' + esc(m.tab) + '</button>';
+      }).join("") + '</div><div id="methodPanel" role="tabpanel" class="mpanel">' + methodPanelHtml() + '</div></article>';
+  }
+  function bindMethods() {
+    document.querySelectorAll("#guide-methods [data-m]").forEach(function (btn) {
+      btn.onclick = function () {
+        methodIdx = +btn.getAttribute("data-m");
+        document.querySelectorAll("#guide-methods [data-m]").forEach(function (o) {
+          var on = o === btn; o.setAttribute("aria-selected", on); o.setAttribute("aria-pressed", on);
+        });
+        $("methodPanel").setAttribute("aria-labelledby", btn.id);
+        $("methodPanel").innerHTML = methodPanelHtml();
+      };
+    });
+  }
   function renderGuides() {
-    $("guides").innerHTML = '<h2>Гайды</h2><p class="hint">Короткие шаги и ссылки на видео. Ролики открываются на YouTube.</p>' + GUIDES.map(function (g) {
+    $("guides").innerHTML = '<h2>Гайды</h2><p class="hint">Короткие шаги и ссылки на видео. Ролики открываются на YouTube.</p>' + methodsHtml() + GUIDES.map(function (g) {
       return '<article class="guide" id="guide-' + g.id + '"><h3>' + esc(g.title) + '</h3><p>' + esc(g.lead) + '</p>' +
         '<ol>' + g.steps.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ol>' +
         (g.pick.length ? '<p class="sched-title"><span>Что выбрать</span></p><ul class="tips">' + g.pick.map(function (x) { return '<li><b>' + esc(x[0]) + '</b>: ' + esc(x[1]) + '</li>'; }).join("") + '</ul>' : '') +
@@ -1427,6 +1485,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
           return '<a class="vlink" href="' + v[2] + '" target="_blank" rel="noopener noreferrer">' + esc(v[0]) + '<small>' + esc(v[1]) + '</small></a>';
         }).join("") + '</div></article>';
     }).join("");
+    bindMethods();
   }
   function openGuides(id) {
     state.view = "guides"; state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
