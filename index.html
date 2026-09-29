@@ -269,6 +269,21 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 details.photo { border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; }
 details.photo summary { cursor: pointer; font-weight: 700; }
 details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; }
+.timer { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--field); text-align: center; }
+.tm-clock { font: 700 64px/1 var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.tm-hint { margin: 0; font-size: 15px; line-height: 1.35; min-height: 2.7em; }
+.tm-main { border: 0; border-radius: 12px; padding: 16px; min-height: 58px; font: 700 18px/1.2 var(--f-body); background: var(--fg); color: var(--bg); }
+.tm-main.live { background: var(--good); color: var(--bg); }
+.tm-sub { display: flex; justify-content: center; gap: 8px; }
+.tstep { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 6px; }
+.tstep input { text-align: center; }
+.tb { border: 1px solid var(--line); border-radius: 9px; background: var(--field); font: 700 20px/1 var(--f-body); min-height: 42px; }
+.tb:disabled { opacity: .35; }
+.prow2 { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.prow2 .ph { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.prow2 .ph .lbl { font: 500 13px/1.2 var(--f-mono); color: var(--muted); }
+.prow2 .pb { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 8px; align-items: center; }
+.prow2 .x { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 18px; }
 .analyze { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .analyze .hint { flex-basis: 100%; }
 .filebtn { display: inline-block; cursor: pointer; }
@@ -852,6 +867,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 
   // ---------- brew log form ----------
   function draftKey() { return bean().id + "_" + state.dose; }
+  function draftKeySafe() { return bean() ? draftKey() : null; }
   function freshDraft() {
     var r = recipeFor(bean(), state.dose);
     return {
@@ -876,14 +892,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var panel = $("logPanel");
     panel.innerHTML =
       '<div><h3>Заварка ' + esc(b.short) + '</h3><p class="sub">Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.</p></div>' +
+      timerHtml() +
       '<div class="pgrid">' +
         pfld("l-coffee", "Кофе, г", dr.coffee) + pfld("l-water", "Вода, г", dr.water) +
         pfld("l-temp", "Чайник, °C", dr.temp) + pfld("l-grind", "Помол", dr.grind) +
       '</div>' +
-      '<div class="pfld"><span>Проливы по факту</span></div>' +
+      '<div class="pfld"><span>Проливы по факту, время и вес на весах</span></div>' +
       '<div class="esteps" id="l-steps"></div>' +
       '<button type="button" class="addrow" id="l-add">+ пролив</button>' +
-      '<div class="pgrid"><label class="pfld"><span>Слив закончился</span><input id="l-draw" class="num" type="text" inputmode="decimal" placeholder="3:30" value="' + esc(dr.drawdown) + '"></label></div>' +
+      '<div class="pfld"><span>Слив закончился</span><div class="tstep"><button type="button" class="tb" data-adj-draw="-1" aria-label="Слив на секунду раньше">−</button>' +
+        '<input id="l-draw" class="num" type="text" inputmode="decimal" placeholder="3:30" value="' + esc(dr.drawdown) + '"><button type="button" class="tb" data-adj-draw="1" aria-label="Слив на секунду позже">+</button></div></div>' +
       '<label class="pfld"><span>Дескрипторы</span><input id="l-desc" type="text" placeholder="курага, персик, грейпфрут" value="' + esc(dr.descriptors) + '"></label>' +
       '<label class="pfld"><span>Горячая чашка</span><textarea id="l-hot" rows="2" placeholder="кислинка, тело, сладость">' + esc(dr.hot) + '</textarea></label>' +
       '<label class="pfld"><span>Остывшая чашка</span><textarea id="l-cooled" rows="2" placeholder="что раскрылось через 5–10 минут">' + esc(dr.cooled) + '</textarea></label>' +
@@ -900,6 +918,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<button type="button" class="p-ghost" id="l-clear">Очистить</button>' +
       '</div>';
     renderLogSteps();
+    bindTimer();
+    panel.querySelectorAll("[data-adj-draw]").forEach(function (btn) {
+      btn.onclick = function () {
+        var cur = parseTime(dr.drawdown); if (cur == null || !isFinite(cur)) cur = 0;
+        dr.drawdown = fmtTime(Math.max(0, cur + (+btn.getAttribute("data-adj-draw"))));
+        $("l-draw").value = dr.drawdown; saveDrafts();
+      };
+    });
 
     function bind(id, k, isTime) {
       var el = $(id);
@@ -926,7 +952,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     }
     $("l-apply").onchange = function () { dr.apply = this.checked; saveDrafts(); };
     $("l-close").onclick = function () { state.logOpen = false; renderLogButton(); };
-    $("l-clear").onclick = function () { drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
+    $("l-clear").onclick = function () { timerReset(); drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
     $("l-save").onclick = saveBrew;
   }
   function pfld(id, label, val) {
@@ -935,11 +961,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function renderLogSteps() {
     var dr = drafts[draftKey()], box = $("l-steps"), n = dr.steps.length;
     box.innerHTML = dr.steps.map(function (s, i) {
-      return '<div class="prow"><span class="lbl">' + stepLabel(i) + '</span>' +
-        '<input id="l-t-' + i + '" class="num" type="text" inputmode="decimal" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
-        '<input id="l-to-' + i + '" class="num" type="text" inputmode="numeric" aria-label="' + stepLabel(i) + ', вес" value="' + esc(s.to) + '">' +
-        (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '<span></span>') +
-      '</div>';
+      return '<div class="prow2"><div class="ph"><span class="lbl">' + stepLabel(i) + '</span>' +
+        (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '') + '</div>' +
+        '<div class="pb"><div class="tstep">' +
+          '<button type="button" class="tb" data-adj="-1" data-i="' + i + '" aria-label="' + stepLabel(i) + ' на секунду раньше"' + (i === 0 ? " disabled" : "") + '>−</button>' +
+          '<input id="l-t-' + i + '" class="num" type="text" inputmode="decimal" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
+          '<button type="button" class="tb" data-adj="1" data-i="' + i + '" aria-label="' + stepLabel(i) + ' на секунду позже"' + (i === 0 ? " disabled" : "") + '>+</button></div>' +
+          '<input id="l-to-' + i + '" class="num" type="text" inputmode="numeric" aria-label="' + stepLabel(i) + ', вес на весах" value="' + esc(s.to) + '"></div></div>';
     }).join("");
     dr.steps.forEach(function (s, i) {
       if (i > 0) {
@@ -953,16 +981,96 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         saveDrafts();
       });
     });
+    box.querySelectorAll("[data-adj]").forEach(function (btn) {
+      btn.onclick = function () {
+        var i = +btn.getAttribute("data-i"), cur = parseTime(dr.steps[i].t);
+        if (cur == null || !isFinite(cur)) cur = 0;
+        dr.steps[i].t = fmtTime(Math.max(0, cur + (+btn.getAttribute("data-adj"))));
+        $("l-t-" + i).value = dr.steps[i].t; saveDrafts();
+      };
+    });
     box.querySelectorAll("[data-rm]").forEach(function (btn) {
       btn.onclick = function () {
         var i = +btn.getAttribute("data-rm");
         dr.steps.splice(i, 1);
         dr.steps[dr.steps.length - 1].to = dr.water;
-        saveDrafts(); renderLogSteps();
+        if (tm.on && tm.phase >= dr.steps.length) tm.phase = dr.steps.length - 1;
+        saveDrafts(); renderLogSteps(); tmRender();
       };
     });
   }
+
+  // ---------- brew stopwatch ----------
+  var tm = { on: false, done: false, t0: 0, phase: 0, key: null, iv: null, wake: null, last: 0 };
+  function tmElapsed() { return tm.on ? (Date.now() - tm.t0) / 1000 : tm.last; }
+  function tmWake(on) {
+    try {
+      if (on && navigator.wakeLock && !tm.wake) {
+        navigator.wakeLock.request("screen").then(function (w) { tm.wake = w; w.addEventListener("release", function () { tm.wake = null; }); }, function () {});
+      } else if (!on && tm.wake) { tm.wake.release(); tm.wake = null; }
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", function () { if (tm.on && document.visibilityState === "visible") { tm.wake = null; tmWake(true); tmRender(); } });
+  function tmStopTimer() { clearInterval(tm.iv); tm.iv = null; tm.on = false; tmWake(false); }
+  function timerReset() { tmStopTimer(); tm.done = false; tm.phase = 0; tm.last = 0; tm.key = null; }
+  function timerHtml() {
+    return '<div class="timer" id="timerBox"><div class="tm-clock" id="tm-clock">0:00</div><p class="tm-hint" id="tm-hint"></p>' +
+      '<button type="button" class="tm-main" id="tm-main"></button>' +
+      '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-stop">Остановить без записи</button></div></div>';
+  }
+  function tmRender() {
+    if (!$("tm-clock")) return;
+    var dr = drafts[draftKey()]; if (!dr) return;
+    var n = dr.steps.length, ph = Math.min(tm.phase, n - 1);
+    $("tm-clock").textContent = fmtTime(tmElapsed());
+    var hint, label;
+    if (tm.on) {
+      var plan = recipeFor(bean(), state.dose).steps[ph + 1];
+      hint = stepLabel(ph) + ": лейте до " + dr.steps[ph].to + " г" + (ph < n - 1 && plan ? ". Следующий пролив по рецепту в " + fmtTime(plan.t) : ". Ждите, пока вода уйдёт");
+      label = ph < n - 1 ? "Начал " + stepLabel(ph + 1).toLowerCase() : "Слив закончился";
+    } else if (tm.done) {
+      hint = "Записано: слив " + dr.drawdown + ". Если время чуть другое, поправьте кнопками − и + ниже.";
+      label = "Запустить заново";
+    } else {
+      hint = "Нажмите «Старт», когда начнёте лить блюм до " + dr.steps[0].to + " г. Дальше нажимайте в начале каждого пролива.";
+      label = "Старт: блюм";
+    }
+    $("tm-hint").textContent = hint;
+    $("tm-main").textContent = label;
+    $("tm-main").classList.toggle("live", tm.on);
+    $("tm-stop").hidden = !tm.on;
+  }
+  function bindTimer() {
+    $("tm-main").onclick = tmMain;
+    $("tm-stop").onclick = function () { tmStopTimer(); tm.done = false; tm.phase = 0; tmRender(); };
+    tmRender();
+    if (tm.on && !tm.iv) tm.iv = setInterval(function () { if ($("tm-clock")) $("tm-clock").textContent = fmtTime(tmElapsed()); }, 250);
+  }
+  function tmMain() {
+    var dr = drafts[draftKey()];
+    if (!tm.on) {
+      tm.on = true; tm.done = false; tm.t0 = Date.now(); tm.phase = 0; tm.key = draftKey();
+      dr.steps[0].t = "0:00"; dr.drawdown = ""; if ($("l-draw")) $("l-draw").value = "";
+      tmWake(true);
+      tm.iv = setInterval(function () { if ($("tm-clock")) $("tm-clock").textContent = fmtTime(tmElapsed()); }, 250);
+    } else {
+      var el = Math.round(tmElapsed()), n = dr.steps.length;
+      if (tm.phase < n - 1) {
+        var prev = parseTime(dr.steps[tm.phase].t); if (prev == null || !isFinite(prev)) prev = 0;
+        if (el <= prev) el = prev + 1;
+        tm.phase++;
+        dr.steps[tm.phase].t = fmtTime(el);
+        $("l-t-" + tm.phase).value = dr.steps[tm.phase].t;
+      } else {
+        dr.drawdown = fmtTime(el); $("l-draw").value = dr.drawdown;
+        tm.last = el; tmStopTimer(); tm.done = true;
+      }
+    }
+    try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
+    saveDrafts(); tmRender();
+  }
   function saveBrew() {
+    if (tm.on) { tmStopTimer(); tm.done = false; }
     var key = draftKey(), dr = drafts[key], b = bean(), dz = state.dose;
     var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", steps: dr.steps });
     if (v.err) { $("l-err").textContent = v.err; return; }
@@ -1378,6 +1486,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 
   function renderAll(dir) {
     var inColl = state.view === "collection", has = BEANS.length > 0;
+    if ((tm.on || tm.done) && (!has || inColl || tm.key !== draftKeySafe())) timerReset();
     if (state.idx >= BEANS.length) state.idx = Math.max(0, BEANS.length - 1);
     renderTabs(); renderDose();
     $("doseToggle").hidden = inColl || !has;
