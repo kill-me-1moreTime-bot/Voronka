@@ -267,6 +267,19 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .ba-water { fill: none; stroke: var(--splash-water); stroke-width: 2.6; stroke-linecap: round; }
 .ba-cof, .ba-drip { fill: var(--splash-coffee); }
 .ba-slurry { fill: var(--splash-coffee); opacity: .8; }
+.ba-foam { fill: #F7F1E6; stroke: var(--splash-paper); stroke-width: .8; }
+.ba-top { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: center; }
+.ba-top svg { width: 110px; height: 110px; }
+.ba-top div { display: grid; gap: 3px; }
+.ba-top b { font: 700 18px/1 var(--f-display); }
+.ba-top span { font-size: 15px; }
+.ba-top small { font-size: 12px; color: var(--splash-muted); }
+.ba-top-rim { fill: none; stroke: var(--splash-ink); stroke-width: 1.6; }
+.ba-top-edge { fill: none; stroke: var(--splash-paper); stroke-width: 1.2; stroke-dasharray: 2 3; }
+.ba-top-bed { fill: var(--splash-coffee); }
+.ba-top-foam { fill: #F7F1E6; stroke: var(--splash-paper); stroke-width: .8; }
+.ba-top-ring { fill: none; stroke: var(--splash-water); stroke-width: .9; stroke-dasharray: 2 2; }
+.ba-top-dot { fill: var(--splash-water); stroke: #fff; stroke-width: .8; }
 .ba-read { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; }
 .ba-read span { display: block; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--splash-muted); }
 .ba-read b { font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums; }
@@ -1886,12 +1899,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       steps: [[0, 40, "Первый пролив (40% воды делятся на два)"], [45, 96, "Второй пролив"], [90, 144, "Пролив 3 из остальных 60%"], [130, 192, "Пролив 4"], [160, 240, "Пролив 5"]],
       author: "Японский бариста, чемпион мира по завариванию (World Brewers Cup) 2016 года. Метод 4:6 принёс ему победу и стал одним из самых популярных способов для воронки.",
       warn: "" },
-    { tab: "Осмотик", title: "Osmotic Flow", t: 651, bloom: "none",
-      lead: "Самый спокойный способ: очень крупный помол, тонкая струя в центр и никакого мешания, чтобы слой кофе не разрушался.",
-      facts: [["Помол", "самый крупный из трёх"], ["Струя", "тонкая, в центр, низко над слоем"], ["Мешание", "нет, воронку не крутить"], ["Слив", "около 3–4 минут"]],
-      steps: [],
+    { tab: "Осмотик", title: "Osmotic Flow · осмотический пролив", t: 651, bloom: "none",
+      lead: "Самый бережный способ. Вода льётся тонкой струёй строго в центр, и на кофе растёт шапка светлой пены — «таблетка». Вода просачивается сквозь слой сама, от центра к краям, слой не разрушается.",
+      facts: [["Помол", "средне-крупный, чуть крупнее вашего обычного"], ["Температура", "около 93 °C"], ["Струя", "тонкая, ровная, чайник низко над кофе"], ["Куда лить", "только в центр, пятно с монету; позже маленькие круги внутри пены"], ["Уровень", "не поднимать: сколько льёте, столько уходит"], ["Мешание", "нет, воронку не крутить"], ["Слив", "3:30–4:00"]],
+      steps: [[0, 40, "Блюм: смочить весь кофе", 8], [40, 120, "Тонкой струёй строго в центр, растёт пена-таблетка", 60], [100, 240, "Маленькие круги внутри пены, не на стенки", 70]],
+      anim: { end: 225, osmo: true, wait: "Ждём, пока кофе набухнет, 30–40 секунд.", finish: "Слив закончился около 3:45. Готово.",
+        groups: [[0, 1, "Блюм", "Смочить всё."], [1, 2, "Центр", "Пятно с монету."], [2, 3, "Круги", "Внутри пены."]] },
       author: "Старый японский способ. Под названием Osmotic Flow он снова стал популярным после статьи в блоге Cafec, бренда вашей воронки и фильтров.",
-      warn: "Граммы и время проливов у меня для этого способа не подтверждены. Смотрите ролик с 10:51 и запишите, как у вас получилось." }
+      warn: "Точных граммов у автора способа нет: шаги пересчитаны по принципу на 15 г и 240 г. Главное здесь не граммы, а струя строго в центр и ровный уровень." }
   ];
   var methodIdx = 0;
   // ---------- схема способа: анимированная зарисовка ----------
@@ -1919,25 +1934,31 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '</g>' +
         '<path class="ba-water" id="baWater" d="M116 64 C117 86 119 102 120 124"/>' +
         '<circle class="ba-drip" id="baDrip" cx="120" cy="158" r="2.2"/>' +
+        (m.anim.osmo ? '<path class="ba-foam" id="baFoam" d=""/>' : '') +
       '</svg>' +
+      (m.anim.osmo ? '<div class="ba-top"><svg viewBox="0 0 100 100" aria-hidden="true">' +
+          '<circle class="ba-top-rim" cx="50" cy="50" r="46"/><circle class="ba-top-bed" id="baTopBed" cx="50" cy="50" r="36"/>' +
+          '<circle class="ba-top-edge" cx="50" cy="50" r="36"/><circle class="ba-top-foam" id="baTopFoam" cx="50" cy="50" r="0"/>' +
+          '<circle class="ba-top-ring" id="baTopRing" cx="50" cy="50" r="0"/><circle class="ba-top-dot" id="baTopDot" cx="50" cy="50" r="2.6"/></svg>' +
+          '<div><b>Вид сверху</b><span id="baTopNote"></span><small>Край фильтра не заливать. Струя падает в светлое пятно пены.</small></div></div>' : '') +
       '<div class="ba-read"><div><span>Время</span><b id="baClock">0:00</b></div><div><span>Весы</span><b id="baScale">0 г</b></div></div>' +
       '<p class="ba-cap" id="baCap" aria-live="polite"></p>' +
       '<div class="ba-bar">' + bar + '</div><div class="ba-groups">' + groups + '</div>' +
-      '<div class="ba-ctl"><button type="button" class="mini" id="baPlay"></button><span class="hint">Ролик ускорен: 3,5 минуты за 12 секунд.</span></div>' +
+      '<div class="ba-ctl"><button type="button" class="mini" id="baPlay"></button><span class="hint">Ролик ускорен: ' + (m.anim.end >= 220 ? "почти 4 минуты" : "3,5 минуты") + ' за 24 секунды.</span></div>' +
     '</div>';
   }
   var baRun = null;
   function mountBrewAnim() {
     if (baRun) { cancelAnimationFrame(baRun.raf); baRun = null; }
     var root = document.querySelector("#methodPanel .banim"); if (!root) return;
-    var m = METHODS[methodIdx], st = m.steps, END = m.anim.end, POUR = 10, LOOP = 12, HOLD = 1.5;
+    var m = METHODS[methodIdx], st = m.steps, END = m.anim.end, POUR = 10, LOOP = 24, HOLD = 2;
     var speed = END / (LOOP - HOLD);
     var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     var run = baRun = { raf: 0, playing: !still, t: still ? 12 : 0, last: 0 };
     // вода: сколько налито к моменту t и сколько стоит в воронке
     function poured(t) {
       var g = 0, prev = 0;
-      st.forEach(function (x) { var a = x[0], add = x[1] - prev; prev = x[1]; if (t >= a + POUR) g += add; else if (t > a) g += add * (t - a) / POUR; });
+      st.forEach(function (x) { var a = x[0], add = x[1] - prev; prev = x[1]; var d = x[3] || POUR; if (t >= a + d) g += add; else if (t > a) g += add * (t - a) / d; });
       return g;
     }
     function held(t) {
@@ -1946,13 +1967,41 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       return t >= END ? 0 : Math.max(0, h);
     }
     function phase(t) {
-      for (var i = st.length - 1; i >= 0; i--) if (t >= st[i][0]) return { i: i, pouring: t < st[i][0] + POUR };
+      for (var i = st.length - 1; i >= 0; i--) if (t >= st[i][0]) return { i: i, pouring: t < st[i][0] + (st[i][3] || POUR) };
       return { i: 0, pouring: true };
     }
     var K = $("baKettle"), W = $("baWater"), S = $("baSlurry"), L = $("baLevel"), D = $("baDrip");
+    var osmo = !!m.anim.osmo;
+    function drawOsmo(t, ph, p) {
+      var circ = ph.i === 2 && ph.pouring, center = ph.i === 1 && ph.pouring;
+      // радиус кругов растёт от 0 до 5 единиц за время третьего шага
+      var k = circ ? Math.min(1, (t - st[2][0]) / (st[2][3] || POUR)) : 0, rr = circ ? 1.5 + 4 * k : 0, ang = t * 2.2;
+      var dx = rr * Math.cos(ang);
+      W.setAttribute("d", "M116 64 C117 86 " + (119 + dx * 0.5) + " 104 " + (120 + dx) + " 128");
+      // пена-таблетка в разрезе
+      var foam = ph.i >= 1 && t < st[2][0] + (st[2][3] || POUR) + 12 ? Math.min(1, (t - st[1][0]) / 20) : 0;
+      if (t >= END) foam = 0;
+      var fw = 10 + foam * (14 + rr * 2), fy = +S.getAttribute("y");
+      $("baFoam").setAttribute("d", "M" + (120 - fw) + " " + (fy + 1) + " Q120 " + (fy - 10 * foam - 2) + " " + (120 + fw) + " " + (fy + 1) + " Z");
+      $("baFoam").style.opacity = foam > 0.05 ? 1 : 0;
+      // вид сверху
+      var wet = t >= 3 ? 1 : 0;
+      $("baTopBed").style.opacity = wet ? 1 : 0.35;
+      var coin = ph.i >= 1 && t < END ? 6 + foam * 4 + rr * 3 : 0;
+      $("baTopFoam").setAttribute("r", coin);
+      $("baTopFoam").style.opacity = coin ? 1 : 0;
+      var dotOn = p > 0.95;
+      var px = 50 + (ph.i === 0 ? 14 * Math.cos(t * 3) * Math.min(1, t / 3) : rr * 3 * Math.cos(ang)), py = 50 + (ph.i === 0 ? 14 * Math.sin(t * 3) * Math.min(1, t / 3) : rr * 3 * Math.sin(ang));
+      $("baTopDot").setAttribute("cx", px); $("baTopDot").setAttribute("cy", py); $("baTopDot").style.opacity = dotOn ? 1 : 0;
+      $("baTopRing").setAttribute("r", circ ? rr * 3 : 0); $("baTopRing").style.opacity = circ ? 1 : 0;
+      $("baTopNote").textContent = ph.i === 0 && ph.pouring ? "блюм: смочить всё" : center ? "только центр" : circ ? "малые круги в пене" : t >= END ? "слой ровный" : "ждём";
+    }
     var segs = root.querySelectorAll("[data-seg]");
     function draw(t) {
-      var ph = phase(t), p = ph.pouring ? Math.min(1, (t - st[ph.i][0]) / 1.2, (st[ph.i][0] + POUR - t) / 1.2) : 0;
+      var ph = phase(t), cur = st[ph.i], nx = st[ph.i + 1], pv = st[ph.i - 1];
+      var endT = cur[0] + (cur[3] || POUR);
+      var contNext = nx && nx[0] <= endT, contPrev = pv && pv[0] + (pv[3] || POUR) >= cur[0];
+      var p = ph.pouring ? Math.min(1, contPrev ? 1 : (t - cur[0]) / 1.2, contNext ? 1 : (endT - t) / 1.2) : 0;
       p = Math.max(0, Math.min(1, p));
       K.setAttribute("transform", "translate(" + (-9 * p) + " " + (-44.7 * p) + ") rotate(" + (-45 * p) + " 200 60)");
       W.style.opacity = p > 0.95 ? 1 : 0;
@@ -1967,7 +2016,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       else if (ph.pouring) cap = fmtTime(st[ph.i][0]) + " · " + st[ph.i][2] + " до " + st[ph.i][1] + " г";
       else cap = ph.i < st.length - 1 ? m.anim.wait + " Следующий пролив в " + fmtTime(st[ph.i + 1][0]) + "." : "Всё налито. Ждём, пока вода уйдёт.";
       if ($("baCap").textContent !== cap) $("baCap").textContent = cap;
-      segs.forEach(function (sg, i) { sg.classList.toggle("on", i === ph.i && t < END); sg.classList.toggle("done", t >= st[i][0] + POUR || t >= END); });
+      segs.forEach(function (sg, i) { sg.classList.toggle("on", i === ph.i && t < END); sg.classList.toggle("done", t >= st[i][0] + (st[i][3] || POUR) || t >= END); });
+      if (osmo) drawOsmo(t, ph, p);
     }
     function btn() { $("baPlay").textContent = run.playing ? "Пауза" : (run.t >= END ? "Смотреть заново" : "Смотреть"); }
     function frame(now) {
