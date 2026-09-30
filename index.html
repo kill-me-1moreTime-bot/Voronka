@@ -220,6 +220,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .guide summary::after { content: "+"; font: 700 28px/1 var(--f-display); color: var(--muted); flex: none; }
 .guide[open] summary::after { content: "−"; }
 .guide[open] summary { border-bottom: 1px solid var(--line); }
+.glist { display: grid; gap: 10px; }
+.ggroup { margin: 8px 0 0; font: 700 26px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
 .gbody { display: grid; gap: 10px; padding: 14px; }
 .guide h3 { margin: 0; font: 700 24px/1.1 var(--f-display); }
 .guide ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
@@ -385,8 +387,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   <section class="block" id="collection" hidden></section>
   <section class="block" id="guides" hidden></section>
 
-  <section class="block">
-    <h2>Если чашка не та</h2>
+  <details class="guide" id="fixBox">
+    <summary><h3>Если чашка не та</h3></summary>
+    <div class="gbody">
     <div class="fix">
       <div><span>Слив быстрее цели, кисло, пусто, водянисто</span><b>мельче на ½</b></div>
       <div><span>Слив дольше цели, горько, сухо, орех на финише</span><b>крупнее на ½</b></div>
@@ -394,7 +397,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       <div><span>Аромат плоский, фрукта мало, слив в норме</span><b>+1 °C</b></div>
     </div>
     <p class="hint">Шаг помола «½» — половина деления на лимбе C5 ESP. Меняйте что-то одно за раз.</p>
-  </section>
+    </div>
+  </details>
 
   <section class="block">
     <h2>Каждое утро одинаково</h2>
@@ -1403,6 +1407,137 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (state.view === "panel") window.scrollTo(0, 0);
   }
   var GUIDES = [
+
+    { id: "fresh", title: "Свежесть и отдых кофе", lead: "Сразу после обжарки зерно выделяет много газа. Для фильтра его оставляют полежать, а потом стараются выпить, пока вкус яркий.",
+      steps: [], pick: [],
+      bullets: [
+        "Отдых для фильтра: у светлой обжарки обычно от 5 до 12 дней после даты обжарки. Это ориентир, у каждого обжарщика по-разному.",
+        "Слишком свежее зерно даёт острую кислинку и неровный слив, потому что в нём много газа. Подождите пару дней и сравните.",
+        "Лучше всего зерно пьётся примерно первые 5–6 недель. Дальше вкус тускнеет, фруктов становится меньше.",
+        "Возраст пачки в днях показан на карточке зерна, под названием."
+      ],
+      videos: [["A Beginner's Guide to Resting Coffee", "James Hoffmann · сколько отдыхает кофе", "https://www.youtube.com/watch?v=_Py8JOi3REg"]] },
+    { id: "water", title: "Вода", lead: "Чашка почти целиком состоит из воды, поэтому она заметно влияет на вкус.",
+      steps: [], pick: [],
+      bullets: [
+        "Дистиллированная вода и вода почти без минералов дают плоскую, пустую чашку. Минералы помогают вытянуть вкус.",
+        "Слишком жёсткая вода глушит кислинку, чашка выходит плоской, а в чайнике быстрее растёт накипь.",
+        "Если водопроводная вода пахнет хлором или очень жёсткая, берите фильтр или бутилированную питьевую воду.",
+        "Каждую заварку начинайте со свежей воды, не кипятите повторно ту, что осталась в чайнике.",
+        "Проверка: сварите одно зерно на двух водах и сравните. Разница слышна сразу."
+      ],
+      videos: [["The Best Water for Coffee - An Introduction", "James Hoffmann · какая вода нужна кофе", "https://www.youtube.com/watch?v=" + "jfElZfrmlRs"]] },
+    { id: "ratio", title: "Соотношение кофе и воды", lead: "Соотношение показывает, сколько воды приходится на грамм кофе. У вас 1:16.",
+      steps: [], pick: [],
+      bullets: [
+        "1 кружка: 15 г кофе и 240 г воды. 2 кружки: 22 г и 350 г.",
+        "Крепче: 1:15 (15 г на 225 г воды, 22 г на 330 г). Слабее: 1:17 (15 г на 255 г, 22 г на 374 г).",
+        "Соотношение отвечает за крепость чашки. Меняйте его только когда помол и слив вас уже устраивают.",
+        "Взвешивайте кофе и воду на весах, мерные ложки и «на глаз» дают разброс."
+      ],
+      videos: [] },
+    { id: "grind", title: "Помол на Timemore C5 ESP", lead: "Одно деление на лимбе C5 ESP это 15 мкм, оборот равен 50 делениям. Вы записываете «1 оборот + деление», например 8,5.",
+      steps: [], pick: [],
+      bullets: [
+        "Слив быстрее цели, кисло, пусто, водянисто: помол мельче на ½ деления.",
+        "Слив дольше цели, горько, сухо, орех на финише: помол крупнее на ½ деления.",
+        "Помол влияет на слив и вкус сильнее, чем температура, поэтому начинайте с него.",
+        "В приложении мытые зёрна стартуют с 8,5, натуральные и фанки чуть крупнее.",
+        "Меняйте помол на ½ деления и пробуйте пару чашек, прежде чем двигать дальше."
+      ],
+      videos: [
+        ["A Beginner's Guide to Coffee Grinders", "James Hoffmann · как устроены мельницы", "https://www.youtube.com/watch?v=bgjvLQu5NlE"],
+        ["Why your Coffee is Sour/Bitter! (and how to fix it)", "Lance Hedrick · кисло или горько и что менять", "https://www.youtube.com/watch?v=Z2zsmehysHk"]
+      ] },
+    { id: "temp", title: "Температура воды", lead: "Чем горячее вода, тем больше кофе она вытягивает и тем быстрее.",
+      steps: [], pick: [],
+      bullets: [
+        "Светлая обжарка и плотные зёрна: горячее. У ваших зёрен в приложении 93–94 °C.",
+        "Тёмная обжарка: холоднее, иначе будет горчить.",
+        "Натуральные фанки, если вкус уходит в вино и брагу: 91–92 °C.",
+        "Вкус правильный, но хочется больше сладости: −1 °C. Аромат плоский при нормальном сливе: +1 °C.",
+        "Промойте фильтр горячей водой, чтобы воронка и сервер не остужали первый пролив."
+      ],
+      videos: [["Brew your coffee with boiling water", "James Hoffmann · температуры заваривания", "https://www.youtube.com/watch?v=K_r5kpXPRYo"]] },
+    { id: "oneparam", title: "Как настраивать рецепт", lead: "Правило одно: меняйте один параметр за раз. Иначе непонятно, что дало результат.",
+      steps: [
+        "Сварите по рецепту, запишите заварку в журнал: вес, время, помол, слив.",
+        "Оцените вкус горячим и остывшим, запишите слова.",
+        "Определите проблему: кисло и пусто, горько и сухо или всё нормально, но хочется больше сладости.",
+        "Поменяйте один параметр: сначала помол, потом температуру, потом соотношение.",
+        "Сварите снова, сравните с прошлой записью и запишите.",
+        "После 2–3 попыток нажмите «Разобрать заварки в Claude» под записями зерна."
+      ], pick: [],
+      videos: [["Why your Coffee is Sour/Bitter! (and how to fix it)", "Lance Hedrick · кисло или горько и что менять", "https://www.youtube.com/watch?v=Z2zsmehysHk"]] },
+    { id: "pour", title: "Как лить", lead: "Ровный пролив важнее красивых движений: вода должна проходить слой кофе везде одинаково.",
+      steps: [], pick: [],
+      bullets: [
+        "Струя тонкая, чайник низко над слоем, чтобы не размывать кофе.",
+        "Спираль от центра к краю и обратно. Не лейте на стенки фильтра: вода уйдёт мимо кофе.",
+        "Следите за весами: каждый пролив заканчивайте на весе из рецепта.",
+        "После последнего пролива один раз покрутите воронку, чтобы слой лёг ровно.",
+        "Если после слива на слое бугры или сухие края, вода шла неравномерно: чаще лейте в центр и проверьте блюм."
+      ],
+      videos: [["The Ultimate V60 Technique", "James Hoffmann · как лить, мешать и крутить", "https://www.youtube.com/watch?v=AI4ynXzkSQo"]] },
+    { id: "taste", title: "Как описывать чашку", lead: "Сначала разберите вкус на четыре части, а уже потом ищите «ноты».",
+      steps: [], pick: [],
+      bullets: [
+        "Кислотность: яркость, как у цитрусов. Хорошая кислотность освежает, плохая режет.",
+        "Сладость: мёд, карамель, спелый фрукт.",
+        "Тело: лёгкое, как чай, или плотное, как молоко.",
+        "Послевкусие: сколько держится и что остаётся после глотка.",
+        "Пробуйте горячую и остывшую чашку. Часть вкусов раскрывается, когда кофе остывает; в журнале для этого два поля."
+      ],
+      videos: [
+        ["A Beginners Guide to Coffee Tasting", "James Hoffmann · как пробовать кофе", "https://www.youtube.com/watch?v=kEZZCQTSSAg"],
+        ["What Does A Great Cup Of Coffee Taste Like?", "James Hoffmann · каким должен быть хороший кофе", "https://www.youtube.com/watch?v=IkssYHTSpH4"]
+      ] },
+    { id: "words", title: "Слова для дескрипторов", lead: "Подсказки, чтобы записывать вкус коротко и одинаково.",
+      steps: [], pick: [
+        ["Цитрусы", "грейпфрут, мандарин, лимон"],
+        ["Косточковые", "персик, курага, абрикос"],
+        ["Ягоды", "клубника, чёрная смородина, малина"],
+        ["Тропики", "маракуйя, манго"],
+        ["Цветы", "гибискус, жасмин, белые цветы"],
+        ["Сладость", "мёд, карамель, тёмный сахар"],
+        ["Орех и шоколад", "орех, какао, шоколад"],
+        ["Ферментация", "вино, брага, ром"],
+        ["Проблемы", "горечь, сухость, дым, бумажный привкус (фильтр не промыт)"]
+      ], pickTitle: "Группы слов",
+      bullets: [], videos: [] },
+    { id: "wash", title: "Мойка воронки, сервера и чайника", lead: "Кофейные масла со временем горкнут и дают затхлый привкус, даже если посуда выглядит чистой.",
+      steps: [
+        "После заварки выбросьте фильтр с гущей и ополосните воронку и сервер тёплой водой.",
+        "Раз в неделю вымойте их средством для посуды и хорошо сполосните, чтобы не осталось запаха.",
+        "Чайник изнутри протирайте мягкой тряпкой, без абразивов.",
+        "Смотрите инструкцию производителя: для пластиковой воронки и стеклянного сервера могут быть свои ограничения по горячей воде."
+      ], pick: [], videos: [] },
+    { id: "grinder", title: "Чистка мельницы", lead: "Мелочь и масла оседают на жерновах и в корпусе. Если их не убирать, вкус тускнеет, а помол становится неровным.",
+      steps: [
+        "Запомните положение регулировки перед разборкой, запишите его.",
+        "Разберите мельницу по инструкции Timemore и вытряхните остатки кофе.",
+        "Уберите крошку и мелочь кисточкой. Жернова не мойте водой без совета производителя.",
+        "Соберите, верните прежнее положение и сварите пробную заварку: после сборки слив может немного отличаться.",
+        "Делайте чистку примерно раз в 1–2 месяца, это ориентир. Чаще, если зерно маслянистое."
+      ], pick: [],
+      videos: [["How to clean your hand grinder", "Pablo & Rusty's Coffee Roasters · общий разбор ручной мельницы, не именно C5 ESP", "https://www.youtube.com/watch?v=HkAT7Miex-4"]] },
+    { id: "kettle", title: "Накипь в чайнике", lead: "Накипь ухудшает нагрев и может портить вкус воды. Чем жёстче вода, тем чаще её нужно убирать.",
+      steps: [
+        "Прочитайте инструкцию к Kitfort: она важнее общих советов.",
+        "Растворите лимонную кислоту в воде по инструкции на упаковке и вскипятите в чайнике.",
+        "Оставьте на 20–30 минут, слейте раствор.",
+        "Дважды прокипятите чистую воду и вылейте, чтобы не осталось кислого привкуса."
+      ], pick: [],
+      videos: [["Descale Kettle in 2 Minutes with Citric Acid", "Natural Spa Supplies · как убрать накипь лимонной кислотой", "https://www.youtube.com/watch?v=NKMnmG6PimY"]] },
+    { id: "store", title: "Хранение зерна", lead: "Кислород, свет, тепло и влага быстро съедают аромат.",
+      steps: [], pick: [],
+      bullets: [
+        "Держите зерно в плотно закрытой пачке или банке, в темноте и не у плиты.",
+        "В холодильнике зерно собирает влагу и запахи, лучше не хранить.",
+        "Мелите прямо перед заваркой: молотый кофе теряет аромат гораздо быстрее.",
+        "Открытую пачку старайтесь допить в течение месяца."
+      ],
+      videos: [] },
     { id: "bloom", title: "Блум: как смочить кофе", lead: "Блюм: первая порция воды, 2–3 веса кофе (у вас 45 г на 15 г и 60 г на 22 г), пауза 30–45 секунд. Газ выходит, и дальше вода проходит слой ровнее.",
       steps: [
         "Поставьте воронку на сервер, налейте кофе, обнулите весы.",
@@ -1487,15 +1622,31 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       };
     });
   }
+  var GUIDE_GROUPS = [
+    ["Основы", ["fresh", "water", "ratio"]],
+    ["Как настроить", ["grind", "temp", "oneparam"]],
+    ["Техника", ["pour", "methods", "bloom", "filter"]],
+    ["Вкус", ["taste", "words"]],
+    ["Уход", ["wash", "grinder", "kettle", "store"]]
+  ];
+  function guideHtml(g) {
+    var list = function (a) { return a.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join(""); };
+    return '<details class="guide" id="guide-' + g.id + '"><summary><h3>' + esc(g.title) + '</h3></summary><div class="gbody"><p>' + esc(g.lead) + '</p>' +
+      (g.steps && g.steps.length ? '<ol>' + list(g.steps) + '</ol>' : '') +
+      (g.bullets && g.bullets.length ? '<ul class="tips">' + list(g.bullets) + '</ul>' : '') +
+      (g.pick && g.pick.length ? '<p class="sched-title"><span>' + esc(g.pickTitle || "Что выбрать") + '</span></p><ul class="tips">' + g.pick.map(function (x) { return '<li><b>' + esc(x[0]) + '</b>: ' + esc(x[1]) + '</li>'; }).join("") + '</ul>' : '') +
+      (g.videos && g.videos.length ? '<p class="sched-title"><span>Видео</span></p><div class="vlinks">' + g.videos.map(function (v) {
+        return '<a class="vlink" href="' + v[2] + '" target="_blank" rel="noopener noreferrer">' + esc(v[0]) + '<small>' + esc(v[1]) + '</small></a>';
+      }).join("") + '</div>' : '') + '</div></details>';
+  }
   function renderGuides() {
-    $("guides").innerHTML = '<h2>Гайды</h2><p class="hint">Короткие шаги и ссылки на видео. Ролики открываются на YouTube.</p>' + methodsHtml() + GUIDES.map(function (g) {
-      return '<details class="guide" id="guide-' + g.id + '"><summary><h3>' + esc(g.title) + '</h3></summary><div class="gbody"><p>' + esc(g.lead) + '</p>' +
-        '<ol>' + g.steps.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join("") + '</ol>' +
-        (g.pick.length ? '<p class="sched-title"><span>Что выбрать</span></p><ul class="tips">' + g.pick.map(function (x) { return '<li><b>' + esc(x[0]) + '</b>: ' + esc(x[1]) + '</li>'; }).join("") + '</ul>' : '') +
-        '<p class="sched-title"><span>Видео</span></p><div class="vlinks">' + g.videos.map(function (v) {
-          return '<a class="vlink" href="' + v[2] + '" target="_blank" rel="noopener noreferrer">' + esc(v[0]) + '<small>' + esc(v[1]) + '</small></a>';
-        }).join("") + '</div></div></details>';
-    }).join("");
+    var byId = {}; GUIDES.forEach(function (g) { byId[g.id] = g; });
+    $("guides").innerHTML = '<h2>Гайды</h2><p class="hint">Нажмите на тему, чтобы раскрыть. Ролики открываются на YouTube.</p>' +
+      GUIDE_GROUPS.map(function (grp) {
+        return '<div class="glist"><p class="ggroup">' + esc(grp[0]) + '</p>' + grp[1].map(function (id) {
+          return id === "methods" ? methodsHtml() : guideHtml(byId[id]);
+        }).join("") + '</div>';
+      }).join("");
     bindMethods();
   }
   function openGuides(id) {
@@ -1732,6 +1883,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     $("emptyPanel").hidden = inColl || inGuides || has;
     $("collection").hidden = !inColl;
     $("guides").hidden = !inGuides;
+    $("fixBox").hidden = inGuides;
     if (inGuides) { renderGuides(); return; }
     if (inColl) { renderCollection(); return; }
     if (!has) return;
