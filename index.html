@@ -283,7 +283,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .mainnav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
-.nav-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font: 700 26px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.pgrid.one { grid-template-columns: 1fr; }
+.nav-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font: 700 24px/1 var(--f-display); letter-spacing: .01em; text-transform: uppercase; }
 .nav-tab .count { font: 500 14px/1 var(--f-mono); color: var(--muted); }
 .nav-tab[aria-pressed="true"] { background: var(--bag); color: var(--bag-fg); border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
 .nav-tab[aria-pressed="true"] .count { color: var(--bag-muted); }
@@ -552,7 +553,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function bloomOf(x) { return x && BLOOM[x.bloom] ? x.bloom : "swirl"; }
   function bloomPickHtml(id, cur) {
     return '<div class="bloompick"><p class="sched-title"><span>Блюм</span><a href="#" class="glink" data-guide="bloom">как выбрать</a></p>' +
-      '<div class="seg seg3" role="radiogroup" aria-label="Техника блума" id="' + id + '">' +
+      '<div class="seg seg3" role="radiogroup" aria-label="Техника блюма" id="' + id + '">' +
       BLOOM_KEYS.map(function (k) {
         return '<button type="button" class="pick" role="radio" data-bloom="' + k + '" aria-checked="' + (k === cur) + '" aria-pressed="' + (k === cur) + '">' + BLOOM[k].name + '</button>';
       }).join("") + '</div><p class="hint" id="' + id + '-hint">' + BLOOM[cur].hint + '</p></div>';
@@ -1362,7 +1363,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       });
     }
     out.push("");
-    out.push("Ответь по пунктам: 1) что говорят мои ноты о недоэкстракции или перевытяжке; 2) какой один параметр изменить следующим и на сколько; 3) что оставить без изменений; 4) подходит ли мой способ блума (покрутить, ложка или не трогать) для этого зерна и помола; 5) чего не хватает в моих записях, чтобы советы были точнее.");
+    out.push("Ответь по пунктам: 1) что говорят мои ноты о недоэкстракции или перевытяжке; 2) какой один параметр изменить следующим и на сколько; 3) что оставить без изменений; 4) подходит ли мой способ блюма (покрутить, ложка или не трогать) для этого зерна и помола; 5) чего не хватает в моих записях, чтобы советы были точнее.");
     return out.join("\n");
   }
   function renderAnalyze() {
@@ -1588,7 +1589,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         "Открытую пачку старайтесь допить в течение месяца."
       ],
       videos: [] },
-    { id: "bloom", title: "Блум: как смочить кофе", lead: "Блюм: первая порция воды, 2–3 веса кофе (у вас 45 г на 15 г и 60 г на 22 г), пауза 30–45 секунд. Газ выходит, и дальше вода проходит слой ровнее.",
+    { id: "bloom", title: "Блюм: как смочить кофе", lead: "Блюм: первая порция воды, 2–3 веса кофе (у вас 45 г на 15 г и 60 г на 22 г), пауза 30–45 секунд. Газ выходит, и дальше вода проходит слой ровнее.",
       steps: [
         "Поставьте воронку на сервер, налейте кофе, обнулите весы.",
         "Запустите секундомер и лейте блюм 3–5 секунд, чтобы смочить весь кофе, включая края.",
@@ -1891,8 +1892,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var open = !panel.hidden;
     btn.setAttribute("aria-expanded", open ? "true" : "false");
     if (!open) return;
-    panel.innerHTML = '<div><h3>Моё оборудование</h3><p class="sub">Впишите, чем вы завариваете сейчас. Первая строка над названием страницы и текст для разбора заварок берутся отсюда.</p></div>' +
-      '<div class="pgrid">' + EQ_FIELDS.map(function (f) {
+    panel.innerHTML = '<div><h3>Моё оборудование</h3><p class="sub">Впишите, чем вы завариваете сейчас. Строка вверху страницы и текст для разбора заварок берутся отсюда.</p></div>' +
+      '<div class="pgrid one">' + EQ_FIELDS.map(function (f) {
         return '<label class="pfld' + (f[0] === "other" ? " wide" : "") + '"><span>' + f[1] + '</span><input id="q-' + f[0] + '" type="text" value="' + esc(state.equipment[f[0]] || "") + '"' + (f[0] === "other" ? ' placeholder="Вода, ситечко, второй фильтр"' : "") + '></label>';
       }).join("") + '</div>' +
       '<div class="pactions"><button type="button" class="p-solid" id="eqSave">Сохранить</button>' +
