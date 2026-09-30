@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Вишлист подарков на день рождения Евы">
+<meta property="og:title" content="День рождения Евы">
+<meta property="og:description" content="Вишлист подарков: выберите подарок и напишите нам">
+<meta name="robots" content="noindex">
+<style>html{-webkit-text-size-adjust:100%}:root{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>День рождения Евы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: большая карточка-шапка с именем именинницы и конфетти из геометрических фигур, под ней фильтры по категориям и сетка подарков. */
+:root {
+  --bg: #F1F4FA;
+  --surface: #FFFFFF;
+  --ink: #15203B;
+  --muted: #5A6580;
+  --line: #DCE2EF;
+  --accent: #F4B400;
+  --accent-ink: #15203B;
+  --mark: #FFE08A;
+  --ok: #157A5B;
+  --taken-bg: #E6E9F1;
+  --tile0: #D9E6FF;
+  --tile1: #FFE7B0;
+  --tile2: #D3EFE0;
+  --tile3: #F7DCE7;
+  --tile-ink: #15203B;
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1527; --surface: #172039; --ink: #E9EDF8; --muted: #9AA6C2; --line: #2A3556;
+    --accent: #F4B400; --accent-ink: #15203B; --mark: #6B5200; --ok: #4CC79B; --taken-bg: #1F2A47;
+    --tile0: #22335E; --tile1: #4A3A10; --tile2: #17433A; --tile3: #4B2438; --tile-ink: #F2F5FC;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1527; --surface: #172039; --ink: #E9EDF8; --muted: #9AA6C2; --line: #2A3556;
+  --accent: #F4B400; --accent-ink: #15203B; --mark: #6B5200; --ok: #4CC79B; --taken-bg: #1F2A47;
+  --tile0: #22335E; --tile1: #4A3A10; --tile2: #17433A; --tile3: #4B2438; --tile-ink: #F2F5FC;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; padding-inline: 16px; padding-block: 20px 56px; }
+#root { max-width: 62rem; margin-inline: auto; }
+h1, h2, h3, p { margin: 0; }
+.hero { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 30px 22px 26px; }
+.hero > *:not(.confetti) { position: relative; z-index: 1; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; display: block; }
+.c1 { width: 92px; height: 92px; border-radius: 50%; background: var(--tile1); right: -22px; top: -26px; }
+.c2 { width: 48px; height: 48px; border-radius: 14px; background: var(--tile0); right: 78px; top: 52px; transform: rotate(18deg); }
+.c3 { width: 30px; height: 30px; border-radius: 50%; background: var(--tile3); right: 28px; top: 112px; }
+.c4 { width: 22px; height: 22px; border-radius: 7px; background: var(--tile2); right: 132px; top: 16px; transform: rotate(-14deg); }
+.c5 { width: 120px; height: 120px; border-radius: 50%; background: var(--tile2); right: 6%; bottom: -70px; opacity: 0.7; }
+@media (max-width: 520px) {
+  .c1 { width: 64px; height: 64px; right: -16px; top: -20px; }
+  .c2, .c4, .c5 { display: none; }
+  .c3 { width: 22px; height: 22px; right: 22px; top: 54px; }
+}
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 7vw, 3.1rem); line-height: 1.12; text-wrap: balance; margin-top: 10px; max-width: 26rem; }
+h1 .name { background: linear-gradient(transparent 60%, var(--mark) 60% 92%, transparent 92%); padding-inline: 4px; margin-inline: -4px; }
+.lead { max-width: 36rem; color: var(--muted); margin-top: 16px; text-wrap: pretty; }
+.progress { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 24rem; }
+.progress .label { font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.owner-note { margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--muted); border-radius: 10px; font-size: 0.9rem; color: var(--muted); max-width: 36rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 24px 16px; }
+.chip { font: inherit; font-size: 0.92rem; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.tile { position: relative; overflow: hidden; padding: 18px 16px; min-height: 96px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; color: var(--tile-ink); }
+.tile::after { content: ""; position: absolute; right: -20px; top: -22px; width: 76px; height: 76px; border-radius: 50%; background: var(--surface); opacity: 0.35; }
+.tile > * { position: relative; z-index: 1; }
+.t0 .tile { background: var(--tile0); } .t1 .tile { background: var(--tile1); } .t2 .tile { background: var(--tile2); } .t3 .tile { background: var(--tile3); }
+.cat { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.tag { font-size: 0.75rem; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--surface); color: var(--ink); white-space: nowrap; }
+.body { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 0; }
+.body h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+.note { color: var(--muted); font-size: 0.92rem; }
+.price { font-family: var(--font-display); font-weight: 500; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.price .note { font-family: var(--font-body); font-weight: 400; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+.status { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 99px; }
+.status.free { color: var(--ok); border: 1px solid var(--ok); }
+.status.taken { background: var(--taken-bg); color: var(--muted); }
+.card.is-taken .tile, .card.is-taken .body h3, .card.is-taken .price { opacity: 0.55; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: inherit; font-size: 0.92rem; font-weight: 600; padding: 9px 14px; border-radius: 10px; cursor: pointer; text-decoration: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.panel { border-top: 1px solid var(--line); padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+.panel p.msg { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.92rem; user-select: all; }
+.panel .hint { font-size: 0.85rem; color: var(--muted); }
+.toast { font-size: 0.85rem; color: var(--ok); min-height: 1.2em; }
+.empty { color: var(--muted); padding: 24px 0; }
+.foot { margin-top: 28px; font-size: 0.85rem; color: var(--muted); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .bar i { transition: width 0.4s ease; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script id="state" type="application/json">{"intro":"Выберите подарок и напишите нам. Мы отметим его как занятый, чтобы не подарили одно и то же.","items":[{"id":"e1","cat":"Впечатления","title":"Поход в Teika Boom в выходные","note":"Подарок-впечатление.","price":1900,"taken":false,"group":false,"noshop":true},{"id":"e2","cat":"Впечатления","title":"Поход в аквапарк в Уфе","note":"Аквапарк «Планета». Билет на 2 часа: детский от 2 050 ₽, взрослый от 2 250 ₽ (данные на май 2025, цены лучше уточнить). Дети ростом до 100 см проходят бесплатно.","price":2050,"pre":"от ","taken":false,"group":false,"noshop":true},{"id":"n1","cat":"Книги","title":"Большая книга приключений Конни. Полезные привычки","note":"Автор Лиана Шнайдер. 112 страниц, от 3 лет.","price":605,"url":"https://ozon.ru/t/IYkVkK8","shop":"Открыть на Ozon","taken":false,"group":false},{"id":"n2","cat":"Книги","title":"Конни и полезные привычки. Набор из 6 книг","note":"Шесть историй про Конни: читает, занимается спортом, у зубного врача, помогает маме, в парикмахерской, не может уснуть. От 3 лет.","price":717,"url":"https://ozon.ru/t/bTh8RAR","shop":"Открыть на Ozon","taken":false,"group":false},{"id":"n3","cat":"Книги","title":"Конни и эмоции. Набор из 6 книг","note":"Книги про эмоции: злится, ссорится с подругой, переезжает, заболела и другие. От 3 лет.","price":636,"taken":false,"group":false},{"id":"n4","cat":"Книги","title":"Якоб говорит «нет»","note":"Картонная книга про личные границы. От 2 лет.","price":234,"taken":false,"group":false},{"id":"n5","cat":"Для дома","title":"Детская подушка Baby 3+ Girl, Askona","note":"Анатомическая форма, съёмный чехол, высота 5 см.","price":3999,"pre":"от ","url":"https://www.askona.ru/detskie/podushki/podushka-baby-3-girl.htm?productId=1441621&skuId=1441666&SELECTED_HASH_SIZE=30x46x6-6934820f24b478bf367a34bd8a18589f","shop":"Открыть на Askona","taken":false,"group":false}]}</script>
+<script id="app-code">
+(function () {
+  var state = JSON.parse(document.getElementById("state").textContent);
+  var root = document.getElementById("root");
+  var filter = "all";
+  var openId = null;
+  var toasts = {};
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function rub(n) { return new Intl.NumberFormat("ru-RU").format(n) + " ₽"; }
+  function shopUrl(t) { return "https://market.yandex.ru/search?text=" + encodeURIComponent(t); }
+  function cats() {
+    var out = [];
+    state.items.forEach(function (x) { if (out.indexOf(x.cat) < 0) out.push(x.cat); });
+    return out;
+  }
+  function visible(it) {
+    if (filter === "all") return true;
+    if (filter === "free") return !it.taken;
+    return it.cat === filter;
+  }
+  function message(it) {
+    return "Привет! Хочу подарить Еве на день рождения: «" + it.title + "». Отметьте, пожалуйста, этот подарок как занятый.";
+  }
+
+  function card(it, i) {
+    var h = '<article class="card t' + (i % 4) + (it.taken ? " is-taken" : "") + '" data-id="' + esc(it.id) + '">';
+    h += '<div class="tile"><span class="cat">' + esc(it.cat) + "</span>" + (it.group ? '<span class="tag">Можно скинуться</span>' : "") + "</div>";
+    h += '<div class="body"><h3>' + esc(it.title) + "</h3>";
+    if (it.note) h += '<p class="note">' + esc(it.note) + "</p>";
+    h += '<div class="row"><span class="price">' + (it.price == null ? '<span class="note">Цену уточним</span>' : esc(it.pre || "") + rub(it.price)) + "</span>";
+    h += it.taken ? '<span class="status taken">Уже дарят</span>' : '<span class="status free">Свободно</span>';
+    h += "</div>";
+    h += '<div class="actions">';
+    if (!it.taken) h += '<button class="btn primary" data-act="want" data-id="' + esc(it.id) + '" aria-expanded="' + (openId === it.id) + '">Хочу подарить</button>';
+    if (!it.noshop) h += '<a class="btn" href="' + esc(it.url || shopUrl(it.title)) + '" target="_blank" rel="noopener">' + esc(it.shop || "Найти в магазине") + "</a>";
+    h += "</div></div>";
+    if (openId === it.id && !it.taken) {
+      h += '<div class="panel"><p class="hint">Отправьте это сообщение нам в любой мессенджер. Мы отметим подарок, и он пропадёт из свободных.</p>';
+      h += '<p class="msg" id="msg-' + esc(it.id) + '">' + esc(message(it)) + "</p>";
+      h += '<div class="actions"><button class="btn primary" data-act="copy" data-id="' + esc(it.id) + '">Скопировать сообщение</button></div>';
+      h += '<p class="toast" role="status">' + esc(toasts[it.id] || "") + "</p></div>";
+    }
+    h += "</article>";
+    return h;
+  }
+
+  function render() {
+    var total = state.items.length;
+    var taken = state.items.filter(function (x) { return x.taken; }).length;
+    var pct = total ? Math.round((taken / total) * 100) : 0;
+    var list = state.items.filter(visible);
+    var h = '<header class="hero"><div class="confetti" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><i class="c5"></i></div>';
+    h += '<p class="eyebrow">Вишлист подарков</p><h1>День рождения <span class="name">Евы</span></h1>';
+    h += '<p class="lead">' + esc(state.intro) + "</p>";
+    h += '<div class="progress"><span class="label">Занято ' + taken + " из " + total + '</span><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + total + '" aria-valuenow="' + taken + '"><i style="width:' + pct + '%"></i></div></div>';
+    h += "</header>";
+    h += '<div class="chips" role="group" aria-label="Фильтр">';
+    var fs = [["all", "Все"], ["free", "Свободные"]].concat(cats().map(function (c) { return [c, c]; }));
+    fs.forEach(function (f) {
+      h += '<button class="chip" data-act="filter" data-f="' + esc(f[0]) + '" aria-pressed="' + (filter === f[0]) + '">' + esc(f[1]) + "</button>";
+    });
+    h += "</div>";
+    h += list.length ? '<div class="grid">' + list.map(function (it) { return card(it, state.items.indexOf(it)); }).join("") + "</div>" : '<p class="empty">В этой подборке подарков нет.</p>';
+    h += '<p class="foot">Цены на книги и подушку указаны на 30 сентября и могут измениться.</p>';
+    root.innerHTML = h;
+  }
+
+
+
+  async function copyMsg(id) {
+    var it = state.items.filter(function (x) { return x.id === id; })[0];
+    var el = document.getElementById("msg-" + id);
+    try {
+      await navigator.clipboard.writeText(message(it));
+      toasts[id] = "Скопировано. Вставьте в мессенджер.";
+    } catch (e) {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      toasts[id] = "Текст выделен, скопируйте его вручную.";
+    }
+    var t = el && el.parentNode.querySelector(".toast");
+    if (t) t.textContent = toasts[id];
+  }
+
+  root.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]");
+    if (!b) return;
+    var a = b.getAttribute("data-act");
+    if (a === "filter") { filter = b.getAttribute("data-f"); openId = null; render(); }
+    else if (a === "want") { var id = b.getAttribute("data-id"); openId = openId === id ? null : id; render(); }
+    else if (a === "copy") { copyMsg(b.getAttribute("data-id")); }
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
