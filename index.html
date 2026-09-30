@@ -326,7 +326,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 #splash .ln.thin { stroke-width: 1.2; }
 #splash .ln.paper { stroke: var(--splash-paper); stroke-width: 1.4; }
 #splash .hatch { stroke: var(--splash-ink); stroke-width: .8; opacity: 0; animation: sp-fade .4s ease forwards; animation-delay: var(--d, 0s); }
-#splash .water { fill: none; stroke: var(--splash-water); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw .35s linear forwards; animation-delay: 1.35s; }
+#splash .water { fill: none; stroke: var(--splash-water); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: sp-draw .35s linear 1.35s forwards, sp-cut .3s linear 2.2s forwards; }
+#splash .kettle { transform-box: view-box; transform-origin: 200px 60px; animation: sp-lift .55s cubic-bezier(.3,.7,.3,1) 2.2s forwards; }
 #splash .bed { fill: var(--splash-coffee); opacity: 0; animation: sp-fade .5s ease forwards; animation-delay: 1.6s; }
 #splash .level { fill: var(--splash-coffee); opacity: .85; transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); animation: sp-fill 1.1s ease-in forwards; animation-delay: 1.8s; }
 #splash .drip { fill: var(--splash-coffee); opacity: 0; animation: sp-drip .45s ease-in infinite; animation-delay: var(--d, 1.75s); }
@@ -335,6 +336,8 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 #splash span { font-size: 14px; color: var(--splash-muted); opacity: 0; animation: sp-fade .5s ease forwards; animation-delay: 2.2s; }
 @keyframes sp-draw { to { stroke-dashoffset: 0; } }
 @keyframes sp-fade { to { opacity: 1; } }
+@keyframes sp-cut { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -1; } }
+@keyframes sp-lift { to { transform: translate(6px, -22px) rotate(45deg); } }
 @keyframes sp-fill { to { transform: scaleY(1); } }
 @keyframes sp-drip { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(26px); } }
 @media (prefers-reduced-motion: reduce) {
@@ -408,12 +411,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     <circle class="drip" cx="120" cy="156" r="2.2" style="--d:1.9s"/>
     <circle class="drip" cx="120" cy="156" r="1.8" style="--d:2.12s"/>
     <!-- чайник с длинным носиком -->
+    <g class="kettle">
     <path class="ln" pathLength="1" style="--d:.55s" d="M166 34 Q162 70 170 80 Q174 84 182 84 L216 84 Q224 84 226 76 Q232 56 224 34 Z"/>
     <path class="ln thin" pathLength="1" style="--d:.7s" d="M172 34 L220 34 M186 34 Q188 24 196 24 Q204 24 206 34"/>
     <path class="ln" pathLength="1" style="--d:.8s" d="M224 44 Q244 46 242 60 Q240 74 224 74"/>
     <path class="ln" pathLength="1" style="--d:.85s" d="M168 72 Q146 74 142 56 Q138 38 126 34 Q118 32 114 40"/>
     <path class="ln thin" pathLength="1" style="--d:.95s" d="M168 78 Q150 82 144 70"/>
     <path class="hatch" style="--d:1s" d="M178 44 L184 76 M188 44 L194 78 M198 44 L204 78 M208 44 L212 76"/>
+    </g>
     <!-- струя кипятка -->
     <path class="water" pathLength="1" d="M114 42 C115 66 118 92 120 124"/>
     <path class="steam" pathLength="1" style="--d:1.5s" d="M96 96 Q92 88 97 81 Q102 74 97 66"/>
@@ -2193,7 +2198,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var done = false;
   function hide() { if (done) return; done = true; sp.classList.add("off"); setTimeout(function () { sp.hidden = true; }, 400); }
-  sp.onclick = hide; setTimeout(hide, still ? 1200 : 2900);
+  sp.onclick = hide; setTimeout(hide, still ? 1200 : 3100);
 })();
 </script>
 
