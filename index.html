@@ -221,6 +221,37 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .guide[open] summary::after { content: "−"; }
 .guide[open] summary { border-bottom: 1px solid var(--line); }
 .glist { display: grid; gap: 10px; }
+.backup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 12px; padding: 10px 12px; background: var(--surface); font-size: 14px; }
+.chart { margin: 0; display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 10px; }
+.chart figcaption { display: grid; gap: 2px; }
+.chart figcaption b { font: 700 20px/1.1 var(--f-display); }
+.chart figcaption span { font-size: 13px; color: var(--muted); }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .cg { stroke: var(--line); stroke-width: 1; }
+.chart .cax { stroke: var(--muted); stroke-width: 1; }
+.chart .ct { fill: var(--muted); font: 500 11px var(--f-mono); }
+.chart .cband { fill: var(--good-bg); }
+.chart .hit { fill: transparent; }
+.chart .m { stroke: var(--surface); stroke-width: 2; }
+.chart .m.yes, .clegend i.yes { fill: var(--good); background: var(--good); }
+.chart .m.no, .clegend i.no { fill: var(--bad); background: var(--bad); }
+.chart .m.none, .clegend i.none { fill: var(--muted); background: var(--muted); }
+.chart .cdot { cursor: pointer; outline: none; }
+.chart .cdot.sel .m, .chart .cdot:focus-visible .m { stroke: var(--fg); stroke-width: 2.5; }
+.clegend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.clegend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.cinfo { margin: 0; font-size: 14px; }
+.mini.on { border-color: var(--fg); background: var(--surface); }
+.cmp { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.cmp-head { display: flex; justify-content: space-between; align-items: center; }
+.cmp-head b { font: 700 22px/1 var(--f-display); }
+.cmp table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 6px 6px 6px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.cmp thead th { border-top: 0; font: 700 14px/1.2 var(--f-body); }
+.cmp tbody th { width: 28%; color: var(--muted); font-weight: 400; }
+.cmp tr.diff td { font-weight: 700; }
+.cmp tr.diff th { color: var(--fg); font-weight: 700; box-shadow: inset 3px 0 0 var(--bad); padding-left: 8px; }
+.cmp-hint { margin: 0; }
 .ggroup { margin: 8px 0 0; font: 700 26px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
 .gbody { display: grid; gap: 10px; padding: 14px; }
 .guide h3 { margin: 0; font: 700 24px/1.1 var(--f-display); }
@@ -320,7 +351,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 .tm-hint { margin: 0; font-size: 15px; line-height: 1.35; min-height: 2.7em; }
 .tm-main { border: 0; border-radius: 12px; padding: 16px; min-height: 58px; font: 700 18px/1.2 var(--f-body); background: var(--fg); color: var(--bg); }
 .tm-main.live { background: var(--good); color: var(--bg); }
-.tm-sub { display: flex; justify-content: center; gap: 8px; }
+.tm-sub { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .tstep { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 6px; }
 .tstep input { text-align: center; }
 .tb { border: 1px solid var(--line); border-radius: 9px; background: var(--field); font: 700 20px/1 var(--f-body); min-height: 42px; }
@@ -370,6 +401,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 
     <section class="block">
       <h2 id="histTitle">Заварки</h2>
+      <div class="backup" id="backupNote" hidden><span id="backupText"></span><button type="button" class="mini" id="backupBtn">Скачать копию</button></div>
+      <div id="chart"></div>
+      <div id="compare"></div>
       <div class="history" id="history"></div>
       <div class="analyze" id="analyzeBox" hidden>
         <button type="button" class="p-solid" id="analyzeBtn">Разобрать заварки в Claude</button>
@@ -401,21 +435,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     </div>
   </details>
 
-  <section class="block">
-    <h2>Каждое утро одинаково</h2>
-    <ol class="routine">
-      <li>Поставьте чайник на нужную температуру.</li>
-      <li>Промойте фильтр горячей водой, воду из сервера слейте. Сервер заодно прогреется.</li>
-      <li>Смелите кофе, засыпьте, сделайте лунку в центре, обнулите весы.</li>
-      <li>Запустите таймер вместе с блюмом. Блюм делайте так, как выбрано в рецепте (см. «Гайды»).</li>
-      <li>Лейте тонкой струёй по спирали от центра, не на стенки фильтра.</li>
-      <li>После последнего пролива один раз покрутите воронку и ждите слива.</li>
-    </ol>
-    <p class="hint">Помол записан как положение на C5 ESP: один полный оборот от нуля плюс цифра на лимбе (между цифрами 5 щелчков по 15 мкм). Температура указана по датчику вашего чайника.</p>
-  </section>
 
-  <section class="block">
-    <h2>Данные</h2>
+  <details class="guide" id="dataBox">
+    <summary><h3>Данные и копия</h3></summary>
+    <div class="gbody">
     <p class="hint">Записи хранятся только в этом браузере на этом телефоне. Сделайте копию, если меняете телефон или чистите данные браузера.</p>
     <div class="pactions">
       <button type="button" class="p-ghost" id="exportBtn">Скачать копию</button>
@@ -423,7 +446,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       <input type="file" id="importFile" accept="application/json,.json" hidden>
     </div>
     <p class="hint" id="dataMsg" role="status"></p>
-  </section>
+    </div>
+  </details>
 </div>
 
 <script>
@@ -593,7 +617,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     idx: 0, dose: "1",
     beanDocs: {},     // beans/<id>: { recipes: {"1": recipe}, confirmed: {"1": bool} }
     brews: [],        // brews/*
-    equipment: defaultEquipment(), catalog: [], view: "panel", collForm: null, delBean: null,
+    equipment: defaultEquipment(), catalog: [], cmp: [], view: "panel", collForm: null, delBean: null,
     dbState: "ready", writable: true,
     editing: false, editDraft: null,
     logOpen: false,
@@ -1144,12 +1168,38 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
   document.addEventListener("visibilitychange", function () { if (tm.on && document.visibilityState === "visible") { tm.wake = null; tmWake(true); tmRender(); } });
   function tmSave() { store("voronka-timer", JSON.stringify({ on: tm.on, t0: tm.t0, phase: tm.phase, key: tm.key })); }
+  function tmBeep() {
+    try {
+      if (!tm.ac) return;
+      if (tm.ac.state === "suspended") tm.ac.resume();
+      [0, 0.18].forEach(function (d) {
+        var o = tm.ac.createOscillator(), g = tm.ac.createGain(), t = tm.ac.currentTime + d;
+        o.frequency.value = 880; o.connect(g); g.connect(tm.ac.destination);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+        o.start(t); o.stop(t + 0.13);
+      });
+    } catch (e) {}
+  }
+  function beepOn() { return load("voronka-beep") !== "0"; }
+  function tmTick() {
+    if ($("tm-clock")) $("tm-clock").textContent = fmtTime(tmElapsed());
+    if (!tm.on) return;
+    var el = tmElapsed(), m = /^(.*)_([12])$/.exec(tm.key || ""), b = m ? beanById(m[1]) : null;
+    if (!b) return;
+    var plan = recipeFor(b, m[2]).steps[tm.phase + 1];
+    if (plan && tm.alerted !== tm.phase && el >= plan.t - 5 && el < plan.t + 2) {
+      tm.alerted = tm.phase;
+      if (beepOn()) { tmBeep(); try { if (navigator.vibrate) navigator.vibrate([80, 60, 80]); } catch (e) {} }
+      if ($("tm-hint")) $("tm-hint").textContent = "Через 5 секунд " + stepLabel(tm.phase + 1).toLowerCase() + " до " + plan.to + " г";
+    }
+  }
   function tmStopTimer() { clearInterval(tm.iv); tm.iv = null; tm.on = false; tmWake(false); tmSave(); }
   function timerReset() { tmStopTimer(); tm.done = false; tm.phase = 0; tm.last = 0; tm.key = null; }
   function timerHtml() {
     return '<div class="timer" id="timerBox"><div class="tm-clock" id="tm-clock">0:00</div><p class="tm-hint" id="tm-hint"></p><p class="tm-hint" id="tm-log"></p>' +
       '<button type="button" class="tm-main" id="tm-main"></button>' +
-      '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-stop">Остановить без записи</button></div></div>';
+      '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-beep" aria-pressed="' + beepOn() + '">' + (beepOn() ? "Сигнал перед проливом: вкл" : "Сигнал перед проливом: выкл") + '</button>' +
+      '<button type="button" class="p-ghost" id="tm-stop">Остановить без записи</button></div></div>';
   }
   function tmRender() {
     if (!$("tm-clock")) return;
@@ -1165,7 +1215,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       hint = "Записано: слив " + dr.drawdown + ". Если время чуть другое, поправьте кнопками − и + ниже.";
       label = "Запустить заново";
     } else {
-      hint = "Нажмите «Старт», когда начнёте лить блюм до " + dr.steps[0].to + " г. Дальше нажимайте в начале каждого пролива.";
+      hint = "Нажмите «Старт», когда начнёте лить блюм до " + dr.steps[0].to + " г. Дальше нажимайте в начале каждого пролива. За 5 секунд до пролива по рецепту будет сигнал.";
       label = "Старт: блюм";
     }
     $("tm-hint").textContent = hint;
@@ -1177,17 +1227,23 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function bindTimer() {
     if (!$("tm-main")) return;
     $("tm-main").onclick = tmMain;
+    $("tm-beep").onclick = function () {
+      var on = !beepOn(); store("voronka-beep", on ? "1" : "0");
+      this.setAttribute("aria-pressed", on); this.textContent = on ? "Сигнал перед проливом: вкл" : "Сигнал перед проливом: выкл";
+      if (on) { try { if (!tm.ac) tm.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} tmBeep(); }
+    };
     $("tm-stop").onclick = function () { tmStopTimer(); tm.done = false; tm.phase = 0; tmRender(); };
     tmRender();
-    if (tm.on && !tm.iv) tm.iv = setInterval(function () { if ($("tm-clock")) $("tm-clock").textContent = fmtTime(tmElapsed()); }, 250);
+    if (tm.on && !tm.iv) tm.iv = setInterval(tmTick, 250);
   }
   function tmMain() {
     var dr = drafts[draftKey()];
+    try { if (!tm.ac && (window.AudioContext || window.webkitAudioContext)) tm.ac = new (window.AudioContext || window.webkitAudioContext)(); else if (tm.ac && tm.ac.state === "suspended") tm.ac.resume(); } catch (e) {}
     if (!tm.on) {
-      tm.on = true; tm.done = false; tm.t0 = Date.now(); tm.phase = 0; tm.key = draftKey();
+      tm.on = true; tm.done = false; tm.t0 = Date.now(); tm.phase = 0; tm.key = draftKey(); tm.alerted = -1;
       dr.steps[0].t = "0:00"; dr.drawdown = ""; if ($("l-draw")) $("l-draw").value = "";
       tmWake(true);
-      tm.iv = setInterval(function () { if ($("tm-clock")) $("tm-clock").textContent = fmtTime(tmElapsed()); }, 250);
+      tm.iv = setInterval(tmTick, 250);
     } else {
       var el = Math.round(tmElapsed()), n = dr.steps.length;
       if (tm.phase < n - 1) {
@@ -1257,7 +1313,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var list = state.brews.filter(function (x) { return x.bean === b.id; })
       .sort(function (a, c) { return String(c.at).localeCompare(String(a.at)); });
     var box = $("history");
-    renderAnalyze();
+    renderAnalyze(); renderBackup();
+    state.cmp = state.cmp.filter(function (id) { return list.some(function (x) { return x.id === id; }); });
+    renderChart(list); renderCompare(list);
     if (!list.length) {
       box.innerHTML = '<p class="empty">Записей пока нет. После чашки нажмите «Записать заварку» и отметьте, что получилось.</p>';
       return;
@@ -1277,6 +1335,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var foot = state.delAsk === x.id
         ? '<span style="font-size:14px">Удалить запись?</span><button type="button" class="mini danger" data-del-yes="' + esc(x.id) + '">Удалить</button><button type="button" class="mini" data-del-no>Нет</button>'
         : '<button type="button" class="mini" data-open="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Открыть и изменить</button>' +
+          '<button type="button" class="mini' + (state.cmp.indexOf(x.id) >= 0 ? " on" : "") + '" data-cmp="' + esc(x.id) + '" aria-pressed="' + (state.cmp.indexOf(x.id) >= 0) + '">' + (state.cmp.indexOf(x.id) >= 0 ? "✓ Сравниваю" : "Сравнить") + '</button>' +
           '<button type="button" class="mini" data-apply="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Сделать рецептом</button>' +
           '<button type="button" class="mini danger" data-del="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Удалить</button>';
       return '<article class="brew"><header><b>' + esc(when) + '</b><span class="dose-tag">' + (DOSE_LABEL[x.dose] || "") + '</span>' + verdict + '</header>' +
@@ -1286,6 +1345,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         (rows ? '<dl class="bnotes">' + rows + '</dl>' : "") +
         '<footer>' + foot + '</footer></article>';
     }).join("");
+    box.querySelectorAll("[data-cmp]").forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute("data-cmp"), i = state.cmp.indexOf(id);
+        if (i >= 0) state.cmp.splice(i, 1); else { state.cmp.push(id); if (state.cmp.length > 2) state.cmp.shift(); }
+        renderHistory();
+        if (state.cmp.length === 2) $("compare").scrollIntoView({ block: "start", behavior: "smooth" });
+      };
+    });
 
     box.querySelectorAll("[data-open]").forEach(function (btn) {
       btn.onclick = function () {
@@ -1324,6 +1391,85 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         labelEl.scrollIntoView({ block: "start", behavior: "smooth" });
       };
     });
+  }
+
+  // ---------- chart: grind vs drawdown ----------
+  function parseRange(t) {
+    var p = String(t || "").split(/[–—-]/).map(function (x) { return parseTime(x); }).filter(function (x) { return x != null && isFinite(x); });
+    return p.length ? { lo: p[0], hi: p[p.length - 1] } : null;
+  }
+  var chartSel = null;
+  function renderChart(list) {
+    var box = $("chart"), dz = state.dose;
+    var pts = list.filter(function (x) { return x.dose === dz && x.drawdown != null && isFinite(num(x.grind)); })
+      .map(function (x) { return { x: num(x.grind), y: x.drawdown, b: x }; });
+    if (pts.length < 2) { box.innerHTML = ""; return; }
+    var tgt = parseRange(recipeFor(bean(), dz).target);
+    var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+    if (tgt) ys = ys.concat([tgt.lo, tgt.hi]);
+    var x0 = Math.floor(Math.min.apply(null, xs) * 2) / 2 - 0.5, x1 = Math.ceil(Math.max.apply(null, xs) * 2) / 2 + 0.5;
+    var y0 = Math.floor((Math.min.apply(null, ys) - 10) / 30) * 30, y1 = Math.ceil((Math.max.apply(null, ys) + 10) / 30) * 30;
+    var W = 360, H = 210, L = 44, R = 12, T = 12, B = 34;
+    function sx(v) { return L + (v - x0) / (x1 - x0) * (W - L - R); }
+    function sy(v) { return T + (y1 - v) / (y1 - y0) * (H - T - B); }
+    var g = "";
+    for (var v = y0; v <= y1; v += 30) g += '<line class="cg" x1="' + L + '" x2="' + (W - R) + '" y1="' + sy(v) + '" y2="' + sy(v) + '"/><text class="ct" x="' + (L - 6) + '" y="' + (sy(v) + 4) + '" text-anchor="end">' + fmtTime(v) + '</text>';
+    for (var u = x0; u <= x1 + 1e-9; u += 0.5) g += '<text class="ct" x="' + sx(u) + '" y="' + (H - B + 18) + '" text-anchor="middle">' + fmtNum(u) + '</text>';
+    var band = tgt ? '<rect class="cband" x="' + L + '" width="' + (W - L - R) + '" y="' + sy(tgt.hi) + '" height="' + Math.max(2, sy(tgt.lo) - sy(tgt.hi)) + '"/>' : "";
+    var seen = {};
+    var dots = pts.map(function (p, i) {
+      var k = p.x + "_" + p.y, off = (seen[k] = (seen[k] || 0) + 1) - 1;
+      var cls = p.b.verdict === "confirmed" ? "yes" : p.b.verdict === "rejected" ? "no" : "none";
+      var cx = sx(p.x) + off * 7, cy = sy(p.y);
+      return '<g class="cdot' + (chartSel === p.b.id ? " sel" : "") + '" data-pt="' + esc(p.b.id) + '" tabindex="0" role="button" aria-label="Помол ' + esc(p.b.grind) + ', слив ' + fmtTime(p.y) + '">' +
+        '<circle class="hit" cx="' + cx + '" cy="' + cy + '" r="16"/><circle class="m ' + cls + '" cx="' + cx + '" cy="' + cy + '" r="6"/></g>';
+    }).join("");
+    var sel = pts.filter(function (p) { return p.b.id === chartSel; })[0];
+    var info = sel ? brewWhen(sel.b) + " · помол " + sel.b.grind + " · слив " + fmtTime(sel.y) + " · " + (sel.b.verdict === "confirmed" ? "подтверждён" : sel.b.verdict === "rejected" ? "не подтверждён" : "без итога") + (sel.b.descriptors ? " · " + sel.b.descriptors : "") : "Нажмите на точку, чтобы увидеть заварку.";
+    box.innerHTML = '<figure class="chart"><figcaption><b>Помол и слив · ' + DOSE_LABEL[dz].toLowerCase() + '</b><span>по горизонтали помол, по вертикали время слива' + (tgt ? "; полоса: цель " + esc(recipeFor(bean(), dz).target) : "") + '</span></figcaption>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Помол и время слива по заваркам">' + band + g +
+      '<line class="cax" x1="' + L + '" x2="' + (W - R) + '" y1="' + (H - B) + '" y2="' + (H - B) + '"/>' + dots + '</svg>' +
+      '<div class="clegend"><span><i class="yes"></i>подтверждён</span><span><i class="no"></i>не подтверждён</span><span><i class="none"></i>без итога</span></div>' +
+      '<p class="cinfo" role="status">' + esc(info) + '</p></figure>';
+    box.querySelectorAll("[data-pt]").forEach(function (el) {
+      function pick() { chartSel = el.getAttribute("data-pt"); renderChart(list); }
+      el.addEventListener("click", pick);
+      el.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    });
+  }
+
+  // ---------- compare two brews ----------
+  function renderCompare(list) {
+    var box = $("compare");
+    var pair = state.cmp.map(function (id) { return list.filter(function (x) { return x.id === id; })[0]; }).filter(Boolean);
+    if (pair.length === 1) { box.innerHTML = '<p class="hint cmp-hint">Выберите ещё одну заварку кнопкой «Сравнить».</p>'; return; }
+    if (pair.length !== 2) { box.innerHTML = ""; return; }
+    pair.sort(function (a, c) { return String(a.at).localeCompare(String(c.at)); });
+    function stepsTxt(x) { return Array.isArray(x.steps) ? x.steps.map(function (st) { return fmtTime(st.t) + "→" + st.to; }).join(" ") : "—"; }
+    var rows = [
+      ["Порция", function (x) { return DOSE_LABEL[x.dose] || "—"; }],
+      ["Кофе", function (x) { return fmtNum(x.coffee) + " г"; }],
+      ["Вода", function (x) { return fmtNum(x.water) + " г"; }],
+      ["Чайник", function (x) { return fmtNum(x.temp) + " °C"; }],
+      ["Помол", function (x) { return String(x.grind); }],
+      ["Блюм", function (x) { return BLOOM[bloomOf(x)].name; }],
+      ["Проливы", stepsTxt],
+      ["Слив", function (x) { return x.drawdown == null ? "—" : fmtTime(x.drawdown); }],
+      ["Вкус", function (x) { return x.descriptors || "—"; }],
+      ["Горячая", function (x) { return x.hot || "—"; }],
+      ["Остывшая", function (x) { return x.cooled || "—"; }],
+      ["Итог", function (x) { return x.verdict === "confirmed" ? "подтверждён" : x.verdict === "rejected" ? "не подтверждён" : "—"; }]
+    ];
+    var diffCount = 0;
+    var body = rows.map(function (r) {
+      var a = r[1](pair[0]), c = r[1](pair[1]), d = a !== c;
+      if (d && ["Вкус", "Горячая", "Остывшая", "Итог"].indexOf(r[0]) < 0) diffCount++;
+      return '<tr class="' + (d ? "diff" : "") + '"><th scope="row">' + r[0] + '</th><td>' + esc(a) + '</td><td>' + esc(c) + '</td></tr>';
+    }).join("");
+    box.innerHTML = '<div class="cmp"><div class="cmp-head"><b>Сравнение</b><button type="button" class="mini" id="cmpClose">Закрыть</button></div>' +
+      '<p class="hint">' + (diffCount === 0 ? "Параметры заварки совпадают, отличается только вкус." : diffCount === 1 ? "Отличается один параметр заварки — так и нужно сравнивать." : "Отличаются " + diffCount + " " + plural(diffCount, "параметр", "параметра", "параметров") + " заварки. Трудно понять, что повлияло на вкус.") + ' Отличия выделены.</p>' +
+      '<table><thead><tr><th></th><th>' + esc(brewWhen(pair[0])) + '</th><th>' + esc(brewWhen(pair[1])) + '</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+    $("cmpClose").onclick = function () { state.cmp = []; renderHistory(); };
   }
 
   // ---------- analysis ----------
@@ -1400,8 +1546,18 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     a.download = "voronka-" + new Date().toISOString().slice(0, 10) + ".json";
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    store("voronka-backup", String(Date.now())); renderBackup();
     $("dataMsg").textContent = "Копия сохранена в загрузки: " + state.brews.length + " " + plural(state.brews.length, "запись", "записи", "записей") + ".";
   };
+  function renderBackup() {
+    var el = $("backupNote"); if (!el) return;
+    var own = state.brews.filter(function (x) { return String(x.id).indexOf("seed-") !== 0; }).length;
+    var last = +load("voronka-backup") || 0, days = last ? Math.floor((Date.now() - last) / 86400000) : null;
+    var show = own > 0 && (days == null || days >= 7);
+    el.hidden = !show;
+    if (show) $("backupText").textContent = days == null ? "Копии журнала ещё не было. Записи живут только в этом браузере." : "Последняя копия " + days + " " + plural(days, "день", "дня", "дней") + " назад.";
+  }
+  $("backupBtn").onclick = function () { $("exportBtn").click(); };
   $("importFile").onchange = function () {
     var f = this.files && this.files[0], input = this;
     if (!f) return;
@@ -1456,6 +1612,17 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (state.view === "panel") window.scrollTo(0, 0);
   }
   var GUIDES = [
+    { id: "routine", title: "Каждое утро одинаково", lead: "Короткий порядок действий для любой заварки.",
+      steps: [
+        "Поставьте чайник на температуру из рецепта.",
+        "Промойте фильтр горячей водой, воду из сервера слейте. Сервер заодно прогреется.",
+        "Смелите кофе, засыпьте, сделайте лунку в центре, обнулите весы.",
+        "Откройте «Записать заварку» и нажмите «Старт» вместе с блюмом. Блюм делайте так, как выбрано в рецепте.",
+        "Лейте тонкой струёй по спирали от центра, не на стенки фильтра. В начале каждого пролива нажимайте кнопку секундомера.",
+        "После последнего пролива один раз покрутите воронку и нажмите «Слив закончился», когда вода уйдёт."
+      ], pick: [],
+      bullets: ["Помол записан как 1 оборот от нуля плюс цифра на лимбе C5 ESP (между цифрами 5 щелчков по 15 мкм). Температура по датчику чайника."],
+      videos: [] },
 
     { id: "fresh", title: "Свежесть и отдых кофе", lead: "Сразу после обжарки зерно выделяет много газа. Для фильтра его оставляют полежать, а потом стараются выпить, пока вкус яркий.",
       steps: [], pick: [],
@@ -1676,7 +1843,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   var GUIDE_GROUPS = [
     ["Основы", ["fresh", "water", "ratio"]],
     ["Как настроить", ["grind", "temp", "oneparam"]],
-    ["Техника", ["pour", "methods", "bloom", "filter"]],
+    ["Техника", ["routine", "pour", "methods", "bloom", "filter"]],
     ["Вкус", ["taste", "words"]],
     ["Уход", ["wash", "grinder", "kettle", "store"]]
   ];
