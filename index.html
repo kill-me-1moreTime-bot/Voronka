@@ -264,6 +264,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .ba-lines path.thin { stroke-width: 1.2; }
 .ba-lines path.paper { stroke: var(--splash-paper); stroke-width: 1.4; }
 .ba-lines path.hatch { stroke-width: .8; }
+#baSpoon path { stroke-width: 2.4; } #baSpoon ellipse { fill: var(--splash-paper); stroke: var(--splash-ink); stroke-width: 1.4; }
 .ba-water { fill: none; stroke: var(--splash-water); stroke-width: 2.6; stroke-linecap: round; }
 .ba-cof, .ba-drip { fill: var(--splash-coffee); }
 .ba-slurry { fill: var(--splash-coffee); opacity: .8; }
@@ -1888,7 +1889,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     { tab: "Хоффман", title: "Ultimate V60 · Джеймс Хоффман", t: 46, bloom: "swirl",
       lead: "Два больших пролива и мягкое перемешивание в конце. Даёт чистую сладкую чашку, если помол не слишком тонкий.",
       facts: [["Помол", "средне-мелкий, ваш обычный"], ["Температура", "чем горячее, тем лучше"], ["Блюм", "вдвое больше веса кофе, покрутить, 45 с"], ["Мешание", "один раз после последнего пролива, потом покрутить"], ["Слив", "около 3:30"]],
-      steps: [[0, 30, "Блюм, покрутить воронку"], [45, 145, "Пролив до 60% воды"], [75, 240, "Долить, размешать, покрутить"]],
+      steps: [[0, 30, "Блюм: смочить весь кофе", 8], [45, 145, "Быстрый пролив, 60% воды за 30 секунд", 30], [75, 240, "Долить остальное, чуть медленнее", 30]],
+      anim: { end: 210, wait: "Ждём.", finish: "Слив закончился около 3:30. Готово.",
+        events: [{ at: 9, dur: 5, type: "swirl", text: "Покрутить воронку, чтобы весь кофе намок" }, { at: 106, dur: 4, type: "stir", text: "Ложкой: раз по часовой, раз против" }, { at: 110, dur: 5, type: "swirl", text: "Мягко покрутить воронку, слой ляжет ровно" }],
+        groups: [[0, 1, "Блюм", "×2 веса кофе."], [1, 2, "До 60%", "Быстро."], [2, 3, "До 100%", "Медленнее."]] },
       author: "Британский эксперт по кофе, чемпион мира среди бариста 2007 года, сооснователь обжарщика Square Mile Coffee Roasters. Ведёт один из самых известных кофейных каналов на YouTube.",
       warn: "" },
     { tab: "Касуя 4:6", title: "Метод 4:6 · Тэцу Касуя", t: 321, bloom: "none",
@@ -1926,10 +1930,11 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<clipPath id="baSrv"><path d="M72 160 L72 232 Q72 238 80 238 L160 238 Q168 238 168 232 L168 160 Z"/></clipPath>' +
         '<clipPath id="baCone"><path d="M66 111 L174 111 L133 148 L107 148 Z"/></clipPath></defs>' +
         '<g clip-path="url(#baSrv)"><rect class="ba-cof" id="baLevel" x="70" y="240" width="100" height="0"/></g>' +
-        '<g clip-path="url(#baCone)"><rect class="ba-slurry" id="baSlurry" x="60" y="150" width="120" height="0"/></g>' +
+        '<g id="baDripA"><g clip-path="url(#baCone)"><rect class="ba-slurry" id="baSlurry" x="60" y="150" width="120" height="0"/></g></g>' +
         '<g filter="url(#baPencil)" class="ba-lines">' +
           '<path d="M70 156 L70 232 Q70 240 79 240 L161 240 Q170 240 170 232 L170 156"/><path class="thin" d="M64 156 L176 156"/><path d="M170 170 Q194 170 193 192 Q192 214 170 214"/><path class="thin" d="M78 176 L78 224"/>' +
-          '<path d="M58 110 L182 110"/><path d="M62 110 L106 150 L134 150 L178 110"/><path class="thin" d="M92 150 L148 150"/><path d="M62 116 Q44 118 47 132 Q50 144 72 138"/><path class="paper" d="M70 104 L110 144 L130 144 L170 104"/>' +
+          '<g id="baDripB"><path d="M58 110 L182 110"/><path d="M62 110 L106 150 L134 150 L178 110"/><path class="thin" d="M92 150 L148 150"/><path d="M62 116 Q44 118 47 132 Q50 144 72 138"/><path class="paper" d="M70 104 L110 144 L130 144 L170 104"/></g>' +
+          '<g id="baSpoon" style="opacity:0"><path d="M120 128 L150 70"/><ellipse cx="119" cy="131" rx="4" ry="6" transform="rotate(27 119 131)"/></g>' +
           '<g id="baKettle"><path d="M166 34 Q162 70 170 80 Q174 84 182 84 L216 84 Q224 84 226 76 Q232 56 224 34 Z"/><path class="thin" d="M172 34 L220 34 M186 34 Q188 24 196 24 Q204 24 206 34"/><path d="M224 44 Q244 46 242 60 Q240 74 224 74"/><path d="M168 72 Q146 74 142 56 Q138 38 126 34 Q118 32 114 40"/><path class="thin" d="M168 78 Q150 82 144 70"/><path class="hatch" d="M178 44 L184 76 M188 44 L194 78 M198 44 L204 78 M208 44 L212 76"/></g>' +
         '</g>' +
         '<path class="ba-water" id="baWater" d="M116 64 C117 86 119 102 120 124"/>' +
@@ -1954,7 +1959,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var m = METHODS[methodIdx], st = m.steps, END = m.anim.end, POUR = 10, LOOP = 24, HOLD = 2;
     var speed = END / (LOOP - HOLD);
     var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var run = baRun = { raf: 0, playing: !still, t: still ? 12 : 0, last: 0 };
+    var run = baRun = { raf: 0, playing: !still, t: still ? 12 : 0, last: 0, real: 0 };
     // вода: сколько налито к моменту t и сколько стоит в воронке
     function poured(t) {
       var g = 0, prev = 0;
@@ -2008,12 +2013,25 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var g = poured(t), h = held(t), total = st[st.length - 1][1];
       var sh = Math.min(34, Math.sqrt(h / 60) * 34); S.setAttribute("y", 150 - sh); S.setAttribute("height", sh);
       var lv = (g - h) / total * 40; L.setAttribute("y", 238 - lv); L.setAttribute("height", lv);
-      D.style.opacity = h > 2 && (t * 3 % 1) < 0.5 ? 1 : 0; D.setAttribute("cy", 156 + (t * 3 % 1) * 30);
+      // капля падает вниз в реальном времени, от воронки до поверхности кофе
+      var dp = (run.real * 1.4) % 1, top = 156, bottom = 236 - lv;
+      D.setAttribute("cy", top + (bottom - top) * dp * dp);
+      D.style.opacity = h > 2 && t < END ? (dp < 0.08 ? dp / 0.08 : dp > 0.92 ? (1 - dp) / 0.08 : 1) : 0;
+      // действия: покрутить воронку, размешать ложкой
+      var ev = (m.anim.events || []).filter(function (e) { return t >= e.at && t < e.at + e.dur; })[0];
+      var sw = ev && ev.type === "swirl" ? Math.sin((t - ev.at) / ev.dur * Math.PI * 6) * 5 * Math.sin((t - ev.at) / ev.dur * Math.PI) : 0;
+      $("baDripA").setAttribute("transform", "rotate(" + sw + " 120 150)"); $("baDripB").setAttribute("transform", "rotate(" + sw + " 120 150)");
+      var sp = $("baSpoon");
+      if (ev && ev.type === "stir") {
+        var a = (t - ev.at) / ev.dur, dir = a < 0.5 ? 1 : -1, ang = dir * Math.sin(a * Math.PI * 2) * 12;
+        sp.style.opacity = 1; sp.setAttribute("transform", "translate(" + (Math.sin(a * Math.PI * 4) * 6) + " 0) rotate(" + ang + " 120 128)");
+      } else sp.style.opacity = 0;
       $("baClock").textContent = fmtTime(Math.min(t, END));
       $("baScale").textContent = Math.round(g) + " г";
       var cap;
       if (t >= END) cap = m.anim.finish;
-      else if (ph.pouring) cap = fmtTime(st[ph.i][0]) + " · " + st[ph.i][2] + " до " + st[ph.i][1] + " г";
+      else if (ev) cap = fmtTime(ev.at) + " · " + ev.text;
+      else if (ph.pouring) cap = fmtTime(st[ph.i][0]) + " · до " + st[ph.i][1] + " г · " + st[ph.i][2];
       else cap = ph.i < st.length - 1 ? m.anim.wait + " Следующий пролив в " + fmtTime(st[ph.i + 1][0]) + "." : "Всё налито. Ждём, пока вода уйдёт.";
       if ($("baCap").textContent !== cap) $("baCap").textContent = cap;
       segs.forEach(function (sg, i) { sg.classList.toggle("on", i === ph.i && t < END); sg.classList.toggle("done", t >= st[i][0] + (st[i][3] || POUR) || t >= END); });
@@ -2024,7 +2042,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       if (baRun !== run || !root.isConnected) return;
       if (run.playing) {
         var dt = run.last ? (now - run.last) / 1000 : 0; run.last = now;
-        run.t += dt * speed;
+        run.t += dt * speed; run.real += dt;
         if (run.t > END + HOLD * speed) run.t = 0;
       } else run.last = 0;
       draw(Math.min(run.t, END));
