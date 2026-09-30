@@ -600,6 +600,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   };
   var drafts = {};
   try { drafts = JSON.parse(load("voronka-drafts") || "{}") || {}; } catch (e) { drafts = {}; }
+  Object.keys(drafts).forEach(function (k) { if (k.indexOf("edit_") === 0) delete drafts[k]; });
   try {
     var cache = JSON.parse(load("voronka-data") || "null");
     if (cache && cache.beanDocs) state.beanDocs = cache.beanDocs;
@@ -731,7 +732,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var d = btn.getAttribute("data-dose");
       if (d === state.dose) return;
       state.dose = d; store("voronka-dose", d);
-      state.editing = false; state.editDraft = null; state.logOpen = false;
+      state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null;
       renderAll();
     });
   });
@@ -745,7 +746,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var d = dir || (i > state.idx ? 1 : -1);
     state.view = "panel";
     state.idx = i; store("voronka-bean", BEANS[i].id);
-    state.editing = false; state.editDraft = null; state.logOpen = false; state.delAsk = null;
+    state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null; state.delAsk = null;
     try { history.replaceState(null, "", "#" + BEANS[i].id); } catch (e) {}
     renderAll(d);
     var tab = $("tab-" + BEANS[i].id);
@@ -978,7 +979,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
 
   // ---------- brew log form ----------
-  function draftKey() { return bean().id + "_" + state.dose; }
+  function draftKey() { return state.editBrew ? "edit_" + state.editBrew : bean().id + "_" + state.dose; }
+  function brewToDraft(x) {
+    return {
+      coffee: String(x.coffee), water: String(x.water), temp: String(x.temp), grind: String(x.grind), bloom: bloomOf(x),
+      steps: (Array.isArray(x.steps) ? x.steps : []).map(function (st) { return { t: fmtTime(st.t), to: String(st.to) }; }),
+      drawdown: x.drawdown == null ? "" : fmtTime(x.drawdown), descriptors: x.descriptors || "", hot: x.hot || "", cooled: x.cooled || "", notes: x.notes || "",
+      verdict: x.verdict || null, apply: false
+    };
+  }
+  function editingBrew() { return state.editBrew ? state.brews.filter(function (x) { return x.id === state.editBrew; })[0] || null : null; }
   function draftKeySafe() { return bean() ? draftKey() : null; }
   function freshDraft() {
     var r = recipeFor(bean(), state.dose);
@@ -1001,12 +1011,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function renderLogForm() {
     var key = draftKey();
     if (!drafts[key]) drafts[key] = freshDraft();
-    var dr = drafts[key], b = bean();
+    var dr = drafts[key], b = bean(), eb = editingBrew(), dzl = DOSE_LABEL[eb ? eb.dose : state.dose].toLowerCase();
     if (!BLOOM[dr.bloom]) dr.bloom = bloomOf(recipeFor(b, state.dose));
     var panel = $("logPanel");
     panel.innerHTML =
-      '<div><h3>Заварка ' + esc(b.short) + '</h3><p class="sub">Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.</p></div>' +
-      timerHtml() +
+      '<div><h3>' + (eb ? "Заварка " + esc(b.short) + " от " + esc(brewWhen(eb)) : "Заварка " + esc(b.short)) + '</h3><p class="sub">' + (eb ? "Поправьте то, что нужно, и нажмите «Сохранить изменения»." : "Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.") + '</p></div>' +
+      (eb ? '' : timerHtml()) +
       '<div class="pgrid">' +
         pfld("l-coffee", "Кофе, г", dr.coffee) + pfld("l-water", "Вода, г", dr.water) +
         pfld("l-temp", "Чайник, °C", dr.temp) + pfld("l-grind", "Помол", dr.grind) +
@@ -1025,12 +1035,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<button type="button" class="yes" id="l-yes" aria-pressed="' + (dr.verdict === "confirmed") + '">Рецепт подтверждён</button>' +
         '<button type="button" class="no" id="l-no" aria-pressed="' + (dr.verdict === "rejected") + '">Не подтверждён</button>' +
       '</div></div>' +
-      '<label class="check"><input id="l-apply" type="checkbox"' + (dr.apply ? " checked" : "") + '><span>Сделать эти параметры рецептом для «' + esc(b.short) + '», ' + DOSE_LABEL[state.dose].toLowerCase() + '</span></label>' +
+      '<label class="check"><input id="l-apply" type="checkbox"' + (dr.apply ? " checked" : "") + '><span>Сделать эти параметры рецептом для «' + esc(b.short) + '», ' + dzl + '</span></label>' +
       '<p class="perr" id="l-err"></p>' +
       '<div class="pactions">' +
-        '<button type="button" class="p-solid" id="l-save">Сохранить заварку</button>' +
-        '<button type="button" class="p-ghost" id="l-close">Свернуть</button>' +
-        '<button type="button" class="p-ghost" id="l-clear">Очистить</button>' +
+        '<button type="button" class="p-solid" id="l-save">' + (eb ? "Сохранить изменения" : "Сохранить заварку") + '</button>' +
+        (eb ? '<button type="button" class="p-ghost" id="l-cancel">Отмена</button>' :
+          '<button type="button" class="p-ghost" id="l-close">Свернуть</button>' +
+          '<button type="button" class="p-ghost" id="l-clear">Очистить</button>') +
       '</div>';
     renderLogSteps();
     bindBloomPick("logBloom", function (k) { dr.bloom = k; saveDrafts(); });
@@ -1067,8 +1078,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       $("l-no").setAttribute("aria-pressed", dr.verdict === "rejected");
     }
     $("l-apply").onchange = function () { dr.apply = this.checked; saveDrafts(); };
-    $("l-close").onclick = function () { state.logOpen = false; renderLogButton(); };
-    $("l-clear").onclick = function () { timerReset(); drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
+    if (eb) {
+      $("l-cancel").onclick = function () { delete drafts[key]; state.logOpen = false; state.editBrew = null; renderLogButton(); renderHistory(); };
+    } else {
+      $("l-close").onclick = function () { state.logOpen = false; state.editBrew = null; renderLogButton(); };
+      $("l-clear").onclick = function () { timerReset(); drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
+    }
     $("l-save").onclick = saveBrew;
   }
   function pfld(id, label, val) {
@@ -1127,10 +1142,11 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     } catch (e) {}
   }
   document.addEventListener("visibilitychange", function () { if (tm.on && document.visibilityState === "visible") { tm.wake = null; tmWake(true); tmRender(); } });
-  function tmStopTimer() { clearInterval(tm.iv); tm.iv = null; tm.on = false; tmWake(false); }
+  function tmSave() { store("voronka-timer", JSON.stringify({ on: tm.on, t0: tm.t0, phase: tm.phase, key: tm.key })); }
+  function tmStopTimer() { clearInterval(tm.iv); tm.iv = null; tm.on = false; tmWake(false); tmSave(); }
   function timerReset() { tmStopTimer(); tm.done = false; tm.phase = 0; tm.last = 0; tm.key = null; }
   function timerHtml() {
-    return '<div class="timer" id="timerBox"><div class="tm-clock" id="tm-clock">0:00</div><p class="tm-hint" id="tm-hint"></p>' +
+    return '<div class="timer" id="timerBox"><div class="tm-clock" id="tm-clock">0:00</div><p class="tm-hint" id="tm-hint"></p><p class="tm-hint" id="tm-log"></p>' +
       '<button type="button" class="tm-main" id="tm-main"></button>' +
       '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-stop">Остановить без записи</button></div></div>';
   }
@@ -1152,11 +1168,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       label = "Старт: блюм";
     }
     $("tm-hint").textContent = hint;
+    $("tm-log").textContent = tm.on || tm.done ? "Записано: " + dr.steps.slice(0, tm.on ? ph + 1 : n).map(function (st, i) { return (i === 0 ? "блюм" : "пролив " + i) + " " + st.t; }).join(" · ") + (tm.done ? " · слив " + dr.drawdown : "") : "";
     $("tm-main").textContent = label;
     $("tm-main").classList.toggle("live", tm.on);
     $("tm-stop").hidden = !tm.on;
   }
   function bindTimer() {
+    if (!$("tm-main")) return;
     $("tm-main").onclick = tmMain;
     $("tm-stop").onclick = function () { tmStopTimer(); tm.done = false; tm.phase = 0; tmRender(); };
     tmRender();
@@ -1183,29 +1201,31 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       }
     }
     try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
-    saveDrafts(); tmRender();
+    saveDrafts(); tmSave(); tmRender();
   }
   function saveBrew() {
     if (tm.on) { tmStopTimer(); tm.done = false; }
     var key = draftKey(), dr = drafts[key], b = bean(), dz = state.dose;
+    var prevBrew = editingBrew(), prevIdx = prevBrew ? state.brews.indexOf(prevBrew) : -1;
+    if (prevBrew) dz = prevBrew.dose === "2" ? "2" : "1";
     var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", bloom: dr.bloom, steps: dr.steps });
     if (v.err) { $("l-err").textContent = v.err; return; }
     var dd = parseTime(dr.drawdown);
     if (dr.drawdown.trim() && !isFinite(dd)) { $("l-err").textContent = "Время слива в формате 3:30."; return; }
     var r = v.ok;
     var doc = {
-      bean: b.id, dose: dz, at: new Date().toISOString(),
+      bean: prevBrew ? prevBrew.bean : b.id, dose: dz, at: prevBrew ? prevBrew.at : new Date().toISOString(),
       coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, steps: r.steps,
       drawdown: dd == null ? null : dd,
       descriptors: dr.descriptors.trim(), hot: dr.hot.trim(), cooled: dr.cooled.trim(), notes: dr.notes.trim(),
       verdict: dr.verdict || null
     };
     var btn = $("l-save"); btn.disabled = true; btn.textContent = "Сохраняю…";
-    doc.id = newId();
-    state.brews.push(doc);
+    if (prevBrew) { doc.id = prevBrew.id; if (prevBrew.timeKnown === false) doc.timeKnown = false; state.brews[prevIdx] = doc; }
+    else { doc.id = newId(); state.brews.push(doc); }
     if (!persist()) {
-      state.brews.pop();
-      btn.disabled = false; btn.textContent = "Сохранить заварку";
+      if (prevBrew) state.brews[prevIdx] = prevBrew; else state.brews.pop();
+      btn.disabled = false; btn.textContent = prevBrew ? "Сохранить изменения" : "Сохранить заварку";
       $("l-err").textContent = "Запись не сохранилась. Черновик остался, попробуйте ещё раз.";
       return;
     }
@@ -1219,12 +1239,17 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       });
     }
     delete drafts[key]; saveDrafts();
-    state.logOpen = false;
-    setSync("Заварка записана");
+    state.logOpen = false; state.editBrew = null;
+    setSync(prevBrew ? "Изменения сохранены" : "Заварка записана");
     renderLogButton(); renderTabs(); renderCard(0); renderHistory();
   }
 
   // ---------- history ----------
+  function brewWhen(x) {
+    var dt = new Date(x.at);
+    return isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }) +
+      (x.timeKnown === false ? "" : " " + dt.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }));
+  }
   function renderHistory() {
     var b = bean();
     $("histTitle").textContent = "Заварки · " + b.short;
@@ -1250,15 +1275,27 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         .map(function (p) { return '<div><dt>' + p[0] + '</dt><dd>' + esc(p[1]) + '</dd></div>'; }).join("");
       var foot = state.delAsk === x.id
         ? '<span style="font-size:14px">Удалить запись?</span><button type="button" class="mini danger" data-del-yes="' + esc(x.id) + '">Удалить</button><button type="button" class="mini" data-del-no>Нет</button>'
-        : '<button type="button" class="mini" data-apply="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Сделать рецептом</button>' +
+        : '<button type="button" class="mini" data-open="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Открыть и изменить</button>' +
+          '<button type="button" class="mini" data-apply="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Сделать рецептом</button>' +
           '<button type="button" class="mini danger" data-del="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Удалить</button>';
       return '<article class="brew"><header><b>' + esc(when) + '</b><span class="dose-tag">' + (DOSE_LABEL[x.dose] || "") + '</span>' + verdict + '</header>' +
         '<p class="bparams">' + params.join(" · ") + '</p>' +
+        (Array.isArray(x.steps) && x.steps.length ? '<p class="bparams">' + x.steps.map(function (st, i) { return (i === 0 ? "блюм " : "пролив " + i + " ") + fmtTime(st.t) + " → " + st.to + " г"; }).join(" · ") + '</p>' : '') +
         (x.descriptors ? '<p class="bdesc">' + esc(x.descriptors) + '</p>' : "") +
         (rows ? '<dl class="bnotes">' + rows + '</dl>' : "") +
         '<footer>' + foot + '</footer></article>';
     }).join("");
 
+    box.querySelectorAll("[data-open]").forEach(function (btn) {
+      btn.onclick = function () {
+        var x = state.brews.filter(function (y) { return y.id === btn.getAttribute("data-open"); })[0];
+        if (!x) return;
+        if (tm.on) { tmStopTimer(); tm.done = false; }
+        state.editBrew = x.id; drafts["edit_" + x.id] = brewToDraft(x);
+        state.logOpen = true; renderLogButton(); renderLogForm();
+        $("logPanel").scrollIntoView({ block: "start" });
+      };
+    });
     box.querySelectorAll("[data-del]").forEach(function (btn) { btn.onclick = function () { state.delAsk = btn.getAttribute("data-del"); renderHistory(); }; });
     box.querySelectorAll("[data-del-no]").forEach(function (btn) { btn.onclick = function () { state.delAsk = null; renderHistory(); }; });
     box.querySelectorAll("[data-del-yes]").forEach(function (btn) {
@@ -1411,7 +1448,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     rebuildBeans(); buildTabs();
     var ni = BEANS.findIndex(function (x) { return x.id === curId; });
     state.idx = ni >= 0 ? ni : Math.min(state.idx, Math.max(BEANS.length - 1, 0));
-    state.editing = false; state.editDraft = null; state.logOpen = false;
+    state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null;
     if (BEANS[state.idx]) store("voronka-bean", BEANS[state.idx].id);
     setSync(status === "shelf" ? "«" + b.short + "» ушла в коллекцию" : "«" + b.short + "» на панели");
     renderAll();
@@ -1663,7 +1700,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     bindMethods();
   }
   function openGuides(id) {
-    state.view = "guides"; state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
+    state.view = "guides"; state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null; state.collForm = null; state.delBean = null;
     renderAll();
     var el = id ? $("guide-" + id) : null;
     if (el) { el.open = true; el.scrollIntoView({ block: "start" }); } else window.scrollTo(0, 0);
@@ -1671,7 +1708,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function toggleGuides() { state.view = "panel"; renderAll(); window.scrollTo(0, 0); }
   function toggleCollection() {
     state.view = state.view === "collection" ? "panel" : "collection";
-    state.editing = false; state.editDraft = null; state.logOpen = false; state.collForm = null; state.delBean = null;
+    state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null; state.collForm = null; state.delBean = null;
     renderAll();
     window.scrollTo(0, 0);
   }
@@ -1905,6 +1942,17 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     renderHistory();
   }
 
+  // Если страницу выгрузили во время заварки, секундомер продолжается с того же места
+  (function () {
+    try {
+      var t = JSON.parse(load("voronka-timer") || "null");
+      if (!t || !t.on || Date.now() - t.t0 > 30 * 60000 || !drafts[t.key]) return;
+      var m = /^(.*)_([12])$/.exec(t.key), i = m ? BEANS.findIndex(function (x) { return x.id === m[1]; }) : -1;
+      if (i < 0) return;
+      state.idx = i; state.dose = m[2]; state.logOpen = true;
+      tm.on = true; tm.t0 = t.t0; tm.phase = Math.min(t.phase || 0, drafts[t.key].steps.length - 1); tm.key = t.key;
+    } catch (e) {}
+  })();
   buildTabs();
   renderEquipment();
   renderAll(0);
