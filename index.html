@@ -258,6 +258,32 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .guide ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
 .guide p { margin: 0; }
 .mpanel { display: grid; gap: 10px; }
+.banim { display: grid; gap: 10px; background: var(--splash-bg); color: var(--splash-fg); border-radius: 12px; padding: 12px; }
+.banim svg { width: 100%; max-width: 300px; height: auto; justify-self: center; overflow: visible; }
+.ba-lines path { fill: none; stroke: var(--splash-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ba-lines path.thin { stroke-width: 1.2; }
+.ba-lines path.paper { stroke: var(--splash-paper); stroke-width: 1.4; }
+.ba-lines path.hatch { stroke-width: .8; }
+.ba-water { fill: none; stroke: var(--splash-water); stroke-width: 2.6; stroke-linecap: round; }
+.ba-cof, .ba-drip { fill: var(--splash-coffee); }
+.ba-slurry { fill: var(--splash-coffee); opacity: .8; }
+.ba-read { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; }
+.ba-read span { display: block; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--splash-muted); }
+.ba-read b { font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.ba-cap { margin: 0; min-height: 3em; text-align: center; font-size: 15px; }
+.ba-bar, .ba-groups { display: flex; gap: 3px; }
+.ba-seg { min-width: 0; border-radius: 6px; padding: 6px 4px; display: grid; gap: 2px; text-align: center; background: var(--splash-bg); border: 1.5px solid var(--splash-paper); }
+.ba-seg b { font: 700 16px/1 var(--f-display); }
+.ba-seg span { font: 500 11px/1.1 var(--f-mono); color: var(--splash-muted); }
+.ba-seg.done { background: var(--splash-paper); }
+.ba-seg.on { border-color: var(--splash-coffee); box-shadow: inset 0 0 0 1.5px var(--splash-coffee); }
+.ba-grp { min-width: 0; border-top: 3px solid var(--splash-coffee); padding-top: 4px; display: grid; gap: 2px; font-size: 12px; }
+.ba-grp.g1 { border-top-color: var(--splash-water); }
+.ba-grp b { font-size: 13px; }
+.ba-grp span { color: var(--splash-muted); }
+.ba-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ba-ctl .mini { color: var(--splash-fg); border-color: var(--splash-paper); }
+.ba-ctl .hint { color: var(--splash-muted); font-size: 12px; }
 .mpanel h4 { margin: 0; font: 700 20px/1.15 var(--f-display); }
 .mauthor { font-size: 15px; color: var(--muted); }
 .mfacts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 15px; }
@@ -1853,6 +1879,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       author: "Британский эксперт по кофе, чемпион мира среди бариста 2007 года, сооснователь обжарщика Square Mile Coffee Roasters. Ведёт один из самых известных кофейных каналов на YouTube.",
       warn: "" },
     { tab: "Касуя 4:6", title: "Метод 4:6 · Тэцу Касуя", t: 321, bloom: "none",
+      anim: { end: 210, wait: "Ждём. Не мешать, воронку не крутить.", finish: "Слив закончился около 3:30. Готово.",
+        groups: [[0, 2, "40% · вкус", "Меньше в первом — слаще, больше — кислее."], [2, 5, "60% · крепость", "Три пролива — крепче, два — легче."]] },
       lead: "Первые 40% воды задают баланс сладости и кислоты, остальные 60% дают крепость. Пять проливов, без мешания.",
       facts: [["Помол", "крупнее обычного: на 1–2 деления"], ["Температура", "92 °C"], ["Мешание", "нет, только ждать"], ["Слив", "около 3:30"]],
       steps: [[0, 40, "Первый пролив (40% воды делятся на два)"], [45, 96, "Второй пролив"], [90, 144, "Пролив 3 из остальных 60%"], [130, 192, "Пролив 4"], [160, 240, "Пролив 5"]],
@@ -1866,10 +1894,101 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       warn: "Граммы и время проливов у меня для этого способа не подтверждены. Смотрите ролик с 10:51 и запишите, как у вас получилось." }
   ];
   var methodIdx = 0;
+  // ---------- схема способа: анимированная зарисовка ----------
+  function brewAnimHtml(m) {
+    var st = m.steps, total = st[st.length - 1][1], prev = 0;
+    var bar = st.map(function (x, i) {
+      var g = x[1] - prev; prev = x[1];
+      var grp = m.anim.groups.filter(function (q) { return i >= q[0] && i < q[1]; })[0];
+      return '<div class="ba-seg g' + m.anim.groups.indexOf(grp) + '" data-seg="' + i + '" style="flex:' + g + '"><b>' + fmtTime(x[0]) + '</b><span>+' + g + ' г</span></div>';
+    }).join("");
+    var groups = m.anim.groups.map(function (q, k) {
+      var g = st[q[1] - 1][1] - (q[0] ? st[q[0] - 1][1] : 0);
+      return '<div class="ba-grp g' + k + '" style="flex:' + g + '"><b>' + esc(q[2]) + '</b><span>' + esc(q[3]) + '</span></div>';
+    }).join("");
+    return '<div class="banim" data-end="' + m.anim.end + '">' +
+      '<svg viewBox="30 -28 220 278" aria-hidden="true"><defs><filter id="baPencil" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.4"/></filter>' +
+        '<clipPath id="baSrv"><path d="M72 160 L72 232 Q72 238 80 238 L160 238 Q168 238 168 232 L168 160 Z"/></clipPath>' +
+        '<clipPath id="baCone"><path d="M66 111 L174 111 L133 148 L107 148 Z"/></clipPath></defs>' +
+        '<g clip-path="url(#baSrv)"><rect class="ba-cof" id="baLevel" x="70" y="240" width="100" height="0"/></g>' +
+        '<g clip-path="url(#baCone)"><rect class="ba-slurry" id="baSlurry" x="60" y="150" width="120" height="0"/></g>' +
+        '<g filter="url(#baPencil)" class="ba-lines">' +
+          '<path d="M70 156 L70 232 Q70 240 79 240 L161 240 Q170 240 170 232 L170 156"/><path class="thin" d="M64 156 L176 156"/><path d="M170 170 Q194 170 193 192 Q192 214 170 214"/><path class="thin" d="M78 176 L78 224"/>' +
+          '<path d="M58 110 L182 110"/><path d="M62 110 L106 150 L134 150 L178 110"/><path class="thin" d="M92 150 L148 150"/><path d="M62 116 Q44 118 47 132 Q50 144 72 138"/><path class="paper" d="M70 104 L110 144 L130 144 L170 104"/>' +
+          '<g id="baKettle"><path d="M166 34 Q162 70 170 80 Q174 84 182 84 L216 84 Q224 84 226 76 Q232 56 224 34 Z"/><path class="thin" d="M172 34 L220 34 M186 34 Q188 24 196 24 Q204 24 206 34"/><path d="M224 44 Q244 46 242 60 Q240 74 224 74"/><path d="M168 72 Q146 74 142 56 Q138 38 126 34 Q118 32 114 40"/><path class="thin" d="M168 78 Q150 82 144 70"/><path class="hatch" d="M178 44 L184 76 M188 44 L194 78 M198 44 L204 78 M208 44 L212 76"/></g>' +
+        '</g>' +
+        '<path class="ba-water" id="baWater" d="M116 64 C117 86 119 102 120 124"/>' +
+        '<circle class="ba-drip" id="baDrip" cx="120" cy="158" r="2.2"/>' +
+      '</svg>' +
+      '<div class="ba-read"><div><span>Время</span><b id="baClock">0:00</b></div><div><span>Весы</span><b id="baScale">0 г</b></div></div>' +
+      '<p class="ba-cap" id="baCap" aria-live="polite"></p>' +
+      '<div class="ba-bar">' + bar + '</div><div class="ba-groups">' + groups + '</div>' +
+      '<div class="ba-ctl"><button type="button" class="mini" id="baPlay"></button><span class="hint">Ролик ускорен: 3,5 минуты за 12 секунд.</span></div>' +
+    '</div>';
+  }
+  var baRun = null;
+  function mountBrewAnim() {
+    if (baRun) { cancelAnimationFrame(baRun.raf); baRun = null; }
+    var root = document.querySelector("#methodPanel .banim"); if (!root) return;
+    var m = METHODS[methodIdx], st = m.steps, END = m.anim.end, POUR = 10, LOOP = 12, HOLD = 1.5;
+    var speed = END / (LOOP - HOLD);
+    var still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var run = baRun = { raf: 0, playing: !still, t: still ? 12 : 0, last: 0 };
+    // вода: сколько налито к моменту t и сколько стоит в воронке
+    function poured(t) {
+      var g = 0, prev = 0;
+      st.forEach(function (x) { var a = x[0], add = x[1] - prev; prev = x[1]; if (t >= a + POUR) g += add; else if (t > a) g += add * (t - a) / POUR; });
+      return g;
+    }
+    function held(t) {
+      var h = 0, dt = 0.5;
+      for (var x = 0; x < t; x += dt) { h += (poured(x + dt) - poured(x)) - h * 0.06 * dt; }
+      return t >= END ? 0 : Math.max(0, h);
+    }
+    function phase(t) {
+      for (var i = st.length - 1; i >= 0; i--) if (t >= st[i][0]) return { i: i, pouring: t < st[i][0] + POUR };
+      return { i: 0, pouring: true };
+    }
+    var K = $("baKettle"), W = $("baWater"), S = $("baSlurry"), L = $("baLevel"), D = $("baDrip");
+    var segs = root.querySelectorAll("[data-seg]");
+    function draw(t) {
+      var ph = phase(t), p = ph.pouring ? Math.min(1, (t - st[ph.i][0]) / 1.2, (st[ph.i][0] + POUR - t) / 1.2) : 0;
+      p = Math.max(0, Math.min(1, p));
+      K.setAttribute("transform", "translate(" + (-9 * p) + " " + (-44.7 * p) + ") rotate(" + (-45 * p) + " 200 60)");
+      W.style.opacity = p > 0.95 ? 1 : 0;
+      var g = poured(t), h = held(t), total = st[st.length - 1][1];
+      var sh = Math.min(34, Math.sqrt(h / 60) * 34); S.setAttribute("y", 150 - sh); S.setAttribute("height", sh);
+      var lv = (g - h) / total * 40; L.setAttribute("y", 238 - lv); L.setAttribute("height", lv);
+      D.style.opacity = h > 2 && (t * 3 % 1) < 0.5 ? 1 : 0; D.setAttribute("cy", 156 + (t * 3 % 1) * 30);
+      $("baClock").textContent = fmtTime(Math.min(t, END));
+      $("baScale").textContent = Math.round(g) + " г";
+      var cap;
+      if (t >= END) cap = m.anim.finish;
+      else if (ph.pouring) cap = fmtTime(st[ph.i][0]) + " · " + st[ph.i][2] + " до " + st[ph.i][1] + " г";
+      else cap = ph.i < st.length - 1 ? m.anim.wait + " Следующий пролив в " + fmtTime(st[ph.i + 1][0]) + "." : "Всё налито. Ждём, пока вода уйдёт.";
+      if ($("baCap").textContent !== cap) $("baCap").textContent = cap;
+      segs.forEach(function (sg, i) { sg.classList.toggle("on", i === ph.i && t < END); sg.classList.toggle("done", t >= st[i][0] + POUR || t >= END); });
+    }
+    function btn() { $("baPlay").textContent = run.playing ? "Пауза" : (run.t >= END ? "Смотреть заново" : "Смотреть"); }
+    function frame(now) {
+      if (baRun !== run || !root.isConnected) return;
+      if (run.playing) {
+        var dt = run.last ? (now - run.last) / 1000 : 0; run.last = now;
+        run.t += dt * speed;
+        if (run.t > END + HOLD * speed) run.t = 0;
+      } else run.last = 0;
+      draw(Math.min(run.t, END));
+      run.raf = requestAnimationFrame(frame);
+    }
+    $("baPlay").onclick = function () { if (!run.playing && run.t >= END) run.t = 0; run.playing = !run.playing; btn(); };
+    btn(); draw(Math.min(run.t, END));
+    run.raf = requestAnimationFrame(frame);
+  }
   function methodPanelHtml() {
     var m = METHODS[methodIdx];
     return '<h4>' + esc(m.title) + '</h4><p>' + esc(m.lead) + '</p>' +
       '<p class="mauthor"><b>Об авторе.</b> ' + esc(m.author) + '</p>' +
+      (m.anim ? brewAnimHtml(m) : '') +
       '<dl class="mfacts">' + m.facts.map(function (f) { return '<dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd>'; }).join("") +
         '<dt>Блюм в приложении</dt><dd>' + BLOOM[m.bloom].name + '</dd></dl>' +
       (m.steps.length ? '<p class="sched-title"><span>Для вас: 15 г кофе, 240 г воды</span><span>весы, г</span></p>' +
@@ -1894,13 +2013,15 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         });
         $("methodPanel").setAttribute("aria-labelledby", btn.id);
         $("methodPanel").innerHTML = methodPanelHtml();
+        mountBrewAnim();
       };
     });
+    mountBrewAnim();
   }
   var GUIDE_GROUPS = [
-    ["Основы", ["fresh", "water", "ratio"]],
+    ["Основы", ["methods", "fresh", "water", "ratio"]],
     ["Как настроить", ["grind", "temp", "oneparam"]],
-    ["Техника", ["routine", "pour", "methods", "bloom", "filter"]],
+    ["Техника", ["routine", "pour", "bloom", "filter"]],
     ["Вкус", ["taste", "words"]],
     ["Уход", ["wash", "grinder", "kettle", "store"]]
   ];
