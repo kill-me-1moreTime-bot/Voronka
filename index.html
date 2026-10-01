@@ -209,6 +209,8 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .seg button { border: 1px solid var(--line); background: var(--field); border-radius: 10px; padding: 10px 8px; font: 700 14px/1.2 var(--f-body); }
 .seg3 { grid-template-columns: repeat(3, 1fr); }
+.seg4 { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg4 button { padding: 10px 2px; font-size: 13px; }
 .seg button.pick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .bloompick { display: grid; gap: 8px; }
 .seg button.pick { color: var(--fg); }
@@ -666,7 +668,47 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
   function ddmm(iso) { var p = iso.split("-"); return p[2] + "." + p[1]; }
   function ratio(r) { return r.coffee > 0 ? "1:" + fmtNum(r.water / r.coffee) : "—"; }
-  function stepLabel(i) { return i === 0 ? "Блюм" : "Пролив " + i; }
+  var METHOD_KEYS = ["custom", "hoffmann", "kasuya", "osmo"];
+  var METHOD_NAME = { custom: "Свой", hoffmann: "Хоффман", kasuya: "Касуя 4:6", osmo: "Осмотик" };
+  var METHOD_GUIDE = { hoffmann: 0, kasuya: 1, osmo: 2 };
+  function methodOf(x) { return x && METHOD_NAME[x.method] ? x.method : "custom"; }
+  var LM = "custom"; // способ, по которому сейчас подписываются шаги
+  function stepLabel(i, m) {
+    m = m || LM;
+    if (m === "kasuya") return "Пролив " + (i + 1);
+    if (m === "osmo") return ["Блюм", "Центр", "Круги"][i] || "Пролив " + i;
+    return i === 0 ? "Блюм" : "Пролив " + i;
+  }
+  function schedNote(n, m) {
+    if (m === "kasuya") return poursWord(n);
+    if (m === "osmo" && n === 3) return "блюм, центр, круги";
+    return "блюм + " + poursWord(n - 1);
+  }
+  function shiftGrind(g, d) { var v = num(g); return isFinite(v) ? fmtNum(v + d) : String(g); }
+  // Рецепт по способу на текущие граммы кофе и воды. Помол считается от стартового помола зерна.
+  function methodRecipe(b, dose, m, base) {
+    base = base || recipeFor(b, dose);
+    var c = num(base.coffee) || DEF_DOSE[dose].coffee, w = num(base.water) || DEF_DOSE[dose].water, two = dose === "2";
+    var g0 = b.grind[dose], r = { coffee: c, water: w, temp: num(base.temp) || b.temp, method: m };
+    function R(x) { return Math.round(x); }
+    if (m === "hoffmann") {
+      r.grind = g0; r.bloom = "swirl"; r.target = two ? "3:30–4:00" : "3:15–3:45";
+      r.steps = [[0, R(c * 2)], [45, R(w * 0.6)], [75, w]];
+    } else if (m === "kasuya") {
+      r.grind = shiftGrind(g0, 1); r.bloom = "none"; r.target = two ? "3:30–4:00" : "3:15–3:45";
+      var a = w * 0.4, b3 = w * 0.6 / 3;
+      r.steps = [[0, R(a * 5 / 12)], [45, R(a)], [90, R(a + b3)], [130, R(a + 2 * b3)], [160, w]];
+    } else if (m === "osmo") {
+      r.grind = shiftGrind(g0, 0.5); r.bloom = "none"; r.target = two ? "3:45–4:15" : "3:30–4:00";
+      r.steps = [[0, Math.round(c * 2.5 / 5) * 5], [40, R(w * 0.5)], [two ? 110 : 100, w]];
+    } else {
+      r.grind = g0; r.bloom = "swirl"; r.target = b.target[dose];
+      var dw = DEF_DOSE[dose].water;
+      r.steps = DEF_STEPS[dose].map(function (p, i, all) { return [p[0], i === all.length - 1 ? w : R(p[1] * w / dw)]; });
+    }
+    r.steps = r.steps.map(function (p) { return { t: p[0], to: p[1] }; });
+    return r;
+  }
   var BLOOM = {
     swirl: { name: "Покрутить", act: "Смочить весь кофе, 2–3 раза покрутить воронку. Без ложки.", hint: "Мягкий вариант: гуща выравнивается, фильтр не забивается." },
     spoon: { name: "Ложка", act: "Смочить весь кофе, 3–4 раза мягко перемешать ложкой, не задевая фильтр.", hint: "Для комков сухого кофе. На тонком помоле может забить фильтр и затянуть слив." },
@@ -680,6 +722,18 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       BLOOM_KEYS.map(function (k) {
         return '<button type="button" class="pick" role="radio" data-bloom="' + k + '" aria-checked="' + (k === cur) + '" aria-pressed="' + (k === cur) + '">' + BLOOM[k].name + '</button>';
       }).join("") + '</div><p class="hint" id="' + id + '-hint">' + BLOOM[cur].hint + '</p></div>';
+  }
+  function methodPickHtml(id, cur, note) {
+    return '<div class="bloompick"><p class="sched-title"><span>Способ</span>' + (METHOD_GUIDE[cur] != null ? '<a href="#" class="glink" data-mguide="' + cur + '">схема способа</a>' : '') + '</p>' +
+      '<div class="seg seg4" role="radiogroup" aria-label="Способ заваривания" id="' + id + '">' +
+      METHOD_KEYS.map(function (k) { return '<button type="button" class="pick" role="radio" data-method="' + k + '" aria-checked="' + (k === cur) + '" aria-pressed="' + (k === cur) + '">' + METHOD_NAME[k].replace(" 4:6", "") + '</button>'; }).join("") +
+      '</div>' + (note ? '<p class="hint">' + note + '</p>' : '') + '</div>';
+  }
+  function bindMethodPick(id, onPick) {
+    var box = $(id); if (!box) return;
+    box.querySelectorAll("[data-method]").forEach(function (btn) { btn.onclick = function () { onPick(btn.getAttribute("data-method")); }; });
+    var g = box.parentNode.querySelector("[data-mguide]");
+    if (g) g.onclick = function (e) { e.preventDefault(); methodIdx = METHOD_GUIDE[g.getAttribute("data-mguide")]; openGuides("methods"); };
   }
   function bindBloomPick(id, onPick) {
     var box = $(id); if (!box) return;
@@ -696,7 +750,23 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var g = box.parentNode.querySelector("[data-guide]");
     if (g) g.onclick = function (e) { e.preventDefault(); openGuides(g.getAttribute("data-guide")); };
   }
-  function stepAction(i, n, bl) {
+  function stepAction(i, n, bl, m) {
+    if (m === "hoffmann") {
+      if (i === 0) return "Вдвое больше веса кофе. " + BLOOM[bl || "swirl"].act;
+      if (i === n - 1) return "Долить чуть медленнее. Потом ложкой раз по часовой и раз против, мягко покрутить воронку.";
+      return "Быстро, за 30 секунд, по спирали от центра.";
+    }
+    if (m === "kasuya") {
+      if (i === 0) return "Меньше в первом проливе — слаще, больше — кислее. Не мешать.";
+      if (i === 1) return "Вместе с первым это 40% воды. Не мешать, ждать.";
+      if (i === n - 1) return "Последний пролив. Ждать слива.";
+      return "Пролив из оставшихся 60%. Не мешать, ждать следующего.";
+    }
+    if (m === "osmo") {
+      if (i === 0) return "Смочить весь кофе, ждать 30–40 секунд.";
+      if (i === 1) return "Тонкой струёй строго в центр, пятно с монету. Уровень не поднимать.";
+      return "Маленькие круги внутри пены, не на стенки.";
+    }
     if (i === 0) return BLOOM[bl || "swirl"].act;
     if (i === n - 1) return "Долить и один раз покрутить воронку.";
     return "Спираль от центра, тонкая струя, не на стенки.";
@@ -732,7 +802,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function defaultRecipe(b, dose) {
     return {
       coffee: DEF_DOSE[dose].coffee, water: DEF_DOSE[dose].water, temp: b.temp,
-      grind: b.grind[dose], target: b.target[dose], bloom: "swirl",
+      grind: b.grind[dose], target: b.target[dose], bloom: "swirl", method: "custom",
       steps: DEF_STEPS[dose].map(function (p) { return { t: p[0], to: p[1] }; })
     };
   }
@@ -916,12 +986,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var d = b.roast ? daysSince(b.roast) : null, f = d == null ? null : freshness(d);
     var prev = BEANS[(state.idx - 1 + BEANS.length) % BEANS.length];
     var next = BEANS[(state.idx + 1) % BEANS.length];
-    var n = r.steps.length, last = 0;
+    var n = r.steps.length, last = 0, mth = methodOf(r); LM = mth;
     var steps = r.steps.map(function (s, i) {
       var add = s.to - last; last = s.to;
       return '<li class="step"><span class="t">' + fmtTime(s.t) + '</span>' +
         '<span class="w">' + s.to + '<small> г</small></span>' +
-        '<span class="a"><i>' + stepLabel(i) + ' · +' + add + ' г</i>' + stepAction(i, n, bloomOf(r)) + '</span></li>';
+        '<span class="a"><i>' + stepLabel(i) + ' · +' + add + ' г</i>' + stepAction(i, n, bloomOf(r), mth) + '</span></li>';
     }).join("");
 
     labelEl.innerHTML =
@@ -940,7 +1010,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<div class="key"><span>Чайник</span><b>' + fmtNum(r.temp) + '<small>°C</small></b><em>по датчику</em></div>' +
         '<div class="key"><span>Помол</span><b>' + esc(r.grind) + '</b><em>1 оборот + деление</em></div>' +
       '</div>' +
-      '<div><p class="sched-title"><span>Весы, нарастающим итогом</span><span>блюм + ' + poursWord(n - 1) + '</span></p>' +
+      methodPickHtml("cardMethod", mth, "Выбор способа пересчитает шаги, помол, блюм и цель слива. Потом можно поправить в «Изменить».") +
+      '<div><p class="sched-title"><span>Весы, нарастающим итогом</span><span>' + schedNote(n, mth) + '</span></p>' +
         '<ol class="sched">' + steps + '</ol>' +
         bloomPickHtml("cardBloom", bloomOf(r)) +
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
@@ -963,7 +1034,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       writeBean(id, function (doc) { var base = clone(doc.recipes[dz] || defaultRecipe(b, dz)); base.bloom = k; doc.recipes[dz] = base; });
       renderCard(0);
     });
-    if (!canSave()) labelEl.querySelectorAll("#cardBloom [data-bloom]").forEach(function (x) { x.disabled = true; });
+    bindMethodPick("cardMethod", function (k) {
+      if (!canSave() || k === mth) return;
+      var id = b.id, dz = dose;
+      writeBean(id, function (doc) { doc.recipes[dz] = methodRecipe(b, dz, k, r); doc.confirmed[dz] = false; });
+      setSync("Рецепт пересчитан: " + METHOD_NAME[k]);
+      renderTabs(); renderCard(0); if (state.logOpen && !tm.on && !state.editBrew) { drafts[draftKey()] = freshDraft(); renderLogForm(); }
+    });
+    if (!canSave()) labelEl.querySelectorAll("#cardBloom [data-bloom], #cardMethod [data-method]").forEach(function (x) { x.disabled = true; });
     $("editBtn").onclick = startEdit;
     $("shelveBtn").onclick = function () { setStatus(b.id, "shelf"); };
     $("confirmBtn").onclick = function () {
@@ -981,7 +1059,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var b = bean();
     var r = clone(recipeFor(b, state.dose));
     state.editDraft = {
-      coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind), target: String(r.target || ""), bloom: bloomOf(r),
+      coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind), target: String(r.target || ""), bloom: bloomOf(r), method: methodOf(r),
       steps: r.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; })
     };
     state.editing = true;
@@ -1004,6 +1082,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     return out;
   }
   function renderEditor() {
+    LM = methodOf(state.editDraft);
     var b = bean(), dr = state.editDraft, custom = !!customRecipe(b.id, state.dose);
     var pours = dr.steps.length - 1;
     labelEl.innerHTML =
@@ -1016,6 +1095,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         fld("e-grind", "Помол, 1 об. +", dr.grind, "decimal") +
         '<label class="fld wide"><span>Слив закончится (цель)</span><input id="e-target" type="text" value="' + esc(dr.target) + '" placeholder="3:00–3:15"></label>' +
       '</div>' +
+      methodPickHtml("editMethod", methodOf(dr), "Пересчитает шаги, помол, блюм и цель на граммы выше.") +
       bloomPickHtml("editBloom", bloomOf(dr)) +
       '<div class="stepper"><span>Проливов после блюма</span><div>' +
         '<button type="button" class="round" id="e-minus" aria-label="Меньше проливов"' + (pours <= 1 ? " disabled" : "") + '>−</button>' +
@@ -1032,6 +1112,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       '</div>';
     renderEditSteps();
     bindBloomPick("editBloom", function (k) { dr.bloom = k; });
+    bindMethodPick("editMethod", function (k) {
+      var nr = methodRecipe(b, state.dose, k, { coffee: dr.coffee, water: dr.water, temp: dr.temp });
+      dr.method = k; dr.grind = String(nr.grind); dr.bloom = nr.bloom; dr.target = nr.target;
+      dr.steps = nr.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; });
+      dr.water = String(nr.water);
+      renderEditor();
+    });
 
     bindDraft("e-coffee", "coffee"); bindDraft("e-temp", "temp"); bindDraft("e-grind", "grind"); bindDraft("e-target", "target");
     $("e-water").addEventListener("input", function () {
@@ -1096,9 +1183,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     });
   }
   function validateRecipe(o) {
+    LM = methodOf(o);
     var r = {
       coffee: num(o.coffee), water: num(o.water), temp: num(o.temp), grind: String(o.grind || "").trim(),
-      target: String(o.target || "").trim(), bloom: bloomOf(o),
+      target: String(o.target || "").trim(), bloom: bloomOf(o), method: methodOf(o),
       steps: o.steps.map(function (s, i) { return { t: i === 0 ? 0 : parseTime(s.t), to: num(s.to) }; })
     };
     if (!(r.coffee > 0)) return { err: "Укажите вес кофе." };
@@ -1133,7 +1221,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function draftKey() { return state.editBrew ? "edit_" + state.editBrew : bean().id + "_" + state.dose; }
   function brewToDraft(x) {
     return {
-      coffee: String(x.coffee), water: String(x.water), temp: String(x.temp), grind: String(x.grind), bloom: bloomOf(x),
+      coffee: String(x.coffee), water: String(x.water), temp: String(x.temp), grind: String(x.grind), bloom: bloomOf(x), method: methodOf(x),
       steps: (Array.isArray(x.steps) ? x.steps : []).map(function (st) { return { t: fmtTime(st.t), to: String(st.to) }; }),
       drawdown: x.drawdown == null ? "" : fmtTime(x.drawdown), descriptors: x.descriptors || "", hot: x.hot || "", cooled: x.cooled || "", notes: x.notes || "",
       verdict: x.verdict || null, apply: false
@@ -1145,7 +1233,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var r = recipeFor(bean(), state.dose);
     return {
       coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind),
-      bloom: bloomOf(r),
+      bloom: bloomOf(r), method: methodOf(r),
       steps: r.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; }),
       drawdown: "", descriptors: "", hot: "", cooled: "", notes: "", verdict: null, apply: false
     };
@@ -1164,6 +1252,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (!drafts[key]) drafts[key] = freshDraft();
     var dr = drafts[key], b = bean(), eb = editingBrew(), dzl = DOSE_LABEL[eb ? eb.dose : state.dose].toLowerCase();
     if (!BLOOM[dr.bloom]) dr.bloom = bloomOf(recipeFor(b, state.dose));
+    if (!METHOD_NAME[dr.method]) dr.method = methodOf(recipeFor(b, state.dose));
+    LM = dr.method;
     var panel = $("logPanel");
     panel.innerHTML =
       '<div><h3>' + (eb ? "Заварка " + esc(b.short) + " от " + esc(brewWhen(eb)) : "Заварка " + esc(b.short)) + '</h3><p class="sub">' + (eb ? "Поправьте то, что нужно, и нажмите «Сохранить изменения»." : "Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.") + '</p></div>' +
@@ -1172,6 +1262,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         pfld("l-coffee", "Кофе, г", dr.coffee) + pfld("l-water", "Вода, г", dr.water) +
         pfld("l-temp", "Чайник, °C", dr.temp) + pfld("l-grind", "Помол", dr.grind) +
       '</div>' +
+      methodPickHtml("logMethod", dr.method, eb ? "" : "Если варите не по рецепту, выберите способ: шаги ниже пересчитаются.") +
       bloomPickHtml("logBloom", dr.bloom) +
       '<div class="pfld"><span>Проливы по факту, время и вес на весах</span></div>' +
       '<div class="esteps" id="l-steps"></div>' +
@@ -1196,6 +1287,15 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       '</div>';
     renderLogSteps();
     bindBloomPick("logBloom", function (k) { dr.bloom = k; saveDrafts(); });
+    bindMethodPick("logMethod", function (k) {
+      if (k === dr.method) return;
+      dr.method = k;
+      if (!eb && !tm.on) {
+        var nr = methodRecipe(b, state.dose, k, { coffee: dr.coffee, water: dr.water, temp: dr.temp });
+        dr.bloom = nr.bloom; dr.steps = nr.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; }); dr.water = String(nr.water);
+      }
+      saveDrafts(); renderLogForm();
+    });
     bindTimer();
     panel.querySelectorAll("[data-adj-draw]").forEach(function (btn) {
       btn.onclick = function () {
@@ -1241,7 +1341,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     return '<label class="pfld"><span>' + label + '</span><input id="' + id + '" class="num" type="text" inputmode="decimal" value="' + esc(val) + '"></label>';
   }
   function renderLogSteps() {
-    var dr = drafts[draftKey()], box = $("l-steps"), n = dr.steps.length;
+    var dr = drafts[draftKey()], box = $("l-steps"), n = dr.steps.length; LM = methodOf(dr);
     box.innerHTML = dr.steps.map(function (s, i) {
       return '<div class="prow2"><div class="ph"><span class="lbl">' + stepLabel(i) + '</span>' +
         (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '') + '</div>' +
@@ -1316,7 +1416,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (plan && tm.alerted !== tm.phase && el >= plan.t - 5 && el < plan.t + 2) {
       tm.alerted = tm.phase;
       if (beepOn()) { tmBeep(); try { if (navigator.vibrate) navigator.vibrate([80, 60, 80]); } catch (e) {} }
-      if ($("tm-hint")) $("tm-hint").textContent = "Через 5 секунд " + stepLabel(tm.phase + 1).toLowerCase() + " до " + plan.to + " г";
+      if ($("tm-hint")) $("tm-hint").textContent = "Через 5 секунд " + stepLabel(tm.phase + 1, methodOf(drafts[tm.key])).toLowerCase() + " до " + plan.to + " г";
     }
   }
   function tmStopTimer() { clearInterval(tm.iv); tm.iv = null; tm.on = false; tmWake(false); tmSave(); }
@@ -1330,7 +1430,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function tmRender() {
     if (!$("tm-clock")) return;
     var dr = drafts[draftKey()]; if (!dr) return;
-    var n = dr.steps.length, ph = Math.min(tm.phase, n - 1);
+    var n = dr.steps.length, ph = Math.min(tm.phase, n - 1); LM = methodOf(dr);
     $("tm-clock").textContent = fmtTime(tmElapsed());
     var hint, label;
     if (tm.on) {
@@ -1391,14 +1491,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var key = draftKey(), dr = drafts[key], b = bean(), dz = state.dose;
     var prevBrew = editingBrew(), prevIdx = prevBrew ? state.brews.indexOf(prevBrew) : -1;
     if (prevBrew) dz = prevBrew.dose === "2" ? "2" : "1";
-    var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", bloom: dr.bloom, steps: dr.steps });
+    var v = validateRecipe({ coffee: dr.coffee, water: dr.water, temp: dr.temp, grind: dr.grind, target: "", bloom: dr.bloom, method: dr.method, steps: dr.steps });
     if (v.err) { $("l-err").textContent = v.err; return; }
     var dd = parseTime(dr.drawdown);
     if (dr.drawdown.trim() && !isFinite(dd)) { $("l-err").textContent = "Время слива в формате 3:30."; return; }
     var r = v.ok;
     var doc = {
       bean: prevBrew ? prevBrew.bean : b.id, dose: dz, at: prevBrew ? prevBrew.at : new Date().toISOString(),
-      coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, steps: r.steps,
+      coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, method: r.method, steps: r.steps,
       drawdown: dd == null ? null : dd,
       descriptors: dr.descriptors.trim(), hot: dr.hot.trim(), cooled: dr.cooled.trim(), notes: dr.notes.trim(),
       verdict: dr.verdict || null
@@ -1417,7 +1517,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         if (dr.verdict) bd.confirmed[dz] = dr.verdict === "confirmed";
         if (dr.apply) {
           var old = bd.recipes[dz] || defaultRecipe(b, dz);
-          bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, target: old.target || "", steps: r.steps };
+          bd.recipes[dz] = { coffee: r.coffee, water: r.water, temp: r.temp, grind: r.grind, bloom: r.bloom, method: r.method, target: methodOf(old) === r.method ? old.target || "" : methodRecipe(b, dz, r.method, r).target, steps: r.steps };
         }
       });
     }
@@ -1453,8 +1553,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       var pours = Array.isArray(x.steps) ? x.steps.length - 1 : 0;
       var params = [fmtNum(x.coffee) + " г", fmtNum(x.water) + " г", fmtNum(x.temp) + " °C", "помол " + esc(x.grind)];
       if (x.drawdown != null) params.push("слив " + fmtTime(x.drawdown));
-      if (pours > 0) params.push("блюм + " + pours);
+      if (pours > 0) params.push(schedNote(pours + 1, methodOf(x)));
       if (x.bloom && BLOOM[x.bloom]) params.push("блюм: " + BLOOM[x.bloom].name.toLowerCase());
+      if (methodOf(x) !== "custom") params.unshift(METHOD_NAME[methodOf(x)]);
       var verdict = x.verdict === "confirmed" ? '<span class="bpill yes">подтверждён</span>' : x.verdict === "rejected" ? '<span class="bpill no">не подтверждён</span>' : "";
       var rows = [["Горячая", x.hot], ["Остывшая", x.cooled], ["Заметки", x.notes]].filter(function (p) { return p[1]; })
         .map(function (p) { return '<div><dt>' + p[0] + '</dt><dd>' + esc(p[1]) + '</dd></div>'; }).join("");
@@ -1508,7 +1609,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         var dz = x.dose === "2" ? "2" : "1", bb = beanById(x.bean);
         writeBean(x.bean, function (bd) {
           var old = bd.recipes[dz] || defaultRecipe(bb, dz);
-          bd.recipes[dz] = { coffee: x.coffee, water: x.water, temp: x.temp, grind: x.grind, bloom: bloomOf(x), target: old.target || "", steps: x.steps };
+          bd.recipes[dz] = { coffee: x.coffee, water: x.water, temp: x.temp, grind: x.grind, bloom: bloomOf(x), method: methodOf(x), target: methodOf(old) === methodOf(x) ? old.target || "" : methodRecipe(bb, dz, methodOf(x), x).target, steps: x.steps };
         });
         if (dz !== state.dose) { state.dose = dz; store("voronka-dose", dz); renderDose(); }
         state.editing = false;
@@ -1578,6 +1679,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       ["Вода", function (x) { return fmtNum(x.water) + " г"; }],
       ["Чайник", function (x) { return fmtNum(x.temp) + " °C"; }],
       ["Помол", function (x) { return String(x.grind); }],
+      ["Способ", function (x) { return METHOD_NAME[methodOf(x)]; }],
       ["Блюм", function (x) { return BLOOM[bloomOf(x)].name; }],
       ["Проливы", stepsTxt],
       ["Слив", function (x) { return x.drawdown == null ? "—" : fmtTime(x.drawdown); }],
@@ -1612,7 +1714,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     [ "1", "2" ].forEach(function (dz) {
       var r = recipeFor(b, dz);
       out.push("Текущий рецепт, " + DOSE_LABEL[dz] + " (" + (isConfirmed(b.id, dz) ? "подтверждён" : "не подтверждён") + "): " +
-        fmtNum(r.coffee) + " г кофе, " + fmtNum(r.water) + " г воды, " + fmtNum(r.temp) + " °C, помол " + r.grind + ", блюм: " + BLOOM[bloomOf(r)].name.toLowerCase() + ", цель слива " + (r.target || "—") + ". Шаги: " +
+        fmtNum(r.coffee) + " г кофе, " + fmtNum(r.water) + " г воды, " + fmtNum(r.temp) + " °C, помол " + r.grind + ", способ: " + METHOD_NAME[methodOf(r)] + ", блюм: " + BLOOM[bloomOf(r)].name.toLowerCase() + ", цель слива " + (r.target || "—") + ". Шаги: " +
         r.steps.map(function (st) { return fmtTime(st.t) + " до " + st.to + " г"; }).join("; ") + ".");
     });
     out.push("");
@@ -1623,6 +1725,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       list.forEach(function (x, i) {
         var dt = new Date(x.at), when = isNaN(dt) ? "" : dt.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
         var line = (i + 1) + ") " + when + ", " + (DOSE_LABEL[x.dose] || "") + ": " + fmtNum(x.coffee) + " г / " + fmtNum(x.water) + " г, " + fmtNum(x.temp) + " °C, помол " + x.grind;
+        line += ", способ: " + METHOD_NAME[methodOf(x)];
         if (x.bloom && BLOOM[x.bloom]) line += ", блюм: " + BLOOM[x.bloom].name.toLowerCase();
         if (Array.isArray(x.steps)) line += ", шаги " + x.steps.map(function (st) { return fmtTime(st.t) + "→" + st.to; }).join(" ");
         if (x.drawdown != null) line += ", слив закончился на " + fmtTime(x.drawdown);
