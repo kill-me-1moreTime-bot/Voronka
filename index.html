@@ -122,6 +122,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   padding: 7px 12px; font: 700 14px/1.2 var(--f-body); white-space: nowrap;
 }
 .btn-ghost:disabled { opacity: .45; cursor: default; }
+a.btn-ghost.order { display: block; text-align: center; text-decoration: none; }
 
 .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--bag-line); border-radius: 12px; overflow: hidden; }
 .key { background: var(--bag); padding: 10px 12px; display: grid; min-width: 0; }
@@ -724,6 +725,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     el.classList.toggle("bad", !timeOk(v.replace(/\D/g, "").replace(/^0+/, "")));
     try { el.setSelectionRange(v.length, v.length); } catch (x) {}
   }, true);
+  var SHOP = "https://shop.tastycoffee.ru/";
+  function cleanUrl(u) { u = String(u || "").trim(); return /^https:\/\/([a-z0-9-]+\.)*tastycoffee\.ru(\/|$)/i.test(u) ? u : ""; }
   function poursWord(n) { return n + " " + plural(n, "пролив", "пролива", "проливов"); }
 
   function defaultRecipe(b, dose) {
@@ -943,6 +946,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
       '<button type="button" class="confirm' + (ok ? " on" : "") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") + '>' +
         (ok ? "✓ Рецепт подтверждён · нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '</button>' +
+      '<a class="btn-ghost wide order" id="orderBtn" href="' + esc(cleanUrl(b.url) || SHOP) + '" target="_blank" rel="noopener noreferrer">Заказать</a>' +
       '<button type="button" class="btn-ghost wide" id="shelveBtn"' + (canSave() ? "" : " disabled") + '>Пачка закончилась: убрать в коллекцию</button>' +
       (BEANS.length > 1 ? '<div class="nav-row">' +
         '<button type="button" class="btn-ghost" id="prevBean" aria-label="Предыдущее зерно: ' + esc(prev.short) + '">← ' + esc(prev.short) + '</button>' +
@@ -2156,11 +2160,11 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function newForm() {
     var used = state.catalog.map(function (b) { return b.color; });
     var color = BEAN_COLORS.find(function (c) { return used.indexOf(c) < 0; }) || BEAN_COLORS[state.catalog.length % BEAN_COLORS.length];
-    return { id: null, name: "", country: "", process: "натуральный", score: "", roast: "", notes: "", color: color, panel: true, photoOpen: false, err: "" };
+    return { id: null, name: "", country: "", process: "натуральный", score: "", roast: "", notes: "", url: "", color: color, panel: true, photoOpen: false, err: "" };
   }
   function formFromBean(b) {
     return { id: b.id, name: b.name, country: b.country || "", process: b.process || "натуральный", score: b.score || "", roast: b.roast || "",
-      notes: (b.notes || []).join(", "), color: b.color, panel: b.status !== "shelf", photoOpen: false, err: "" };
+      notes: (b.notes || []).join(", "), url: b.url || "", color: b.color, panel: b.status !== "shelf", photoOpen: false, err: "" };
   }
   function normProcess(p) {
     p = String(p || "").toLowerCase();
@@ -2195,6 +2199,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<label class="pfld"><span>Дата обжарки</span><input id="f-roast" type="date" value="' + esc(f.roast) + '"></label>' +
       '</div>' +
       '<label class="pfld wide"><span>Ноты с пачки, через запятую</span><input id="f-notes" type="text" value="' + esc(f.notes) + '" placeholder="персик, жасмин, бергамот"></label>' +
+      '<label class="pfld wide"><span>Ссылка на это зерно в Tasty Coffee (необязательно)</span><input id="f-url" type="url" inputmode="url" value="' + esc(f.url) + '" placeholder="https://shop.tastycoffee.ru/coffee/…"></label>' +
       '<div class="pfld"><span>Цвет вкладки</span><div class="swatches">' + sw + '</div></div>' +
       (f.id ? '' : '<label class="check"><input id="f-panel" type="checkbox"' + (f.panel ? " checked" : "") + '><span>Сразу поставить на панель</span></label>') +
       '<p class="perr" id="f-err">' + esc(f.err || "") + '</p>' +
@@ -2257,10 +2262,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (f.id) {
       b = beanById(f.id);
       var oldName = b.name;
-      b.name = name; b.country = f.country.trim(); b.process = f.process; b.score = f.score.trim(); b.roast = f.roast; b.notes = notes; b.color = f.color;
+      b.name = name; b.country = f.country.trim(); b.process = f.process; b.score = f.score.trim(); b.roast = f.roast; b.notes = notes; b.color = f.color; b.url = cleanUrl(f.url);
       if (name !== oldName) b.short = shortName(name);
     } else {
-      b = { id: newId(), name: name, short: shortName(name), country: f.country.trim(), process: f.process, score: f.score.trim(), roast: f.roast, color: f.color,
+      b = { id: newId(), name: name, short: shortName(name), country: f.country.trim(), process: f.process, score: f.score.trim(), roast: f.roast, color: f.color, url: cleanUrl(f.url),
         notes: notes, temp: P.temp, grind: clone(P.grind), target: clone(P.target), tips: clone(P.tips), status: f.panel ? "active" : "shelf", added: true };
       state.catalog.push(b);
     }
@@ -2303,7 +2308,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   $("collection").addEventListener("input", function (e) {
     var f = state.collForm, t = e.target;
     if (!f || !t.id || t.id.indexOf("f-") !== 0) return;
-    var map = { "f-name": "name", "f-country": "country", "f-score": "score", "f-roast": "roast", "f-notes": "notes" };
+    var map = { "f-name": "name", "f-country": "country", "f-score": "score", "f-roast": "roast", "f-notes": "notes", "f-url": "url" };
     if (map[t.id]) f[map[t.id]] = t.value;
     if (t.id === "f-process") f.process = t.value;
     if (t.id === "f-panel") f.panel = t.checked;

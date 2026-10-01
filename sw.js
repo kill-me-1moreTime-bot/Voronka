@@ -1,5 +1,5 @@
 // Кэш для работы без интернета. При изменении файлов поднимите номер версии.
-const CACHE = "voronka-v25";
+const CACHE = "voronka-v26";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
