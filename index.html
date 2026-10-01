@@ -199,6 +199,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 }
 .panel select { appearance: auto; }
 .panel input.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); color: var(--bad); }
 .panel textarea { resize: vertical; min-height: 64px; }
 .prow { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) 38px; gap: 8px; align-items: center; }
 .prow .lbl { font: 500 12px/1.2 var(--f-mono); color: var(--muted); }
@@ -699,6 +700,30 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     if (i === n - 1) return "Долить и один раз покрутить воронку.";
     return "Спираль от центра, тонкая струя, не на стенки.";
   }
+  // Поле времени как циферблат: вводятся только цифры, двоеточие ставится само (130 → 1:30, 600 → 6:00).
+  // Пока набираете, допускается промежуточное «0:60», если его можно довести до верного времени.
+  // Цифра, после которой верного времени уже не получить, не принимается. Неверное итоговое значение подсвечивается.
+  function fmtDigits(d) { return d.length <= 2 ? "0:" + ("0" + d).slice(-2) : String(+d.slice(0, -2)) + ":" + d.slice(-2); }
+  function timeOk(d) { return !d || (+d.slice(-2) <= 59 && (d.length <= 2 || +d.slice(0, -2) <= 59)); }
+  function timeCanFinish(d) {
+    if (timeOk(d)) return true;
+    if (d.length === 1 || d.length === 2) return true;
+    if (d.length === 3) return +d.slice(0, 2) <= 59 && +d[2] <= 5;
+    return false;
+  }
+  ["beforeinput", "focus"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { var el = e.target; if (el.classList && el.classList.contains("tmask")) el.setAttribute("data-prev", el.value); }, true);
+  });
+  document.addEventListener("input", function (e) {
+    var el = e.target;
+    if (!el.classList || !el.classList.contains("tmask")) return;
+    var prev = el.getAttribute("data-prev"); if (prev == null) prev = el.defaultValue || "";
+    var d = el.value.replace(/\D/g, "").replace(/^0+/, "");
+    var v = d.length > 4 || !timeCanFinish(d) ? prev : (d ? fmtDigits(d) : "");
+    el.value = v; el.setAttribute("data-prev", v);
+    el.classList.toggle("bad", !timeOk(v.replace(/\D/g, "").replace(/^0+/, "")));
+    try { el.setSelectionRange(v.length, v.length); } catch (x) {}
+  }, true);
   function poursWord(n) { return n + " " + plural(n, "пролив", "пролива", "проливов"); }
 
   function defaultRecipe(b, dose) {
@@ -1039,7 +1064,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     box.innerHTML = '<div class="erow erow-head"><span>Шаг</span><span>Время</span><span>До, г</span><span></span></div>' +
       dr.steps.map(function (s, i) {
         return '<div class="erow"><span class="lbl">' + stepLabel(i) + '</span>' +
-          '<input id="e-t-' + i + '" type="text" inputmode="decimal" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
+          '<input id="e-t-' + i + '" class="tmask" type="text" inputmode="numeric" autocomplete="off" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
           '<input id="e-to-' + i + '" type="text" inputmode="numeric" aria-label="' + stepLabel(i) + ', вес на весах" value="' + esc(s.to) + '">' +
           (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '<span></span>') +
         '</div>';
@@ -1148,7 +1173,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       '<div class="esteps" id="l-steps"></div>' +
       '<button type="button" class="addrow" id="l-add">+ пролив</button>' +
       '<div class="pfld"><span>Слив закончился</span><div class="tstep"><button type="button" class="tb" data-adj-draw="-1" aria-label="Слив на секунду раньше">−</button>' +
-        '<input id="l-draw" class="num" type="text" inputmode="decimal" placeholder="3:30" value="' + esc(dr.drawdown) + '"><button type="button" class="tb" data-adj-draw="1" aria-label="Слив на секунду позже">+</button></div></div>' +
+        '<input id="l-draw" class="num tmask" type="text" inputmode="numeric" autocomplete="off" placeholder="3:30" value="' + esc(dr.drawdown) + '"><button type="button" class="tb" data-adj-draw="1" aria-label="Слив на секунду позже">+</button></div></div>' +
       '<label class="pfld"><span>Дескрипторы</span><input id="l-desc" type="text" placeholder="курага, персик, грейпфрут" value="' + esc(dr.descriptors) + '"></label>' +
       '<label class="pfld"><span>Горячая чашка</span><textarea id="l-hot" rows="2" placeholder="кислинка, тело, сладость">' + esc(dr.hot) + '</textarea></label>' +
       '<label class="pfld"><span>Остывшая чашка</span><textarea id="l-cooled" rows="2" placeholder="что раскрылось через 5–10 минут">' + esc(dr.cooled) + '</textarea></label>' +
@@ -1218,7 +1243,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '') + '</div>' +
         '<div class="pb"><div class="tstep">' +
           '<button type="button" class="tb" data-adj="-1" data-i="' + i + '" aria-label="' + stepLabel(i) + ' на секунду раньше"' + (i === 0 ? " disabled" : "") + '>−</button>' +
-          '<input id="l-t-' + i + '" class="num" type="text" inputmode="decimal" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
+          '<input id="l-t-' + i + '" class="num tmask" type="text" inputmode="numeric" autocomplete="off" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
           '<button type="button" class="tb" data-adj="1" data-i="' + i + '" aria-label="' + stepLabel(i) + ' на секунду позже"' + (i === 0 ? " disabled" : "") + '>+</button></div>' +
           '<input id="l-to-' + i + '" class="num" type="text" inputmode="numeric" aria-label="' + stepLabel(i) + ', вес на весах" value="' + esc(s.to) + '"></div></div>';
     }).join("");
