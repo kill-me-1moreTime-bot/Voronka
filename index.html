@@ -1394,13 +1394,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
   document.addEventListener("visibilitychange", function () { if (tm.on && document.visibilityState === "visible") { tm.wake = null; tmWake(true); tmRender(); } });
   function tmSave() { store("voronka-timer", JSON.stringify({ on: tm.on, t0: tm.t0, phase: tm.phase, key: tm.key })); }
-  function tmBeep() {
+  function tmBeep(freq, count) {
     try {
       if (!tm.ac) return;
       if (tm.ac.state === "suspended") tm.ac.resume();
-      [0, 0.18].forEach(function (d) {
+      var times = []; for (var q = 0; q < (count || 2); q++) times.push(q * 0.18);
+      times.forEach(function (d) {
         var o = tm.ac.createOscillator(), g = tm.ac.createGain(), t = tm.ac.currentTime + d;
-        o.frequency.value = 880; o.connect(g); g.connect(tm.ac.destination);
+        o.frequency.value = freq || 880; o.connect(g); g.connect(tm.ac.destination);
         g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
         o.start(t); o.stop(t + 0.13);
       });
@@ -1413,7 +1414,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var el = tmElapsed(), m = /^(.*)_([12])$/.exec(tm.key || ""), b = m ? beanById(m[1]) : null;
     if (!b) return;
     var plan = recipeFor(b, m[2]).steps[tm.phase + 1];
-    if (plan && tm.alerted !== tm.phase && el >= plan.t - 5 && el < plan.t + 2) {
+    // в момент пролива по рецепту: длинная вибрация и низкий сигнал
+    if (plan && tm.alertedNow !== tm.phase && el >= plan.t && el < plan.t + 3) {
+      tm.alertedNow = tm.phase;
+      if (beepOn()) { tmBeep(520, 3); try { if (navigator.vibrate) navigator.vibrate([300, 120, 300]); } catch (e) {} }
+      if ($("tm-hint")) $("tm-hint").textContent = "Пора: " + stepLabel(tm.phase + 1, methodOf(drafts[tm.key])).toLowerCase() + " до " + plan.to + " г. Нажмите кнопку.";
+    }
+    if (plan && tm.alerted !== tm.phase && el >= plan.t - 5 && el < plan.t) {
       tm.alerted = tm.phase;
       if (beepOn()) { tmBeep(); try { if (navigator.vibrate) navigator.vibrate([80, 60, 80]); } catch (e) {} }
       if ($("tm-hint")) $("tm-hint").textContent = "Через 5 секунд " + stepLabel(tm.phase + 1, methodOf(drafts[tm.key])).toLowerCase() + " до " + plan.to + " г";
@@ -1424,7 +1431,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function timerHtml() {
     return '<div class="timer" id="timerBox"><div class="tm-clock" id="tm-clock">0:00</div><p class="tm-hint" id="tm-hint"></p><p class="tm-hint" id="tm-log"></p>' +
       '<button type="button" class="tm-main" id="tm-main"></button>' +
-      '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-beep" aria-pressed="' + beepOn() + '">' + (beepOn() ? "Сигнал перед проливом: вкл" : "Сигнал перед проливом: выкл") + '</button>' +
+      '<div class="tm-sub"><button type="button" class="p-ghost" id="tm-beep" aria-pressed="' + beepOn() + '">' + (beepOn() ? "Сигнал и вибрация: вкл" : "Сигнал и вибрация: выкл") + '</button>' +
       '<button type="button" class="p-ghost" id="tm-stop">Остановить без записи</button></div></div>';
   }
   function tmRender() {
@@ -1441,7 +1448,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       hint = "Записано: слив " + dr.drawdown + ". Если время чуть другое, поправьте кнопками − и + ниже.";
       label = "Запустить заново";
     } else {
-      hint = "Нажмите «Старт», когда начнёте лить блюм до " + dr.steps[0].to + " г. Дальше нажимайте в начале каждого пролива. За 5 секунд до пролива по рецепту будет сигнал.";
+      hint = "Нажмите «Старт», когда начнёте лить блюм до " + dr.steps[0].to + " г. Дальше нажимайте в начале каждого пролива. За 5 секунд до пролива будет короткий сигнал, в момент пролива — длинная вибрация.";
       label = "Старт: блюм";
     }
     $("tm-hint").textContent = hint;
@@ -1455,7 +1462,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     $("tm-main").onclick = tmMain;
     $("tm-beep").onclick = function () {
       var on = !beepOn(); store("voronka-beep", on ? "1" : "0");
-      this.setAttribute("aria-pressed", on); this.textContent = on ? "Сигнал перед проливом: вкл" : "Сигнал перед проливом: выкл";
+      this.setAttribute("aria-pressed", on); this.textContent = on ? "Сигнал и вибрация: вкл" : "Сигнал и вибрация: выкл";
       if (on) { try { if (!tm.ac) tm.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} tmBeep(); }
     };
     $("tm-stop").onclick = function () { tmStopTimer(); tm.done = false; tm.phase = 0; tmRender(); };
@@ -1466,7 +1473,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var dr = drafts[draftKey()];
     try { if (!tm.ac && (window.AudioContext || window.webkitAudioContext)) tm.ac = new (window.AudioContext || window.webkitAudioContext)(); else if (tm.ac && tm.ac.state === "suspended") tm.ac.resume(); } catch (e) {}
     if (!tm.on) {
-      tm.on = true; tm.done = false; tm.t0 = Date.now(); tm.phase = 0; tm.key = draftKey(); tm.alerted = -1;
+      tm.on = true; tm.done = false; tm.t0 = Date.now(); tm.phase = 0; tm.key = draftKey(); tm.alerted = -1; tm.alertedNow = -1;
       dr.steps[0].t = "0:00"; dr.drawdown = ""; if ($("l-draw")) $("l-draw").value = "";
       tmWake(true);
       tm.iv = setInterval(tmTick, 250);
