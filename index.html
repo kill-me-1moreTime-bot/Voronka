@@ -81,12 +81,14 @@ button { cursor: pointer; }
 .eq-btn[aria-expanded="true"]::after { content: " ▴"; }
 .eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; text-wrap: balance; }
-.sync { margin: 0; font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.sync { margin: 0; font-size: 14px; color: var(--muted); }
+.sync:empty { display: none; }
 .sync.err { color: var(--bad); }
 
 .controls { display: grid; gap: 10px; }
 .beans { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding-bottom: 2px; }
 .beans::-webkit-scrollbar { display: none; }
+.beans.more-r { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
 .bean-tab {
   flex: 0 0 auto; scroll-snap-align: start; display: inline-flex; align-items: center; gap: 8px;
   padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
@@ -188,6 +190,9 @@ a.btn-ghost.order { display: flex; align-items: center; justify-content: center;
 .block { display: grid; gap: 10px; }
 .block > h2 { margin: 0; font: 700 28px/1 var(--f-display); letter-spacing: .01em; }
 .tips { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.tipbox { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 14px; display: grid; gap: 8px; }
+.tipbox h3 { margin: 0; font: 700 16px/1.2 var(--f-body); color: var(--muted); }
+.tipbox:has(.tips:empty) { display: none; }
 .hint { margin: 0; font-size: 14px; color: var(--muted); }
 
 .log-open { width: 100%; border: 1px solid var(--brand); background: var(--brand); color: var(--brand-fg); border-radius: 12px; padding: 12px 14px; font: 700 16px/1.2 var(--f-body); }
@@ -197,7 +202,8 @@ a.btn-ghost.order { display: flex; align-items: center; justify-content: center;
 .panel .sub { margin: 0; font-size: 14px; color: var(--muted); }
 .pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pfld { display: grid; gap: 4px; min-width: 0; }
-.pfld > span { font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.pfld > span { font-size: 14px; color: var(--muted); }
+.panel .sched-title { font-size: 14px; letter-spacing: 0; text-transform: none; }
 .pfld.wide { grid-column: 1 / -1; }
 .panel input, .panel textarea, .panel select {
   width: 100%; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 9px;
@@ -223,7 +229,7 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .label .seg button.pick { background: var(--bag-field); color: var(--bag-fg); border-color: var(--bag-line); }
 .label .bloompick .hint { color: var(--bag-muted); }
 .seg button.pick:disabled { opacity: .5; }
-.glink { color: inherit; font-size: 12px; text-transform: none; letter-spacing: 0; text-decoration: underline; padding: 8px 0; }
+.glink { color: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; text-decoration: underline; display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px 0 12px; margin-block: -12px; }
 .guide { background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
 .guide summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 12px 14px; cursor: pointer; }
 .guide summary::-webkit-details-marker { display: none; }
@@ -265,6 +271,9 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .ggroup { margin: 8px 0 0; font: 700 26px/1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
 .gbody { display: grid; gap: 10px; padding: 14px; }
 .guide h3 { margin: 0; font: 700 24px/1.1 var(--f-display); }
+#fixBox h3, #dataBox h3 { font: 700 16px/1.2 var(--f-body); }
+#fixBox summary, #dataBox summary { min-height: 48px; padding-block: 8px; }
+#fixBox summary::after, #dataBox summary::after { font-size: 24px; }
 .guide ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
 .guide p { margin: 0; }
 .mpanel { display: grid; gap: 10px; }
@@ -325,6 +334,9 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
 .check input { width: 20px; height: 20px; margin-top: 2px; flex: none; }
 .pactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pclear { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 14px; }
+.linkbtn { background: none; border: 0; padding: 0 4px; min-height: 44px; font: 700 14px/1.2 var(--f-body); text-decoration: underline; }
+.linkbtn.danger { color: var(--bad); }
 .p-solid { border: 0; border-radius: 10px; padding: 12px 16px; font: 700 16px/1.2 var(--f-body); background: var(--brand); color: var(--brand-fg); }
 .p-solid:disabled { opacity: .5; cursor: default; }
 .p-ghost { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font: 700 14px/1.2 var(--f-body); background: transparent; }
@@ -374,9 +386,10 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
   .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.mainnav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.mainnav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
 .pgrid.one { grid-template-columns: 1fr; }
-.nav-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); font: 700 24px/1 var(--f-display); letter-spacing: .01em; text-transform: uppercase; }
+.nav-tab { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font: 700 16px/1 var(--f-body); }
+.nav-tab .ni { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 .nav-tab .count { font: 700 14px/1 var(--f-body); color: var(--muted); }
 .nav-tab[aria-pressed="true"] { background: var(--brand); color: var(--brand-fg); border-color: var(--brand); }
 .nav-tab[aria-pressed="true"] .count { color: var(--brand-muted); }
@@ -442,7 +455,11 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
 .prow2 .ph { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .prow2 .ph .lbl { font: 400 14px/1.2 var(--f-body); color: var(--muted); }
 .prow2 .pb { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 8px; align-items: center; }
-.prow2 .x { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 18px; }
+.prow2 .phb { display: flex; gap: 6px; }
+.prow2:not(.adj) .tstep { grid-template-columns: minmax(0, 1fr); }
+.prow2:not(.adj) .tstep .tb { display: none; }
+.prow2 .x.pm[aria-expanded="true"] { border-color: var(--fg); color: var(--fg); }
+.prow2 .x { width: 44px; height: 40px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 18px; }
 .analyze { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .analyze .hint { flex-basis: 100%; }
 .filebtn { display: inline-block; cursor: pointer; }
@@ -513,7 +530,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       <div class="panel" id="logPanel" hidden></div>
     </section>
 
-    <section class="block">
+    <section class="tipbox" aria-labelledby="tipsTitle">
+      <h3 id="tipsTitle">Заметки к зерну</h3>
       <ul class="tips" id="tips"></ul>
     </section>
 
@@ -969,10 +987,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     c.addEventListener("click", function () { toggleCollection(); });
     $("mainNav").appendChild(c);
     var g = document.createElement("button");
-    g.type = "button"; g.className = "nav-tab"; g.id = "guideTab"; g.textContent = "Гайды";
+    g.type = "button"; g.className = "nav-tab"; g.id = "guideTab"; g.innerHTML = '<svg class="ni" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5 Q6.5 3 3 4 V16 Q6.5 15 10 17 Q13.5 15 17 16 V4 Q13.5 3 10 5 Z M10 5 V17"/></svg>Гайды';
     g.addEventListener("click", function () { if (state.view === "guides") toggleGuides(); else openGuides(); });
     $("mainNav").appendChild(g);
   }
+  function tabsFade() { tabsEl.classList.toggle("more-r", tabsEl.scrollLeft + tabsEl.clientWidth < tabsEl.scrollWidth - 4); }
+  tabsEl.addEventListener("scroll", tabsFade, { passive: true });
+  window.addEventListener("resize", tabsFade);
   tabsEl.addEventListener("keydown", function (e) {
     if (!BEANS.length || state.view !== "panel") return;
     if (e.key === "ArrowRight") { e.preventDefault(); go((state.idx + 1) % BEANS.length, 1, true); }
@@ -988,9 +1009,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       t.setAttribute("aria-selected", sel ? "true" : "false");
       t.tabIndex = sel ? 0 : -1;
     });
+    tabsFade();
     var c = $("collTab");
     if (c) {
-      c.innerHTML = 'Коллекция <span class="count">' + state.catalog.length + '</span>';
+      c.innerHTML = '<svg class="ni" viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="7" cy="7" rx="3.2" ry="4.4" transform="rotate(-30 7 7)"/><path d="M5 9.5 Q7.5 7 9 4.5"/><ellipse cx="13.5" cy="13" rx="3.2" ry="4.4" transform="rotate(-30 13.5 13)"/><path d="M11.5 15.5 Q14 13 15.5 10.5"/></svg>Коллекция <span class="count">' + state.catalog.length + '</span>';
       c.setAttribute("aria-pressed", state.view === "collection" ? "true" : "false");
     }
     var gt = $("guideTab");
@@ -1356,9 +1378,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       '<div class="pactions">' +
         '<button type="button" class="p-solid" id="l-save">' + (eb ? "Сохранить изменения" : "Сохранить заварку") + '</button>' +
         (eb ? '<button type="button" class="p-ghost" id="l-cancel">Отмена</button>' :
-          '<button type="button" class="p-ghost" id="l-close">Свернуть</button>' +
-          '<button type="button" class="p-ghost" id="l-clear">Очистить</button>') +
-      '</div>';
+          '<button type="button" class="p-ghost" id="l-close">Свернуть</button>') +
+      '</div>' +
+      (eb ? '' : '<div class="pclear" id="l-clearbox"><button type="button" class="linkbtn danger" id="l-clear">Очистить форму</button></div>');
     renderLogSteps();
     if ($("l-refill")) $("l-refill").onclick = function () {
       var f = freshDraft(); ["drawdown", "descriptors", "hot", "cooled", "notes", "verdict", "apply"].forEach(function (k) { f[k] = dr[k]; });
@@ -1417,18 +1439,26 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
       $("l-cancel").onclick = function () { delete drafts[key]; state.logOpen = false; state.editBrew = null; renderLogButton(); renderHistory(); };
     } else {
       $("l-close").onclick = function () { state.logOpen = false; state.editBrew = null; renderLogButton(); };
-      $("l-clear").onclick = function () { timerReset(); drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
+      $("l-clear").onclick = function () {
+        var box = $("l-clearbox");
+        box.innerHTML = '<span>Стереть всё, что введено, и сбросить секундомер?</span><button type="button" class="mini danger" id="l-clear-yes">Очистить</button><button type="button" class="mini" id="l-clear-no">Нет</button>';
+        $("l-clear-yes").onclick = function () { timerReset(); adjRow = -1; drafts[key] = freshDraft(); saveDrafts(); renderLogForm(); };
+        $("l-clear-no").onclick = function () { renderLogForm(); };
+        $("l-clear-no").focus();
+      };
     }
     $("l-save").onclick = saveBrew;
   }
   function pfld(id, label, val) {
     return '<label class="pfld"><span>' + label + '</span><input id="' + id + '" class="num" type="text" inputmode="decimal" value="' + esc(val) + '"></label>';
   }
+  var adjRow = -1;
   function renderLogSteps() {
     var dr = drafts[draftKey()], box = $("l-steps"), n = dr.steps.length; LM = methodOf(dr);
     box.innerHTML = dr.steps.map(function (s, i) {
-      return '<div class="prow2"><div class="ph"><span class="lbl">' + stepLabel(i) + '</span>' +
-        (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '') + '</div>' +
+      return '<div class="prow2' + (adjRow === i ? " adj" : "") + '"><div class="ph"><span class="lbl">' + stepLabel(i) + '</span><span class="phb">' +
+        (i > 0 ? '<button type="button" class="x pm" data-pm="' + i + '" aria-expanded="' + (adjRow === i) + '" aria-label="Поправить время по секунде: ' + stepLabel(i).toLowerCase() + '">±</button>' : '') +
+        (i > 0 && n > 2 ? '<button type="button" class="x" data-rm="' + i + '" aria-label="Убрать ' + stepLabel(i).toLowerCase() + '">×</button>' : '') + '</span></div>' +
         '<div class="pb"><div class="tstep">' +
           '<button type="button" class="tb" data-adj="-1" data-i="' + i + '" aria-label="' + stepLabel(i) + ' на секунду раньше"' + (i === 0 ? " disabled" : "") + '>−</button>' +
           '<input id="l-t-' + i + '" class="num tmask" type="text" inputmode="numeric" autocomplete="off" aria-label="' + stepLabel(i) + ', время" value="' + esc(s.t) + '"' + (i === 0 ? " disabled" : "") + '>' +
@@ -1455,10 +1485,17 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         $("l-t-" + i).value = dr.steps[i].t; saveDrafts();
       };
     });
+    box.querySelectorAll("[data-pm]").forEach(function (btn) {
+      btn.onclick = function () {
+        var i = +btn.getAttribute("data-pm");
+        adjRow = adjRow === i ? -1 : i; renderLogSteps();
+        var again = box.querySelector('[data-pm="' + i + '"]'); if (again) again.focus();
+      };
+    });
     box.querySelectorAll("[data-rm]").forEach(function (btn) {
       btn.onclick = function () {
         var i = +btn.getAttribute("data-rm");
-        dr.steps.splice(i, 1);
+        dr.steps.splice(i, 1); adjRow = -1;
         dr.steps[dr.steps.length - 1].to = dr.water;
         if (tm.on && tm.phase >= dr.steps.length) tm.phase = dr.steps.length - 1;
         saveDrafts(); renderLogSteps(); tmRender();
@@ -2532,9 +2569,20 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var e = state.equipment, parts = [e.dripper, e.filters, e.grinder].map(function (x) { return String(x || "").trim(); }).filter(Boolean);
     return parts.length ? parts.join(" · ") : "Моё оборудование";
   }
+  // Короткая строка над разделами: без марок и уточнений после запятой (Cafec V60, пластик → V60).
+  var EQ_BRANDS = /^(cafec|hario|kalita|origami|timemore|chestnut|comandante|1zpresso|kingrinder|fellow|kitfort|orea|april|bodum)$/i;
+  function eqShort() {
+    var e = state.equipment, parts = [e.dripper, e.filters, e.grinder].map(function (x) {
+      var full = String(x || "").split(",")[0].trim();
+      var w = full.split(/\s+/).filter(function (y) { return !EQ_BRANDS.test(y); }).join(" ");
+      return w || full;
+    }).filter(Boolean);
+    return parts.length ? parts.join(" · ") : "Моё оборудование";
+  }
   function renderEquipment() {
     var btn = $("eqBtn"), panel = $("eqPanel");
-    btn.textContent = eqSummary();
+    btn.textContent = eqShort();
+    btn.setAttribute("aria-label", "Моё оборудование: " + eqSummary());
     var open = !panel.hidden;
     btn.setAttribute("aria-expanded", open ? "true" : "false");
     if (!open) return;
