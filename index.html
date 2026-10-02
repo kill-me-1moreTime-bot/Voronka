@@ -52,14 +52,14 @@ body{margin:0}
   :root:not([data-theme="light"]) {
     --bg: #100F0E; --fg: #ECE9E5; --muted: #9D968F; --line: #2E2A27; --surface: #1A1817; --field: #13110F;
     --good: #7CCB9A; --bad: #EE9A78; --good-bg: rgba(124, 203, 154, 0.14); --bad-bg: rgba(238, 154, 120, 0.12);
-    --bag: #1F1C1A; --bag-line: #3A3532; --bag-field: #2A2624; --focus: #7FA8F0;
+    --bag: #24201E; --bag-line: #4A443F; --bag-field: #302B28; --focus: #7FA8F0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #100F0E; --fg: #ECE9E5; --muted: #9D968F; --line: #2E2A27; --surface: #1A1817; --field: #13110F;
   --good: #7CCB9A; --bad: #EE9A78; --good-bg: rgba(124, 203, 154, 0.14); --bad-bg: rgba(238, 154, 120, 0.12);
-  --bag: #1F1C1A; --bag-line: #3A3532; --bag-field: #2A2624; --focus: #7FA8F0;
+  --bag: #24201E; --bag-line: #4A443F; --bag-field: #302B28; --focus: #7FA8F0;
   color-scheme: dark;
 }
 
@@ -122,7 +122,7 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
   padding: 7px 12px; font: 700 14px/1.2 var(--f-body); white-space: nowrap;
 }
 .btn-ghost:disabled { opacity: .45; cursor: default; }
-a.btn-ghost.order { display: block; text-align: center; text-decoration: none; }
+a.btn-ghost.order { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
 .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--bag-line); border-radius: 12px; overflow: hidden; }
 .key { background: var(--bag); padding: 10px 12px; display: grid; min-width: 0; }
@@ -143,12 +143,12 @@ a.btn-ghost.order { display: block; text-align: center; text-decoration: none; }
 .finish span { font-size: 13px; color: var(--bag-muted); }
 .finish b { font: 700 30px/1 var(--f-display); color: var(--accent); font-variant-numeric: tabular-nums; }
 
-.confirm {
-  width: 100%; border-radius: 12px; padding: 11px 14px; font: 700 15px/1.2 var(--f-body);
-  background: transparent; color: var(--bag-fg); border: 1px dashed var(--bag-muted);
-}
-.confirm.on { border: 1px solid var(--bag-good); color: var(--bag-good); background: var(--bag-good-bg); }
-.confirm:disabled { opacity: .5; cursor: default; }
+.pill-btn { border: 1px solid transparent; min-height: 32px; cursor: pointer; }
+.pill.ask { background: transparent; color: var(--bag-fg); border: 1px dashed var(--bag-muted); }
+.pill-btn:disabled { opacity: .5; cursor: default; }
+.card-acts { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.card-acts .btn-ghost { min-height: 42px; }
+.card-more { display: grid; gap: 8px; margin-top: -8px; }
 .nav-row { display: flex; justify-content: space-between; gap: 8px; }
 .nav-row .btn-ghost { max-width: 48%; overflow: hidden; text-overflow: ellipsis; }
 
@@ -210,8 +210,8 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .seg button { border: 1px solid var(--line); background: var(--field); border-radius: 10px; padding: 10px 8px; font: 700 14px/1.2 var(--f-body); }
 .seg3 { grid-template-columns: repeat(3, 1fr); }
 .bloompick.kas { gap: 6px; }
-.seg4 { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.seg4 button { padding: 10px 2px; font-size: 13px; }
+.seg4 { grid-template-columns: repeat(4, minmax(min-content, 1fr)); gap: 6px; }
+.seg4 button { padding: 10px 6px; font-size: 13px; }
 .seg button.pick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .bloompick { display: grid; gap: 8px; }
 .seg button.pick { color: var(--fg); }
@@ -341,6 +341,10 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .bnotes dt { color: var(--muted); font-size: 13px; padding-top: 1px; }
 .bnotes dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .brew footer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 2px; }
+.brew.yes { box-shadow: inset 4px 0 0 var(--good); }
+.brew.no { box-shadow: inset 4px 0 0 var(--bad); }
+.brew-more { display: flex; flex-wrap: wrap; gap: 8px; flex-basis: 100%; }
+.mini.more { min-width: 40px; }
 .mini { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 6px 10px; font: 700 13px/1.2 var(--f-body); }
 .mini.danger { color: var(--bad); }
 .mini:disabled { opacity: .5; cursor: default; }
@@ -492,13 +496,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   <main id="panel" role="tabpanel" class="block" style="gap:18px">
     <section class="label" id="label"></section>
 
-    <section class="block">
-      <ul class="tips" id="tips"></ul>
-    </section>
-
     <section class="block" id="logBlock">
       <button type="button" class="log-open" id="logOpen">Записать заварку</button>
       <div class="panel" id="logPanel" hidden></div>
+    </section>
+
+    <section class="block">
+      <ul class="tips" id="tips"></ul>
     </section>
 
     <section class="block">
@@ -848,7 +852,9 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     dbState: "ready", writable: true,
     editing: false, editDraft: null,
     logOpen: false,
-    delAsk: null
+    delAsk: null,
+    cardMore: false,
+    brewMore: null
   };
   var drafts = {};
   try { drafts = JSON.parse(load("voronka-drafts") || "{}") || {}; } catch (e) { drafts = {}; }
@@ -998,7 +1004,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var d = dir || (i > state.idx ? 1 : -1);
     state.view = "panel";
     state.idx = i; store("voronka-bean", BEANS[i].id);
-    state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null; state.delAsk = null;
+    state.editing = false; state.editDraft = null; state.logOpen = false; state.editBrew = null; state.delAsk = null; state.cardMore = false; state.brewMore = null;
     try { history.replaceState(null, "", "#" + BEANS[i].id); } catch (e) {}
     renderAll(d);
     var tab = $("tab-" + BEANS[i].id);
@@ -1033,8 +1039,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<button type="button" class="btn-ghost" id="editBtn"' + (canSave() ? "" : " disabled") + '>Изменить</button>' +
       '</div>' +
       '<ul class="notes">' + b.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' +
-      (d == null ? '' : '<div class="chips"><span>Обжарка ' + ddmm(b.roast) + ' · ' + d + ' ' + plural(d, "день", "дня", "дней") + '</span><span class="pill ' + f.cls + '">' + f.text + '</span></div>') +
-      '<div class="chips"><span class="pill ' + (ok ? "good" : "plain") + '">' + (ok ? "рецепт подтверждён" : "не подтверждён") + '</span>' +
+      '<div class="chips">' +
+        (d == null ? '' : '<span>Обжарка ' + ddmm(b.roast) + ' · ' + d + ' ' + plural(d, "день", "дня", "дней") + '</span><span class="pill ' + f.cls + '">' + f.text + '</span>') +
+        '<button type="button" class="pill pill-btn ' + (ok ? "good" : "ask") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") +
+          ' aria-label="' + (ok ? "Рецепт подтверждён. Нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '">' + (ok ? "✓ подтверждён" : "подтвердить рецепт") + '</button>' +
         '<span class="pill plain">' + (custom ? "ваш рецепт" : "рекомендация") + '</span></div>' +
       '<div class="keys">' +
         '<div class="key"><span>Кофе</span><b>' + fmtNum(r.coffee) + '<small>г</small></b><em>' + DOSE_LABEL[dose] + '</em></div>' +
@@ -1048,13 +1056,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<ol class="sched">' + steps + '</ol>' +
         bloomPickHtml("cardBloom", bloomOf(r)) +
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
-      '<button type="button" class="confirm' + (ok ? " on" : "") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") + '>' +
-        (ok ? "✓ Рецепт подтверждён · нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '</button>' +
-      '<a class="btn-ghost wide order" id="orderBtn" href="' + esc(cleanUrl(b.url) || SHOP) + '" target="_blank" rel="noopener noreferrer">Заказать</a>' +
-      '<button type="button" class="btn-ghost wide" id="shelveBtn"' + (canSave() ? "" : " disabled") + '>Пачка закончилась: убрать в коллекцию</button>' +
-      (BEANS.length > 1 ? '<div class="nav-row">' +
-        '<button type="button" class="btn-ghost" id="prevBean" aria-label="Предыдущее зерно: ' + esc(prev.short) + '">← ' + esc(prev.short) + '</button>' +
-        '<button type="button" class="btn-ghost" id="nextBean" aria-label="Следующее зерно: ' + esc(next.short) + '">' + esc(next.short) + ' →</button>' +
+      '<div class="card-acts">' +
+        '<a class="btn-ghost order" id="orderBtn" href="' + esc(cleanUrl(b.url) || SHOP) + '" target="_blank" rel="noopener noreferrer">Заказать</a>' +
+        '<button type="button" class="btn-ghost" id="cardMore" aria-expanded="' + state.cardMore + '" aria-controls="cardMoreList">Ещё ' + (state.cardMore ? "▴" : "▾") + '</button>' +
+      '</div>' +
+      (state.cardMore ? '<div class="card-more" id="cardMoreList">' +
+        '<button type="button" class="btn-ghost wide" id="shelveBtn"' + (canSave() ? "" : " disabled") + '>Пачка закончилась: убрать в коллекцию</button>' +
+        (BEANS.length > 1 ? '<div class="nav-row">' +
+          '<button type="button" class="btn-ghost" id="prevBean" aria-label="Предыдущее зерно: ' + esc(prev.short) + '">← ' + esc(prev.short) + '</button>' +
+          '<button type="button" class="btn-ghost" id="nextBean" aria-label="Следующее зерно: ' + esc(next.short) + '">' + esc(next.short) + ' →</button>' +
+        '</div>' : '') +
       '</div>' : '');
 
     if ($("prevBean")) {
@@ -1083,7 +1094,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     });
     if (!canSave()) labelEl.querySelectorAll("#cardBloom [data-bloom], #cardMethod [data-method], #cardKas button").forEach(function (x) { x.disabled = true; });
     $("editBtn").onclick = startEdit;
-    $("shelveBtn").onclick = function () { setStatus(b.id, "shelf"); };
+    $("cardMore").onclick = function () { state.cardMore = !state.cardMore; renderCard(0); if ($("cardMore")) $("cardMore").focus(); };
+    if ($("shelveBtn")) $("shelveBtn").onclick = function () { setStatus(b.id, "shelf"); };
     $("confirmBtn").onclick = function () {
       var id = b.id, dz = dose, val = !isConfirmed(id, dz);
       writeBean(id, function (doc) { doc.confirmed[dz] = val; });
@@ -1628,11 +1640,13 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         .map(function (p) { return '<div><dt>' + p[0] + '</dt><dd>' + esc(p[1]) + '</dd></div>'; }).join("");
       var foot = state.delAsk === x.id
         ? '<span style="font-size:14px">Удалить запись?</span><button type="button" class="mini danger" data-del-yes="' + esc(x.id) + '">Удалить</button><button type="button" class="mini" data-del-no>Нет</button>'
-        : '<button type="button" class="mini" data-open="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Открыть и изменить</button>' +
+        : '<button type="button" class="mini" data-open="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Открыть</button>' +
           '<button type="button" class="mini' + (state.cmp.indexOf(x.id) >= 0 ? " on" : "") + '" data-cmp="' + esc(x.id) + '" aria-pressed="' + (state.cmp.indexOf(x.id) >= 0) + '">' + (state.cmp.indexOf(x.id) >= 0 ? "✓ Сравниваю" : "Сравнить") + '</button>' +
-          '<button type="button" class="mini" data-apply="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Сделать рецептом</button>' +
-          '<button type="button" class="mini danger" data-del="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Удалить</button>';
-      return '<article class="brew"><header><b>' + esc(when) + '</b><span class="dose-tag">' + (DOSE_LABEL[x.dose] || "") + '</span>' + verdict + '</header>' +
+          '<button type="button" class="mini more" data-more="' + esc(x.id) + '" aria-expanded="' + (state.brewMore === x.id) + '" aria-label="Ещё действия">⋯</button>' +
+          (state.brewMore === x.id ? '<span class="brew-more">' +
+            '<button type="button" class="mini" data-apply="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Сделать рецептом</button>' +
+            '<button type="button" class="mini danger" data-del="' + esc(x.id) + '"' + (canSave() ? "" : " disabled") + '>Удалить</button></span>' : '');
+      return '<article class="brew' + (x.verdict === "confirmed" ? " yes" : x.verdict === "rejected" ? " no" : "") + '"><header><b>' + esc(when) + '</b><span class="dose-tag">' + (DOSE_LABEL[x.dose] || "") + '</span>' + verdict + '</header>' +
         '<p class="bparams">' + params.join(" · ") + '</p>' +
         (Array.isArray(x.steps) && x.steps.length ? '<p class="bparams">' + x.steps.map(function (st, i) { return (i === 0 ? "блюм " : "пролив " + i + " ") + fmtTime(st.t) + " → " + st.to + " г"; }).join(" · ") + '</p>' : '') +
         (x.descriptors ? '<p class="bdesc">' + esc(x.descriptors) + '</p>' : "") +
@@ -1658,12 +1672,19 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         $("logPanel").scrollIntoView({ block: "start" });
       };
     });
+    box.querySelectorAll("[data-more]").forEach(function (btn) {
+      btn.onclick = function () {
+        var id = btn.getAttribute("data-more");
+        state.brewMore = state.brewMore === id ? null : id; renderHistory();
+        var again = box.querySelector('[data-more="' + id + '"]'); if (again) again.focus();
+      };
+    });
     box.querySelectorAll("[data-del]").forEach(function (btn) { btn.onclick = function () { state.delAsk = btn.getAttribute("data-del"); renderHistory(); }; });
     box.querySelectorAll("[data-del-no]").forEach(function (btn) { btn.onclick = function () { state.delAsk = null; renderHistory(); }; });
     box.querySelectorAll("[data-del-yes]").forEach(function (btn) {
       btn.onclick = function () {
         var id = btn.getAttribute("data-del-yes");
-        state.delAsk = null;
+        state.delAsk = null; state.brewMore = null;
         state.brews = state.brews.filter(function (x) { return x.id !== id; });
         if (persist()) setSync("Запись удалена");
         renderHistory();
