@@ -1269,9 +1269,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   }
   function editingBrew() { return state.editBrew ? state.brews.filter(function (x) { return x.id === state.editBrew; })[0] || null : null; }
   function draftKeySafe() { return bean() ? draftKey() : null; }
+  // Отпечаток рецепта: по нему видно, что черновик заварки собран по устаревшему рецепту
+  function recipeSig(r) { return JSON.stringify([r.coffee, r.water, r.temp, String(r.grind), bloomOf(r), methodOf(r), r.k46 || null, r.steps.map(function (s) { return [s.t, s.to]; })]); }
   function freshDraft() {
     var r = recipeFor(bean(), state.dose);
     return {
+      from: recipeSig(r),
       coffee: String(r.coffee), water: String(r.water), temp: String(r.temp), grind: String(r.grind),
       bloom: bloomOf(r), method: methodOf(r), k46: r.k46 ? clone(r.k46) : null,
       steps: r.steps.map(function (s) { return { t: fmtTime(s.t), to: String(s.to) }; }),
@@ -1290,6 +1293,11 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function renderLogForm() {
     var key = draftKey();
     if (!drafts[key]) drafts[key] = freshDraft();
+    var stale = false;
+    if (!state.editBrew && !(tm.on && tm.key === key) && drafts[key].from !== recipeSig(recipeFor(bean(), state.dose))) {
+      var od = drafts[key], filled = od.drawdown || od.descriptors || od.hot || od.cooled || od.notes || od.verdict;
+      if (!filled) { drafts[key] = freshDraft(); saveDrafts(); } else stale = true;
+    }
     var dr = drafts[key], b = bean(), eb = editingBrew(), dzl = DOSE_LABEL[eb ? eb.dose : state.dose].toLowerCase();
     if (!BLOOM[dr.bloom]) dr.bloom = bloomOf(recipeFor(b, state.dose));
     if (!METHOD_NAME[dr.method]) dr.method = methodOf(recipeFor(b, state.dose));
@@ -1297,6 +1305,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var panel = $("logPanel");
     panel.innerHTML =
       '<div><h3>' + (eb ? "Заварка " + esc(b.short) + " от " + esc(brewWhen(eb)) : "Заварка " + esc(b.short)) + '</h3><p class="sub">' + (eb ? "Поправьте то, что нужно, и нажмите «Сохранить изменения»." : "Что было на самом деле. Поля заполнены по текущему рецепту, поправьте то, что отличалось.") + '</p></div>' +
+      (stale ? '<div class="backup"><span>Рецепт изменился после того, как вы начали эту запись. Параметры ниже от прежнего рецепта.</span><button type="button" class="mini" id="l-refill">Взять из рецепта</button></div>' : '') +
       (eb ? '' : timerHtml()) +
       '<div class="pgrid">' +
         pfld("l-coffee", "Кофе, г", dr.coffee) + pfld("l-water", "Вода, г", dr.water) +
@@ -1327,6 +1336,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
           '<button type="button" class="p-ghost" id="l-clear">Очистить</button>') +
       '</div>';
     renderLogSteps();
+    if ($("l-refill")) $("l-refill").onclick = function () {
+      var f = freshDraft(); ["drawdown", "descriptors", "hot", "cooled", "notes", "verdict", "apply"].forEach(function (k) { f[k] = dr[k]; });
+      drafts[key] = f; saveDrafts(); renderLogForm();
+    };
     bindBloomPick("logBloom", function (k) { dr.bloom = k; saveDrafts(); });
     bindKasPick("logKas", dr, function (k) {
       if (tm.on) return;
