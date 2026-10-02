@@ -341,6 +341,9 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .vlinks { display: grid; gap: 8px; }
 .vlink { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 12px; color: inherit; text-decoration: none; font-weight: 700; }
 .vlink small { display: block; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.vmarks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.vmarks a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 22px; color: inherit; text-decoration: none; font-size: 14px; }
+.vmarks .mt { font: 500 14px/1 var(--f-mono); color: var(--muted); }
 .seg button[aria-pressed="true"].yes { border-color: var(--good); color: var(--good); background: var(--good-bg); }
 .seg button[aria-pressed="true"].no { border-color: var(--bad); color: var(--bad); background: var(--bad-bg); }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
@@ -2039,8 +2042,15 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function gSec(id, title, html) { return '<section class="gsec"' + (id ? ' id="' + id + '"' : '') + '><h4>' + esc(title) + '</h4>' + html + '</section>'; }
   function gVideos(v) {
     return '<p class="sched-title"><span>' + "Видео" + '</span></p><div class="vlinks">' + v.map(function (x) {
-      return '<a class="vlink" href="' + x[2] + '" target="_blank" rel="noopener noreferrer">' + esc(x[0]) + '<small>' + esc(x[1]) + '</small></a>';
+      var t = x[3] || 0, marks = x[4] || [];
+      return '<div class="vitem"><a class="vlink" href="' + vAt(x[2], t) + '" target="_blank" rel="noopener noreferrer">' + esc(x[0]) + '<small>' + esc(x[1]) + (t ? ' · с ' + fmtTime(t) : '') + '</small></a>' +
+        (marks.length ? '<div class="vmarks">' + marks.map(function (k) {
+          return '<a href="' + vAt(x[2], k[0]) + '" target="_blank" rel="noopener noreferrer"><span class="mt">' + fmtTime(k[0]) + '</span> ' + esc(k[1]) + '</a>';
+        }).join("") + '</div>' : '') + '</div>';
     }).join("") + '</div>';
+  }
+  // Ссылка на ролик с нужной секунды.
+  function vAt(url, t) { return t ? url + "&t=" + t + "s" : url;
   }
   function gNow(c) {
     if (!c) return "";
@@ -2061,7 +2071,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     return " У вас так было: «" + esc(bb ? bb.short : "") + "» " + esc(brewWhen(x).split(" ")[0]) + ", слив " + fmtTime(x.drawdown) + ".";
   }
 
-  var V_ULT = ["The Ultimate V60 Technique", "James Hoffmann · фильтр, блюм, проливы и кручение", "https://www.youtube.com/watch?v=AI4ynXzkSQo"];
+  var V_ULT = ["The Ultimate V60 Technique", "James Hoffmann · фильтр, блюм, проливы и кручение", "https://www.youtube.com/watch?v=AI4ynXzkSQo", 227,
+    [[40, "Что нужно"], [227, "Техника"], [610, "Итоги"]]];
   var GUIDES = [
     { id: "brew", title: "Заварка по шагам", sub: "Фильтр, блюм, проливы и слив: что делать и зачем",
       body: function (c) {
@@ -2102,7 +2113,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
               "Когда вода уйдёт, нажмите «Слив закончился»" + (r && r.target ? ". Цель: " + esc(r.target) + "." : "."),
               "Если на слое бугры или сухие края, вода шла неравномерно: чаще лейте в центр и проверьте блюм."
             ], "ul")) +
-          gVideos([V_ULT, ["A Better 1 Cup V60 Technique", "James Hoffmann · вариант на одну чашку", "https://www.youtube.com/watch?v=1oB1oDrDkHM"]]);
+          gVideos([V_ULT, ["A Better 1 Cup V60 Technique", "James Hoffmann · вариант на одну чашку", "https://www.youtube.com/watch?v=1oB1oDrDkHM", 43,
+            [[43, "Заварка целиком"], [334, "Почему так"]]]]);
       } },
     { id: "fix", title: "Если чашка не та", sub: "Выберите, что не так, и поменяйте одно",
       body: function (c) {
@@ -2137,9 +2149,12 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
             "Натуральные фанки, если вкус уходит в вино и брагу: 91–92 °C."
           ], "ul")) +
           gVideos([
-            ["Why your Coffee is Sour/Bitter! (and how to fix it)", "Lance Hedrick · кисло или горько и что менять", "https://www.youtube.com/watch?v=Z2zsmehysHk"],
-            ["Brew your coffee with boiling water", "James Hoffmann · температуры заваривания", "https://www.youtube.com/watch?v=K_r5kpXPRYo"],
-            ["A Beginner's Guide to Coffee Grinders", "James Hoffmann · как устроены мельницы", "https://www.youtube.com/watch?v=bgjvLQu5NlE"]
+            ["Why your Coffee is Sour/Bitter! (and how to fix it)", "Lance Hedrick · кисло или горько и что менять", "https://www.youtube.com/watch?v=Z2zsmehysHk", 1100,
+              [[80, "Откуда кислое и горькое"], [798, "Как отличить"], [1100, "Настройка по вкусу"], [1427, "Простой подход"]]],
+            ["Brew your coffee with boiling water", "James Hoffmann · температуры заваривания", "https://www.youtube.com/watch?v=K_r5kpXPRYo", 0,
+              [[151, "Замер термометром"], [299, "Френч-пресс"]]],
+            ["A Beginner's Guide to Coffee Grinders", "James Hoffmann · как устроены мельницы", "https://www.youtube.com/watch?v=bgjvLQu5NlE", 204,
+              [[204, "Равномерность помола"], [480, "Ручные мельницы"]]]
           ]);
       } },
     { id: "taste", title: "Как описать чашку", sub: "Четыре части вкуса и слова для записи",
@@ -2158,8 +2173,10 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
             ["Орех и шоколад", "орех, какао, шоколад"], ["Ферментация", "вино, брага, ром"], ["Проблемы", "горечь, сухость, дым, бумажный привкус (фильтр не промыт)"]
           ].map(function (x) { return "<b>" + x[0] + "</b>: " + x[1]; }), "ul")) +
           gVideos([
-            ["A Beginners Guide to Coffee Tasting", "James Hoffmann · как пробовать кофе", "https://www.youtube.com/watch?v=kEZZCQTSSAg"],
-            ["What Does A Great Cup Of Coffee Taste Like?", "James Hoffmann · каким должен быть хороший кофе", "https://www.youtube.com/watch?v=IkssYHTSpH4"]
+            ["A Beginners Guide to Coffee Tasting", "James Hoffmann · как пробовать кофе", "https://www.youtube.com/watch?v=kEZZCQTSSAg", 0,
+              [[201, "Кислотность"], [372, "Сладость"], [477, "Тело"], [589, "Послевкусие"], [717, "Вкусы"]]],
+            ["What Does A Great Cup Of Coffee Taste Like?", "James Hoffmann · каким должен быть хороший кофе", "https://www.youtube.com/watch?v=IkssYHTSpH4", 25,
+              [[133, "Баланс"], [158, "Тело"], [202, "Чистота"]]]
           ]);
       } },
     { id: "fresh", title: "Свежесть и хранение", sub: "Сколько отдыхает зерно и как его держать",
@@ -2179,7 +2196,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
             "Мелите прямо перед заваркой: молотый кофе теряет аромат гораздо быстрее.",
             "Открытую пачку старайтесь допить в течение месяца."
           ], "ul")) +
-          gVideos([["A Beginner's Guide to Resting Coffee", "James Hoffmann · сколько отдыхает кофе", "https://www.youtube.com/watch?v=_Py8JOi3REg"]]);
+          gVideos([["A Beginner's Guide to Resting Coffee", "James Hoffmann · сколько отдыхает кофе", "https://www.youtube.com/watch?v=_Py8JOi3REg", 0,
+            [[63, "Зачем отдых"], [381, "Хранение и упаковка"], [554, "Сколько ждать"]]]]);
       } },
     { id: "water", title: "Вода", sub: "Какая подходит и как проверить",
       body: function () {
@@ -2191,7 +2209,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
             "Ориентир SCA: минерализация 75–150 мг/л, жёсткость 50–80 мг/л (около 1–1,6 °Ж). Эти цифры обычно есть на этикетке.",
             "Проверка: сварите одно зерно на двух водах и сравните. Разница слышна сразу."
           ], "ul") +
-          gVideos([["The Best Water for Coffee - An Introduction", "James Hoffmann · какая вода нужна кофе", "https://www.youtube.com/watch?v=" + "jfElZfrmlRs"]]);
+          gVideos([["The Best Water for Coffee - An Introduction", "James Hoffmann · какая вода нужна кофе", "https://www.youtube.com/watch?v=" + "jfElZfrmlRs", 0,
+            [[370, "Фильтры для воды"], [425, "Фильтр-кувшин"], [610, "Минеральная вода"]]]]);
       } },
     { id: "ratio", title: "Соотношение", sub: "Сколько воды на грамм кофе",
       body: function (c) {
@@ -2229,7 +2248,8 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
             "Разбирать мельницу самому Timemore не советует, при сборке можно сбить настройку. Если всё же разбираете, запишите положение лимба и проверьте ноль после сборки.",
             "Для пластиковой воронки и стеклянного сервера смотрите ограничения по горячей воде в инструкции."
           ], "ul")) +
-          gVideos([["Descale Kettle in 2 Minutes with Citric Acid", "Natural Spa Supplies · как убрать накипь лимонной кислотой", "https://www.youtube.com/watch?v=NKMnmG6PimY"]]);
+          gVideos([["Descale Kettle in 2 Minutes with Citric Acid", "Natural Spa Supplies · как убрать накипь лимонной кислотой", "https://www.youtube.com/watch?v=NKMnmG6PimY", 0,
+            [[0, "Раствор"], [33, "Промывка"]]]]);
       } }
   ];
   function fixAnsHtml(id) {
