@@ -108,16 +108,15 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 
 /* the bag label */
 .label {
-  background: var(--bag); color: var(--bag-fg); border-radius: 18px; padding: 18px 18px 16px 22px;
-  display: grid; gap: 16px; border: 1px solid var(--bag-line); box-shadow: inset 6px 0 0 var(--accent);
+  background: var(--bag); color: var(--bag-fg); border-radius: 18px; padding: 14px 14px 14px 20px;
+  display: grid; gap: 12px; border: 1px solid var(--bag-line); box-shadow: inset 6px 0 0 var(--accent);
 }
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .bean-head { display: grid; gap: 6px; min-width: 0; }
 .origin { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--bag-muted); display: flex; flex-wrap: wrap; gap: 4px 12px; }
 .origin .score { color: var(--accent); font-weight: 700; }
-.bean-name { margin: 0; font: 700 40px/0.95 var(--f-display); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
-.notes { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0; padding: 0; list-style: none; }
-.notes li { font-size: 14px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--accent); }
+.bean-name { margin: 0; font: 700 28px/0.95 var(--f-display); text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.notes { margin: -4px 0 0; font-size: 14px; line-height: 1.35; color: var(--accent); }
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; color: var(--bag-muted); }
 .pill { font: 700 14px/1 var(--f-body); padding: 5px 8px; border-radius: 6px; letter-spacing: .02em; white-space: nowrap; }
 .pill.good { background: var(--bag-good-bg); color: var(--bag-good); }
@@ -131,24 +130,24 @@ h1 { margin: 0; font: 700 44px/0.95 var(--f-display); letter-spacing: .01em; tex
 .btn-ghost:disabled { opacity: .45; cursor: default; }
 a.btn-ghost.order { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
-.keys { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--bag-line); border-radius: 12px; overflow: hidden; }
-.key { background: var(--bag); padding: 10px 12px; display: grid; min-width: 0; }
-.key span { font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--bag-muted); }
-.key b { font: 700 38px/1 var(--f-display); font-variant-numeric: tabular-nums; }
-.key b small { font-size: 22px; color: var(--bag-muted); font-weight: 500; margin-left: 2px; }
-.key em { font-style: normal; font: 400 14px/1.3 var(--f-body); font-variant-numeric: tabular-nums; color: var(--bag-muted); }
+.keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--bag-line); border-radius: 12px; overflow: hidden; }
+.key { background: var(--bag); padding: 8px 8px; display: grid; align-content: start; min-width: 0; }
+.key span { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--bag-muted); }
+.key b { font: 700 30px/1.05 var(--f-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.key b small { font-size: 18px; color: var(--bag-muted); font-weight: 500; margin-left: 2px; }
+.key em { font-style: normal; font: 400 12px/1.3 var(--f-body); font-variant-numeric: tabular-nums; color: var(--bag-muted); }
 
 .sched-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--bag-muted); }
 .sched { display: grid; margin: 0; padding: 0; list-style: none; }
-.step { display: grid; grid-template-columns: 46px 74px 1fr; gap: 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--bag-line); }
+.step { display: grid; grid-template-columns: 36px 52px 1fr; gap: 8px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--bag-line); }
 .step .t { font: 500 14px/1 var(--f-mono); color: var(--bag-muted); font-variant-numeric: tabular-nums; }
-.step .w { font: 700 28px/1 var(--f-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.step .w small { font-size: 16px; color: var(--bag-muted); font-weight: 500; }
+.step .w { font: 700 24px/1 var(--f-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step .w small { font-size: 14px; color: var(--bag-muted); font-weight: 500; }
 .step .a { font-size: 14px; line-height: 1.35; min-width: 0; }
-.step .a i { font-style: normal; font: 700 14px/1.1 var(--f-body); color: var(--accent); display: block; margin-bottom: 3px; }
-.finish { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid var(--bag-line); }
+.step .a i { font-style: normal; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.finish { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--bag-line); }
 .finish span { font-size: 14px; color: var(--bag-muted); }
-.finish b { font: 700 30px/1 var(--f-display); color: var(--accent); font-variant-numeric: tabular-nums; }
+.finish b { font: 700 26px/1 var(--f-display); color: var(--accent); font-variant-numeric: tabular-nums; }
 
 .pill-btn { border: 1px solid transparent; min-height: 32px; cursor: pointer; }
 .pill.ask { background: transparent; color: var(--bag-fg); border: 1px dashed var(--bag-muted); }
@@ -228,6 +227,11 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .seg button.pick { color: var(--fg); }
 .label .seg button.pick { background: var(--bag-field); color: var(--bag-fg); border-color: var(--bag-line); }
 .label .bloompick .hint { color: var(--bag-muted); }
+.bloompick.compact .bprow { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.bloompick.compact .hint .glink { display: inline; min-height: 0; padding: 12px 0; margin: 0; white-space: nowrap; }
+.label .seg button.pick { padding: 8px 4px; min-height: 40px; white-space: nowrap; }
+.bloompick.compact .seg { gap: 6px; }
+.step .a .same { color: var(--bag-muted); }
 .seg button.pick:disabled { opacity: .5; }
 .glink { color: inherit; font-size: 14px; text-transform: none; letter-spacing: 0; text-decoration: underline; display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px 0 12px; margin-block: -12px; }
 .guide { background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
@@ -396,8 +400,8 @@ input.tmask.bad { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--ba
 .routine { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 16px; }
 
 @media (min-width: 480px) {
-  .bean-name { font-size: 48px; }
-  .key b { font-size: 44px; }
+  .bean-name { font-size: 32px; }
+  .key b { font-size: 34px; }
   .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -734,7 +738,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function k46Of(x) { var k = x && x.k46 || {}; return { bal: K46_BAL[k.bal] ? k.bal : "sweet", str: K46_STR[k.str] ? +k.str : 3 }; }
   function k46Text(x) { var k = k46Of(x); return K46_BAL[k.bal].name.toLowerCase() + ", " + (k.str + 2) + " " + plural(k.str + 2, "пролив", "пролива", "проливов"); }
   function methodLabel(x) { var m = methodOf(x); return METHOD_NAME[m] + (m === "kasuya" ? " (" + k46Text(x) + ")" : ""); }
-  function kasPickHtml(id, x) {
+  function kasPickHtml(id, x, short) {
     var k = k46Of(x);
     function seg(kind, keys, names, cur) {
       return '<div class="seg seg3" role="radiogroup" aria-label="' + (kind === "bal" ? "Вкус" : "Крепость") + '">' + keys.map(function (v) {
@@ -745,7 +749,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     return '<div class="bloompick kas" id="' + id + '">' +
       '<p class="sched-title"><span>Вкус · первые 40% воды</span></p>' + seg("bal", ["sweet", "even", "bright"], function (v) { return K46_BAL[v].name; }, k.bal) +
       '<p class="sched-title"><span>Крепость · оставшиеся 60%</span></p>' + seg("str", [2, 3, 4], function (v) { return K46_STR[v].name + " · " + v; }, k.str) +
-      '<p class="hint">Слаще: первый пролив меньше второго. Крепче: больше проливов. Шаги пересчитаются.</p></div>';
+      (short ? '' : '<p class="hint">Слаще: первый пролив меньше второго. Крепче: больше проливов. Шаги пересчитаются.</p>') + '</div>';
   }
   function bindKasPick(id, cur, onPick) {
     var box = $(id); if (!box) return;
@@ -791,12 +795,16 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   };
   var BLOOM_KEYS = ["swirl", "spoon", "none"];
   function bloomOf(x) { return x && BLOOM[x.bloom] ? x.bloom : "swirl"; }
-  function bloomPickHtml(id, cur) {
-    return '<div class="bloompick"><p class="sched-title"><span>Блюм</span><a href="#" class="glink" data-guide="bloom">как выбрать</a></p>' +
-      '<div class="seg seg3" role="radiogroup" aria-label="Техника блюма" id="' + id + '">' +
+  // compact: подпись слева от кнопок, «как выбрать» в конце подсказки (карточка зерна).
+  function bloomPickHtml(id, cur, compact) {
+    var link = '<a href="#" class="glink" data-guide="bloom">как выбрать</a>';
+    var seg = '<div class="seg seg3" role="radiogroup" aria-label="Техника блюма" id="' + id + '">' +
       BLOOM_KEYS.map(function (k) {
         return '<button type="button" class="pick" role="radio" data-bloom="' + k + '" aria-checked="' + (k === cur) + '" aria-pressed="' + (k === cur) + '">' + BLOOM[k].name + '</button>';
-      }).join("") + '</div><p class="hint" id="' + id + '-hint">' + BLOOM[cur].hint + '</p></div>';
+      }).join("") + '</div>';
+    var hint = '<span id="' + id + '-hint">' + BLOOM[cur].hint + '</span>';
+    if (compact) return '<div class="bloompick compact"><div class="bprow"><span class="sched-title">Блюм</span>' + seg + '</div><p class="hint">' + hint + ' ' + link + '</p></div>';
+    return '<div class="bloompick"><p class="sched-title"><span>Блюм</span>' + link + '</p>' + seg + '<p class="hint">' + hint + '</p></div>';
   }
   function methodPickHtml(id, cur, note) {
     return '<div class="bloompick"><p class="sched-title"><span>Способ</span>' + (METHOD_GUIDE[cur] != null ? '<a href="#" class="glink" data-mguide="' + cur + '">схема способа</a>' : '') + '</p>' +
@@ -807,7 +815,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
   function bindMethodPick(id, onPick) {
     var box = $(id); if (!box) return;
     box.querySelectorAll("[data-method]").forEach(function (btn) { btn.onclick = function () { onPick(btn.getAttribute("data-method")); }; });
-    var g = box.parentNode.querySelector("[data-mguide]");
+    var g = box.closest(".bloompick").querySelector("[data-mguide]");
     if (g) g.onclick = function (e) { e.preventDefault(); methodIdx = METHOD_GUIDE[g.getAttribute("data-mguide")]; openGuides("methods"); };
   }
   function bindBloomPick(id, onPick) {
@@ -822,7 +830,7 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         onPick(k);
       };
     });
-    var g = box.parentNode.querySelector("[data-guide]");
+    var g = box.closest(".bloompick").querySelector("[data-guide]");
     if (g) g.onclick = function (e) { e.preventDefault(); openGuides(g.getAttribute("data-guide")); };
   }
   function stepAction(i, n, bl, m) {
@@ -1067,12 +1075,14 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
     var d = b.roast ? daysSince(b.roast) : null, f = d == null ? null : freshness(d);
     var prev = BEANS[(state.idx - 1 + BEANS.length) % BEANS.length];
     var next = BEANS[(state.idx + 1) % BEANS.length];
-    var n = r.steps.length, last = 0, mth = methodOf(r); LM = mth;
+    var n = r.steps.length, last = 0, mth = methodOf(r), prevAct = ""; LM = mth;
     var steps = r.steps.map(function (s, i) {
       var add = s.to - last; last = s.to;
+      // Одинаковое действие подряд не повторяем: строка короче, смысл тот же.
+      var act = stepAction(i, n, bloomOf(r), mth), same = act === prevAct; prevAct = act;
       return '<li class="step"><span class="t">' + fmtTime(s.t) + '</span>' +
         '<span class="w">' + s.to + '<small> г</small></span>' +
-        '<span class="a"><i>' + stepLabel(i) + ' · +' + add + ' г</i>' + stepAction(i, n, bloomOf(r), mth) + '</span></li>';
+        '<span class="a"><i>' + stepLabel(i) + ' +' + add + '</i> ' + (same ? '<span class="same">так же</span>' : act) + '</span></li>';
     }).join("");
 
     labelEl.innerHTML =
@@ -1081,24 +1091,24 @@ details.photo ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px;
         '<h2 class="bean-name">' + esc(b.name) + '</h2></div>' +
         '<button type="button" class="btn-ghost" id="editBtn"' + (canSave() ? "" : " disabled") + '>Изменить</button>' +
       '</div>' +
-      '<ul class="notes">' + b.notes.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' +
+      (b.notes.length ? '<p class="notes">' + b.notes.map(esc).join(" · ") + '</p>' : '') +
       '<div class="chips">' +
         (d == null ? '' : '<span>Обжарка ' + ddmm(b.roast) + ' · ' + d + ' ' + plural(d, "день", "дня", "дней") + '</span><span class="pill ' + f.cls + '">' + f.text + '</span>') +
         '<button type="button" class="pill pill-btn ' + (ok ? "good" : "ask") + '" id="confirmBtn" aria-pressed="' + ok + '"' + (canSave() ? "" : " disabled") +
           ' aria-label="' + (ok ? "Рецепт подтверждён. Нажмите, чтобы снять" : "Отметить рецепт подтверждённым") + '">' + (ok ? "✓ подтверждён" : "подтвердить рецепт") + '</button>' +
         '<span class="pill plain">' + (custom ? "ваш рецепт" : "рекомендация") + '</span></div>' +
       '<div class="keys">' +
-        '<div class="key"><span>Кофе</span><b>' + fmtNum(r.coffee) + '<small>г</small></b><em>' + DOSE_LABEL[dose] + '</em></div>' +
+        '<div class="key"><span>Кофе</span><b>' + fmtNum(r.coffee) + '<small>г</small></b></div>' +
         '<div class="key"><span>Вода</span><b>' + fmtNum(r.water) + '<small>г</small></b><em>' + ratio(r) + '</em></div>' +
-        '<div class="key"><span>Чайник</span><b>' + fmtNum(r.temp) + '<small>°C</small></b><em>по датчику</em></div>' +
-        '<div class="key"><span>Помол</span><b>' + esc(r.grind) + '</b><em>1 оборот + деление</em></div>' +
+        '<div class="key"><span>Чайник</span><b>' + fmtNum(r.temp) + '<small>°</small></b><em>по датчику</em></div>' +
+        '<div class="key"><span>Помол</span><b>' + esc(r.grind) + '</b><em>оборот +</em></div>' +
       '</div>' +
-      methodPickHtml("cardMethod", mth, "Выбор способа пересчитает шаги, помол, блюм и цель слива. Потом можно поправить в «Изменить».") +
-      (mth === "kasuya" ? kasPickHtml("cardKas", r) : "") +
-      '<div><p class="sched-title"><span>Весы, нарастающим итогом</span><span>' + schedNote(n, mth) + '</span></p>' +
+      '<div><p class="sched-title"><span>' + schedNote(n, mth) + '</span><span>на весах, итог</span></p>' +
         '<ol class="sched">' + steps + '</ol>' +
-        bloomPickHtml("cardBloom", bloomOf(r)) +
         '<div class="finish"><span>Слив закончится</span><b>' + esc(r.target || "—") + '</b></div></div>' +
+      methodPickHtml("cardMethod", mth) +
+      (mth === "kasuya" ? kasPickHtml("cardKas", r, true) : "") +
+      bloomPickHtml("cardBloom", bloomOf(r), true) +
       '<div class="card-acts">' +
         '<a class="btn-ghost order" id="orderBtn" href="' + esc(cleanUrl(b.url) || SHOP) + '" target="_blank" rel="noopener noreferrer">Заказать</a>' +
         '<button type="button" class="btn-ghost" id="cardMore" aria-expanded="' + state.cardMore + '" aria-controls="cardMoreList">Ещё ' + (state.cardMore ? "▴" : "▾") + '</button>' +
