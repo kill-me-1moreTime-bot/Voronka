@@ -45,6 +45,28 @@ void main() {
     expect(AppConfig.headers, {'Authorization': 'Api-Key k'});
   });
 
+  test('адрес, вставленный в поле каталога, переносится в адрес', () {
+    const link = 'wss://ai.api.cloud.yandex.net/v1/realtime'
+        '?model=gpt://b1gabc123/speech-realtime-deepseek-v4-flash';
+    final r = AppConfig.fixFields(url: '', folder: ' $link ');
+    expect(r.url, link);
+    expect(r.folder, 'b1gabc123');
+  });
+
+  test('каталог достаётся из адреса страницы AI Studio', () {
+    final r = AppConfig.fixFields(
+      url: '',
+      folder: 'https://aistudio.yandex.ru/platform/folders/b1gxyz/agents',
+    );
+    expect(r.folder, 'b1gxyz');
+    expect(r.url, '');
+  });
+
+  test('обычный каталог не меняется', () {
+    final r = AppConfig.fixFields(url: '', folder: ' b1gjc7 ');
+    expect(r, (url: '', folder: 'b1gjc7'));
+  });
+
   testWidgets('форма родителя сохраняет адрес и ключ', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: ParentSettingsScreen(initial: ChildProfile()),
