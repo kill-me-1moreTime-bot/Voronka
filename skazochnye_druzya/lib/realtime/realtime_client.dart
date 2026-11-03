@@ -69,6 +69,12 @@ class RealtimeClient {
 
   final _seenDeltas = <String>{};
 
+  // Текст ответа. Yandex присылает его кусками (output_text.delta),
+  // у OpenAI — расшифровкой звука (output_audio_transcript). Собираем
+  // всё и отдаём один раз, перед ResponseDone.
+  final _textParts = StringBuffer();
+  String? _finalText;
+
   Future<void> connect() async {
     final channel = IOWebSocketChannel.connect(
       Uri.parse(AppConfig.realtimeUrl),
@@ -150,6 +156,10 @@ class RealtimeClient {
     if (!_events.isClosed) _events.add(e);
   }
 
+  /// Разбор одного сообщения сервера. Открыт для тестов.
+  @visibleForTesting
+  void handleMessage(String raw) => _onMessage(raw);
+
   void _onMessage(dynamic raw) {
     final Map<String, dynamic> m;
     try {
@@ -172,14 +182,22 @@ class RealtimeClient {
         _emit(const SpeechStopped());
       case 'response.created':
         _seenDeltas.clear();
+        _textParts.clear();
+        _finalText = null;
         _emit(const ResponseStarted());
       // Новые и старые имена событий OpenAI Realtime.
       case 'response.output_audio.delta' || 'response.audio.delta':
         final delta = m['delta'] as String?;
         if (delta != null) _emit(AudioDelta(base64Decode(delta)));
+      case 'response.output_text.delta' ||
+            'response.output_audio_transcript.delta' ||
+            'response.audio_transcript.delta':
+        _textParts.write(m['delta'] as String? ?? '');
+      case 'response.output_text.done':
+        _keepFinal(m['text']);
       case 'response.output_audio_transcript.done' ||
             'response.audio_transcript.done':
-        _emit(AssistantTranscript(m['transcript'] as String? ?? ''));
+        _keepFinal(m['transcript']);
       case 'conversation.item.input_audio_transcription.completed':
         _emit(UserTranscript(m['transcript'] as String? ?? ''));
       case 'response.done':
@@ -189,6 +207,11 @@ class RealtimeClient {
             .map((o) => o['id'])
             .whereType<String>()
             .toList();
+        // Порядок: итоговый текст, собранные куски, текст внутри response.done.
+        var text = _finalText ?? _textParts.toString();
+        if (text.trim().isEmpty) text = _textFromOutput(output);
+        DebugLog.add('[RT] текст ответа: ${text.length} симв.');
+        _emit(AssistantTranscript(text));
         _emit(ResponseDone(ids));
       case 'error':
         final err = m['error'];
@@ -196,5 +219,20 @@ class RealtimeClient {
         DebugLog.add('[RT] ошибка сервера: ${err ?? m}');
         _emit(RealtimeError(msg));
     }
+  }
+
+  void _keepFinal(Object? t) {
+    if (t is String && t.trim().isNotEmpty) _finalText = t;
+  }
+
+  static String _textFromOutput(List output) {
+    final b = StringBuffer();
+    for (final item in output.whereType<Map>()) {
+      for (final c in (item['content'] as List? ?? const []).whereType<Map>()) {
+        final t = c['transcript'] ?? c['text'];
+        if (t is String) b.write(t);
+      }
+    }
+    return b.toString();
   }
 }

@@ -34,13 +34,24 @@ void main() {
     expect(AppConfig.headers.containsKey('x-folder-id'), isFalse);
   });
 
+  test('адрес собирается из каталога, если не задан вручную', () async {
+    await AppConfig.save(url: '', key: 'k', scheme: 'Api-Key', folder: 'b1gX');
+    expect(
+      AppConfig.realtimeUrl,
+      'wss://ai.api.cloud.yandex.net/v1/realtime'
+      '?model=gpt://b1gX/speech-realtime-250923',
+    );
+    expect(AppConfig.isConfigured, isTrue);
+    expect(AppConfig.headers, {'Authorization': 'Api-Key k'});
+  });
+
   testWidgets('форма родителя сохраняет адрес и ключ', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: ParentSettingsScreen(initial: ChildProfile()),
     ));
     await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Адрес (wss://…)'), 'wss://x.test/rt');
+        find.widgetWithText(TextField, 'Идентификатор каталога'), 'b1gTEST');
     await tester.enterText(
         find.widgetWithText(TextField, 'API-ключ'), 'secret');
     await tester.scrollUntilVisible(
@@ -51,7 +62,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Сохранить'));
     await tester.pumpAndSettle();
-    expect(AppConfig.realtimeUrl, 'wss://x.test/rt');
+    expect(AppConfig.realtimeUrl, contains('gpt://b1gTEST/'));
     expect(AppConfig.apiKey, 'secret');
   });
 
@@ -61,8 +72,17 @@ void main() {
       home: ParentSettingsScreen(initial: ChildProfile()),
     ));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Дополнительно'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Дополнительно'));
+    await tester.pumpAndSettle();
     await tester.enterText(
-        find.widgetWithText(TextField, 'Адрес (wss://…)'), 'https://x.test');
+        find.widgetWithText(TextField, 'Адрес (wss://…), необязательно'),
+        'https://x.test');
     await tester.pump();
     expect(find.text('Адрес должен начинаться с wss://'), findsOneWidget);
     await tester.scrollUntilVisible(

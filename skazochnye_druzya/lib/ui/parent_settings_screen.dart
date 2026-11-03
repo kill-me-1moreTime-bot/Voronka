@@ -118,20 +118,19 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
           Text('Подключение к Yandex AI Studio', style: t.titleMedium),
           const SizedBox(height: 4),
           Text(
-            'Всё берётся со страницы голосового агента: адрес и схема — '
-            'из примера интеграции внизу страницы, ключ — API-ключ '
-            'сервисного аккаунта. Хранится только на этом телефоне.',
+            'Нужны два значения из Yandex Cloud: идентификатор каталога '
+            '(b1g…) и API-ключ сервисного аккаунта с ролью ai.models.user. '
+            'Хранятся только на этом телефоне.',
             style: t.bodySmall,
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: _url,
-            keyboardType: TextInputType.url,
+            controller: _folder,
             autocorrect: false,
             onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: 'Адрес (wss://…)',
-              errorText: _urlError,
+            decoration: const InputDecoration(
+              labelText: 'Идентификатор каталога',
+              hintText: 'b1g…',
             ),
           ),
           const SizedBox(height: 12),
@@ -152,26 +151,41 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text('Дополнительно', style: t.bodyMedium),
+            initiallyExpanded: _url.text.isNotEmpty || _scheme != 'Api-Key',
             children: [
-              Text('Авторизация:', style: t.bodyMedium),
-              for (final sc in AppConfig.schemes)
-                ChoiceChip(
-                  label: Text(sc),
-                  selected: _scheme == sc,
-                  onSelected: (_) => setState(() => _scheme = sc),
+              TextField(
+                controller: _url,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: 'Адрес (wss://…), необязательно',
+                  helperText: _folder.text.trim().isEmpty
+                      ? 'Пусто — адрес соберётся из каталога.'
+                      : 'Пусто — ${AppConfig.defaultUrlFor(_folder.text.trim())}',
+                  helperMaxLines: 4,
+                  errorText: _urlError,
                 ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text('Авторизация:', style: t.bodyMedium),
+                  for (final sc in AppConfig.schemes)
+                    ChoiceChip(
+                      label: Text(sc),
+                      selected: _scheme == sc,
+                      onSelected: (_) => setState(() => _scheme = sc),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
             ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _folder,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Идентификатор каталога (если есть в примере)',
-            ),
           ),
           const SizedBox(height: 32),
           FilledButton(onPressed: _save, child: const Text('Сохранить')),

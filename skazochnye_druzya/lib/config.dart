@@ -25,9 +25,24 @@ class AppConfig {
   static const _kScheme = 'rt_scheme';
   static const _kFolder = 'rt_folder';
 
-  /// Адрес WebSocket Realtime API. Скопируйте его из примера интеграции
-  /// на странице голосового агента в Yandex AI Studio.
-  static String realtimeUrl = _builtUrl;
+  /// Модель по умолчанию — как в официальном примере Yandex
+  /// (github.com/yandex-ai-studio/yandex-ai-studio-api-examples, realtime).
+  static const defaultModel = 'speech-realtime-250923';
+
+  /// Адрес, введённый вручную (или из config.json). Пусто — собрать сам.
+  static String _url = _builtUrl;
+
+  /// Адрес WebSocket Realtime API. Если не задан вручную, собирается из
+  /// идентификатора каталога: модель живёт в каталоге пользователя.
+  static String get realtimeUrl {
+    if (_url.isNotEmpty) return _url;
+    if (folderId.isEmpty) return '';
+    return defaultUrlFor(folderId);
+  }
+
+  static String defaultUrlFor(String folder) =>
+      'wss://ai.api.cloud.yandex.net/v1/realtime'
+      '?model=gpt://$folder/$defaultModel';
 
   /// API-ключ сервисного аккаунта Yandex Cloud.
   static String apiKey = _builtKey;
@@ -36,25 +51,27 @@ class AppConfig {
   /// клиентов иногда "Bearer". Берите ту, что в примере на странице агента.
   static String authScheme = _builtScheme;
 
-  /// Идентификатор каталога Yandex Cloud (если пример его требует).
+  /// Идентификатор каталога Yandex Cloud (b1g…).
   static String folderId = _builtFolder;
 
   /// Частота дискретизации PCM16 для микрофона и ответа.
+  /// 44100 — как в официальном примере Yandex.
   static const sampleRate =
-      int.fromEnvironment('SAMPLE_RATE', defaultValue: 24000);
+      int.fromEnvironment('SAMPLE_RATE', defaultValue: 44100);
 
   static bool get isConfigured =>
       realtimeUrl.startsWith('wss://') && apiKey.isNotEmpty;
 
+  /// Каталог передаётся в адресе (model=gpt://каталог/…), заголовок
+  /// x-folder-id в примере Yandex не нужен.
   static Map<String, String> get headers => {
         'Authorization': '$authScheme $apiKey',
-        if (folderId.isNotEmpty) 'x-folder-id': folderId,
       };
 
   /// Читает настройки с телефона. Вызывается один раз при запуске.
   static Future<void> load() async {
     final p = await SharedPreferences.getInstance();
-    realtimeUrl = _pick(p.getString(_kUrl), _builtUrl);
+    _url = _pick(p.getString(_kUrl), _builtUrl);
     apiKey = _pick(p.getString(_kKey), _builtKey);
     authScheme = _pick(p.getString(_kScheme), _builtScheme);
     folderId = _pick(p.getString(_kFolder), _builtFolder);
