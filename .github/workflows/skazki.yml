@@ -1,0 +1,47 @@
+# «Сказочные друзья»: проверка кода, тесты и сборка APK.
+# Запускается только при изменениях в папке skazochnye_druzya/.
+# APK: Actions → «Сказочные друзья» → запуск → Artifacts.
+#
+# Репозиторий публичный, поэтому ключи Yandex в сборку НЕ попадают:
+# APK со страницы запуска может скачать любой, у кого есть аккаунт GitHub.
+name: Сказочные друзья
+
+on:
+  push:
+    paths:
+      - 'skazochnye_druzya/**'
+      - '.github/workflows/skazki.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: skazochnye_druzya
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      # Отладочная сборка: подписана отладочным ключом, ставится без настройки подписи.
+      - run: flutter build apk --debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skazochnye-druzya-apk
+          path: skazochnye_druzya/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

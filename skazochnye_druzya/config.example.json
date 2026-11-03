@@ -1,0 +1,7 @@
+{
+  "REALTIME_URL": "wss://СКОПИРУЙТЕ-ИЗ-ПРИМЕРА-НА-СТРАНИЦЕ-АГЕНТА",
+  "YANDEX_API_KEY": "ВАШ_API_КЛЮЧ",
+  "AUTH_SCHEME": "Api-Key",
+  "FOLDER_ID": "",
+  "SAMPLE_RATE": "24000"
+}

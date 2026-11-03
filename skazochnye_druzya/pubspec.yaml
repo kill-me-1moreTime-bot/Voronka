@@ -1,0 +1,27 @@
+name: skazochnye_druzya
+description: "Сказочные друзья — говорящие персонажи для детей 3–5 лет."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # WebSocket-канал к Yandex Realtime API
+  web_socket_channel: ^3.0.1
+  # Поток с микрофона в PCM16
+  record: ^6.0.0
+  # Воспроизведение ответа персонажа
+  audioplayers: ^6.1.0
+  # Настройки родителя (имя, возраст, длительность сессии)
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
