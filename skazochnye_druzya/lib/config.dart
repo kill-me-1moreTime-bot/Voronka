@@ -1,29 +1,93 @@
-/// Настройки подключения. Значения приходят из config.json через
-/// `flutter run --dart-define-from-file=config.json` и не хранятся в коде.
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Настройки подключения.
+///
+/// Есть два способа их задать:
+/// 1. В настройках для родителей на телефоне. Хранятся только на этом
+///    телефоне. Так работает APK, собранный на GitHub: в нём ключа нет.
+/// 2. В config.json при сборке (`--dart-define-from-file=config.json`).
+///
+/// Значение с телефона важнее значения из сборки. Ключи в код не писать.
 class AppConfig {
+  AppConfig._();
+
+  // Значения из config.json при сборке (пусто, если файла не было).
+  static const _builtUrl = String.fromEnvironment('REALTIME_URL');
+  static const _builtKey = String.fromEnvironment('YANDEX_API_KEY');
+  static const _builtScheme =
+      String.fromEnvironment('AUTH_SCHEME', defaultValue: 'Api-Key');
+  static const _builtFolder = String.fromEnvironment('FOLDER_ID');
+
+  static const schemes = ['Api-Key', 'Bearer'];
+
+  static const _kUrl = 'rt_url';
+  static const _kKey = 'rt_key';
+  static const _kScheme = 'rt_scheme';
+  static const _kFolder = 'rt_folder';
+
   /// Адрес WebSocket Realtime API. Скопируйте его из примера интеграции
   /// на странице голосового агента в Yandex AI Studio.
-  static const realtimeUrl = String.fromEnvironment('REALTIME_URL');
+  static String realtimeUrl = _builtUrl;
 
   /// API-ключ сервисного аккаунта Yandex Cloud.
-  static const apiKey = String.fromEnvironment('YANDEX_API_KEY');
+  static String apiKey = _builtKey;
 
   /// Схема авторизации: у Yandex Cloud это "Api-Key", у OpenAI-совместимых
   /// клиентов иногда "Bearer". Берите ту, что в примере на странице агента.
-  static const authScheme =
-      String.fromEnvironment('AUTH_SCHEME', defaultValue: 'Api-Key');
+  static String authScheme = _builtScheme;
 
   /// Идентификатор каталога Yandex Cloud (если пример его требует).
-  static const folderId = String.fromEnvironment('FOLDER_ID');
+  static String folderId = _builtFolder;
 
   /// Частота дискретизации PCM16 для микрофона и ответа.
   static const sampleRate =
       int.fromEnvironment('SAMPLE_RATE', defaultValue: 24000);
 
-  static bool get isConfigured => realtimeUrl.isNotEmpty && apiKey.isNotEmpty;
+  static bool get isConfigured =>
+      realtimeUrl.startsWith('wss://') && apiKey.isNotEmpty;
 
   static Map<String, String> get headers => {
         'Authorization': '$authScheme $apiKey',
         if (folderId.isNotEmpty) 'x-folder-id': folderId,
       };
+
+  /// Читает настройки с телефона. Вызывается один раз при запуске.
+  static Future<void> load() async {
+    final p = await SharedPreferences.getInstance();
+    realtimeUrl = _pick(p.getString(_kUrl), _builtUrl);
+    apiKey = _pick(p.getString(_kKey), _builtKey);
+    authScheme = _pick(p.getString(_kScheme), _builtScheme);
+    folderId = _pick(p.getString(_kFolder), _builtFolder);
+  }
+
+  /// Сохраняет настройки на телефоне. Пустое поле — взять значение из сборки.
+  static Future<void> save({
+    required String url,
+    required String key,
+    required String scheme,
+    required String folder,
+  }) async {
+    final p = await SharedPreferences.getInstance();
+    Future<void> put(String k, String v) =>
+        v.isEmpty ? p.remove(k) : p.setString(k, v);
+    await put(_kUrl, url.trim());
+    await put(_kKey, key.trim());
+    await put(_kScheme, scheme);
+    await put(_kFolder, folder.trim());
+    await load();
+  }
+
+  /// Что сейчас сохранено на телефоне (без значений из сборки) — для формы.
+  static Future<Map<String, String>> stored() async {
+    final p = await SharedPreferences.getInstance();
+    return {
+      'url': p.getString(_kUrl) ?? '',
+      'key': p.getString(_kKey) ?? '',
+      'scheme': p.getString(_kScheme) ?? authScheme,
+      'folder': p.getString(_kFolder) ?? '',
+    };
+  }
+
+  static String _pick(String? phone, String built) =>
+      (phone != null && phone.isNotEmpty) ? phone : built;
 }

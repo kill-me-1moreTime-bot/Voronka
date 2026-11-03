@@ -82,7 +82,7 @@
 ## Другое в репозитории
 - Папка `eva/` — отдельная страница вишлиста на день рождения Евы (не часть приложения, `sw.js` её не кэширует заранее). Отметка «занято» — поле `taken` в JSON `#state` внутри `eva/index.html`.
 
-- Папка `skazochnye_druzya/` — отдельный проект: Flutter-приложение для Android, говорящие персонажи для детей 3–5 лет (Yandex AI Studio Realtime). Свои правила в `skazochnye_druzya/.cursor/rules/project.mdc`, задачи в `skazochnye_druzya/docs/CURSOR_TASKS.md`. Сборка APK: `.github/workflows/skazki.yml` (только при изменениях в папке). Репозиторий публичный: ключи Yandex в репозиторий и в сборку GitHub не класть. `sw.js` эту папку не кэширует.
+- Папка `skazochnye_druzya/` — отдельный проект: Flutter-приложение для Android, говорящие персонажи для детей 3–5 лет (Yandex AI Studio Realtime). Свои правила в `skazochnye_druzya/.cursor/rules/project.mdc`, задачи в `skazochnye_druzya/docs/CURSOR_TASKS.md`. Сборка APK: `.github/workflows/skazki.yml` (только при изменениях в папке). Репозиторий публичный: ключи Yandex в репозиторий и в сборку GitHub не класть. Адрес и ключ вводятся на телефоне в настройках родителя (`AppConfig.save`, shared_preferences, `allowBackup=false`). `sw.js` эту папку не кэширует.
 
 ## Идеи на потом
 - (пусто)

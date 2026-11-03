@@ -75,7 +75,7 @@ class ConversationController extends ChangeNotifier {
 
   Future<void> start() async {
     if (!AppConfig.isConfigured) {
-      _fail('Не заданы настройки подключения. Смотрите README, шаг 4.');
+      _fail('Не заданы адрес и ключ. Откройте настройки для родителей.');
       return;
     }
     DebugLog.clear();

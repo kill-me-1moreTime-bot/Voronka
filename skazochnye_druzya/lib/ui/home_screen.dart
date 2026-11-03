@@ -17,12 +17,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   ChildProfile _child = const ChildProfile();
+  bool _loaded = false;
 
   @override
   void initState() {
     super.initState();
-    ChildProfile.load().then((p) {
-      if (mounted) setState(() => _child = p);
+    // Настройки подключения читаются здесь же, чтобы плашка
+    // «не заданы» не мелькала, пока они грузятся.
+    Future.wait([ChildProfile.load(), AppConfig.load()]).then((r) {
+      if (!mounted) return;
+      setState(() {
+        _child = r[0] as ChildProfile;
+        _loaded = true;
+      });
     });
   }
 
@@ -52,16 +59,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            if (!AppConfig.isConfigured)
+            if (_loaded && !AppConfig.isConfigured)
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Card(
                   color: theme.colorScheme.errorContainer,
                   child: const Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('Не заданы ключ и адрес Realtime API. '
-                        'Запустите приложение с --dart-define-from-file=config.json '
-                        '(README, шаг 4).'),
+                    child: Text('Не заданы адрес и ключ Yandex AI Studio. '
+                        'Удерживайте значок настроек справа вверху 3 секунды '
+                        'и заполните раздел «Подключение».'),
                   ),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../child_profile.dart';
+import '../config.dart';
 
 class ParentSettingsScreen extends StatefulWidget {
   const ParentSettingsScreen({super.key, required this.initial});
@@ -14,16 +15,51 @@ class ParentSettingsScreen extends StatefulWidget {
 class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
   late ChildProfile _p = widget.initial;
   late final _name = TextEditingController(text: widget.initial.name);
+  final _url = TextEditingController();
+  final _key = TextEditingController();
+  final _folder = TextEditingController();
+  String _scheme = AppConfig.authScheme;
+  bool _showKey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AppConfig.stored().then((v) {
+      if (!mounted) return;
+      setState(() {
+        _url.text = v['url']!;
+        _key.text = v['key']!;
+        _folder.text = v['folder']!;
+        if (AppConfig.schemes.contains(v['scheme'])) _scheme = v['scheme']!;
+      });
+    });
+  }
 
   @override
   void dispose() {
     _name.dispose();
+    _url.dispose();
+    _key.dispose();
+    _folder.dispose();
     super.dispose();
   }
 
+  String? get _urlError {
+    final u = _url.text.trim();
+    if (u.isEmpty || u.startsWith('wss://')) return null;
+    return 'Адрес должен начинаться с wss://';
+  }
+
   Future<void> _save() async {
+    if (_urlError != null) return;
     final p = _p.copyWith(name: _name.text.trim());
     await p.save();
+    await AppConfig.save(
+      url: _url.text,
+      key: _key.text,
+      scheme: _scheme,
+      folder: _folder.text,
+    );
     if (mounted) Navigator.of(context).pop(p);
   }
 
@@ -77,6 +113,65 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             'ВОЗ советует детям 3–5 лет не больше часа экрана в день, '
             'вместе со взрослым. Персонаж сам попрощается по таймеру.',
             style: t.bodySmall,
+          ),
+          const SizedBox(height: 32),
+          Text('Подключение к Yandex AI Studio', style: t.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Всё берётся со страницы голосового агента: адрес и схема — '
+            'из примера интеграции внизу страницы, ключ — API-ключ '
+            'сервисного аккаунта. Хранится только на этом телефоне.',
+            style: t.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _url,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Адрес (wss://…)',
+              errorText: _urlError,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _key,
+            obscureText: !_showKey,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: 'API-ключ',
+              suffixIcon: IconButton(
+                tooltip: _showKey ? 'Скрыть' : 'Показать',
+                icon: Icon(_showKey
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined),
+                onPressed: () => setState(() => _showKey = !_showKey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Авторизация:', style: t.bodyMedium),
+              for (final sc in AppConfig.schemes)
+                ChoiceChip(
+                  label: Text(sc),
+                  selected: _scheme == sc,
+                  onSelected: (_) => setState(() => _scheme = sc),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _folder,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Идентификатор каталога (если есть в примере)',
+            ),
           ),
           const SizedBox(height: 32),
           FilledButton(onPressed: _save, child: const Text('Сохранить')),
