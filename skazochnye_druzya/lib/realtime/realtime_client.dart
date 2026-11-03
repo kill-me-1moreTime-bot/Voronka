@@ -148,7 +148,21 @@ class RealtimeClient {
     _events.close();
   }
 
+  bool _audioLogged = false;
+
   void _send(Map<String, Object?> event) {
+    final type = event['type'] as String? ?? '';
+    // Звук с микрофона идёт десятками кусков — в журнал только первый
+    // после каждой очистки буфера.
+    if (type == 'input_audio_buffer.append') {
+      if (!_audioLogged) {
+        _audioLogged = true;
+        DebugLog.add('[RT→] $type (микрофон пошёл)');
+      }
+    } else {
+      if (type == 'input_audio_buffer.clear') _audioLogged = false;
+      DebugLog.add('[RT→] $type');
+    }
     _channel?.sink.add(jsonEncode(event));
   }
 
