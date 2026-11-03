@@ -25,9 +25,11 @@ class AppConfig {
   static const _kScheme = 'rt_scheme';
   static const _kFolder = 'rt_folder';
 
-  /// Модель по умолчанию — как в официальном примере Yandex
-  /// (github.com/yandex-ai-studio/yandex-ai-studio-api-examples, realtime).
-  static const defaultModel = 'speech-realtime-250923';
+  /// Модель по умолчанию. Из списка моделей Realtime API в документации
+  /// AI Studio выбрана та, что работает с голосами `general`
+  /// (ermil, filipp, jane). Старая speech-realtime-250923 из примера
+  /// на GitHub отвечает model_access_denied.
+  static const defaultModel = 'speech-realtime-deepseek-v4-flash';
 
   /// Адрес, введённый вручную (или из config.json). Пусто — собрать сам.
   static String _url = _builtUrl;

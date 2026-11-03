@@ -39,7 +39,7 @@ void main() {
     expect(
       AppConfig.realtimeUrl,
       'wss://ai.api.cloud.yandex.net/v1/realtime'
-      '?model=gpt://b1gX/speech-realtime-250923',
+      '?model=gpt://b1gX/speech-realtime-deepseek-v4-flash',
     );
     expect(AppConfig.isConfigured, isTrue);
     expect(AppConfig.headers, {'Authorization': 'Api-Key k'});
