@@ -25,3 +25,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Картинки персонажей: base.png, mouth1.png, mouth2.png, blink.png,
+  # listen.png, think.png. Нет картинок — персонаж рисуется кодом.
+  # Новый персонаж — новая строка с его папкой.
+  assets:
+    - assets/characters/bear/
+    - assets/characters/wolf/
+    - assets/characters/bunny/

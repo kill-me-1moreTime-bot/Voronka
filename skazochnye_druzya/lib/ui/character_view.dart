@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 
 import '../characters.dart';
 import 'character_painter.dart';
+import 'sprite_character.dart';
 
 /// Живой персонаж: моргает, «дышит», открывает рот по громкости,
 /// смотрит вверх, когда слушает, и в сторону, когда думает.
+///
+/// Если в assets/characters/<id>/ есть картинки (см. SpriteSet),
+/// показываются они, иначе — персонаж, нарисованный кодом.
 class CharacterView extends StatefulWidget {
   const CharacterView({
     super.key,
@@ -40,16 +44,35 @@ class _CharacterViewState extends State<CharacterView>
 
   Timer? _blinkTimer;
   final _rnd = math.Random();
+  SpriteSet? _sprites;
 
   @override
   void initState() {
     super.initState();
     _scheduleBlink();
+    _loadSprites();
+  }
+
+  @override
+  void didUpdateWidget(CharacterView old) {
+    super.didUpdateWidget(old);
+    if (old.character.id != widget.character.id) {
+      _sprites = null;
+      _loadSprites();
+    }
+  }
+
+  Future<void> _loadSprites() async {
+    final id = widget.character.id;
+    final s = await SpriteSet.load(id);
+    if (!mounted || s == null || widget.character.id != id) return;
+    await precacheSprites(context, s);
+    if (mounted) setState(() => _sprites = s);
   }
 
   void _scheduleBlink() {
-    _blinkTimer = Timer(Duration(milliseconds: 2000 + _rnd.nextInt(3000)),
-        () async {
+    _blinkTimer =
+        Timer(Duration(milliseconds: 2000 + _rnd.nextInt(3000)), () async {
       if (!mounted) return;
       await _blink.forward();
       await _blink.reverse();
@@ -79,17 +102,28 @@ class _CharacterViewState extends State<CharacterView>
             builder: (context, up, _) => TweenAnimationBuilder<double>(
               tween: Tween(end: widget.thinking ? 1 : 0),
               duration: const Duration(milliseconds: 400),
-              builder: (context, side, _) => CustomPaint(
-                painter: CharacterPainter(
-                  kind: widget.character.kind,
-                  color: widget.character.color,
-                  mouth: widget.mouth,
-                  blink: _blink.value,
-                  lookUp: up,
-                  lookSide: side,
-                ),
-                child: const SizedBox.expand(),
-              ),
+              builder: (context, side, _) => _sprites != null
+                  ? SpriteCharacter(
+                      sprites: _sprites!,
+                      mouth: widget.mouth,
+                      blink: _blink.value,
+                      breath: _breath.value,
+                      lookUp: up,
+                      lookSide: side,
+                      listening: widget.listening,
+                      thinking: widget.thinking,
+                    )
+                  : CustomPaint(
+                      painter: CharacterPainter(
+                        kind: widget.character.kind,
+                        color: widget.character.color,
+                        mouth: widget.mouth,
+                        blink: _blink.value,
+                        lookUp: up,
+                        lookSide: side,
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
             ),
           ),
         );

@@ -82,7 +82,7 @@
 ## Другое в репозитории
 - Папка `eva/` — отдельная страница вишлиста на день рождения Евы (не часть приложения, `sw.js` её не кэширует заранее). Отметка «занято» — поле `taken` в JSON `#state` внутри `eva/index.html`.
 
-- Папка `skazochnye_druzya/` — отдельный проект: Flutter-приложение для Android, говорящие персонажи для детей 3–5 лет (Yandex AI Studio Realtime). Свои правила в `skazochnye_druzya/.cursor/rules/project.mdc`, задачи в `skazochnye_druzya/docs/CURSOR_TASKS.md`. Сборка APK: `.github/workflows/skazki.yml` (только при изменениях в папке). Репозиторий публичный: ключи Yandex в репозиторий и в сборку GitHub не класть. Адрес и ключ вводятся на телефоне в настройках родителя (`AppConfig.save`, shared_preferences, `allowBackup=false`). `sw.js` эту папку не кэширует.
+- Папка `skazochnye_druzya/` — отдельный проект: Flutter-приложение для Android, говорящие персонажи для детей 3–5 лет (Yandex AI Studio Realtime). Свои правила в `skazochnye_druzya/.cursor/rules/project.mdc`, задачи в `skazochnye_druzya/docs/CURSOR_TASKS.md`. Сборка APK: `.github/workflows/skazki.yml` (только при изменениях в папке). Репозиторий публичный: ключи Yandex в репозиторий и в сборку GitHub не класть. Адрес и ключ вводятся на телефоне в настройках родителя (`AppConfig.save`, shared_preferences, `allowBackup=false`). `sw.js` эту папку не кэширует. Персонажи из картинок: `assets/characters/<id>/base.png, mouth1, mouth2, blink, listen, think` (`SpriteSet` в `lib/ui/sprite_character.dart`), без картинок рисуются кодом; как генерировать — `docs/ART.md`. Пока приложение личное, персонажи из мультфильмов допустимы (своими картинками владельца), перед публикацией — только оригинальные.
 
 ## Идеи на потом
 - (пусто)
