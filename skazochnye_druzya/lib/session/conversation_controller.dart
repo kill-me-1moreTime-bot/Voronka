@@ -172,7 +172,7 @@ class ConversationController extends ChangeNotifier {
       case AudioDelta(:final bytes):
         if (!_firstAudio) {
           _firstAudio = true;
-          DebugLog.add('[Время] первый звук через ${_sec(_wait)} с');
+          DebugLog.add('[Задержка] первый звук через ${_sec(_wait)} с');
         }
         _audio.add(bytes);
       case AssistantTranscript(:final text):
@@ -194,7 +194,7 @@ class ConversationController extends ChangeNotifier {
   Future<void> _onResponseDone(List<String> itemIds) async {
     final pcm = _audio.takeBytes();
     final text = _transcript;
-    DebugLog.add('[Время] ответ целиком через ${_sec(_wait)} с, '
+    DebugLog.add('[Задержка] ответ целиком через ${_sec(_wait)} с, '
         'длина ${(pcm.length / 2 / AppConfig.sampleRate).toStringAsFixed(1)} с, '
         'текст ${text.length} симв.');
     // Ответы, пришедшие после паузы или отмены, не играем.
