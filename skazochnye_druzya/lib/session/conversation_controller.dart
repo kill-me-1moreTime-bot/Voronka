@@ -84,7 +84,8 @@ class ConversationController extends ChangeNotifier {
     try {
       await _client.connect();
     } catch (e) {
-      _fail('Не удалось подключиться: $e');
+      DebugLog.add('[App] не удалось подключиться: $e');
+      _fail(connectErrorText(e));
       return;
     }
     if (_disposed) {
@@ -274,6 +275,27 @@ class ConversationController extends ChangeNotifier {
       instructions: '$_instructions\n\n## Сейчас\n$extra',
     );
     _set(TalkState.thinking);
+  }
+
+  /// Понятная причина для взрослого вместо текста исключения.
+  /// Полный текст ошибки остаётся в журнале.
+  @visibleForTesting
+  static String connectErrorText(Object e) {
+    final s = '$e';
+    if (e is TimeoutException || s.contains('TimeoutException')) {
+      return 'Сервер не отвечает. Проверьте интернет. Если включён VPN — '
+          'выключите его и попробуйте ещё раз.';
+    }
+    if (s.contains('401') || s.contains('403')) {
+      return 'Сервер не принял ключ. Проверьте API-ключ в настройках.';
+    }
+    if (s.contains('SocketException') ||
+        s.contains('Failed host lookup') ||
+        s.contains('Network is unreachable') ||
+        s.contains('HandshakeException')) {
+      return 'Нет интернета. Проверьте мобильную сеть или Wi-Fi.';
+    }
+    return 'Не удалось подключиться. Подробности — в журнале.';
   }
 
   void _fail(String message) {

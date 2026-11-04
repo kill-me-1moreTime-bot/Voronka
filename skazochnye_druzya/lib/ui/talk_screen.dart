@@ -38,6 +38,15 @@ class _TalkScreenState extends State<TalkScreen> {
     super.dispose();
   }
 
+  /// Новая попытка — новый экран с тем же персонажем: так разговор
+  /// начинается с чистого состояния.
+  void _retry() {
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (_) =>
+          TalkScreen(character: widget.character, child: widget.child),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final bg = Color.lerp(widget.character.color, Colors.white, 0.8)!;
@@ -79,7 +88,7 @@ class _TalkScreenState extends State<TalkScreen> {
                 ),
                 _StatusHint(state: s, error: _c.errorText),
                 const SizedBox(height: 16),
-                _Controls(controller: _c),
+                _Controls(controller: _c, onRetry: _retry),
                 const SizedBox(height: 24),
               ],
             );
@@ -160,7 +169,8 @@ class _StatusHint extends StatelessWidget {
       TalkState.finished => (Icons.brush_rounded, 'Пока-пока! Пора рисовать'),
       TalkState.error => (Icons.error_outline_rounded, error ?? 'Ошибка'),
     };
-    final pulse = state == TalkState.listening || state == TalkState.childSpeaking;
+    final pulse =
+        state == TalkState.listening || state == TalkState.childSpeaking;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -186,20 +196,35 @@ class _StatusHint extends StatelessWidget {
 
 /// Кнопки для взрослого: пауза/продолжить и завершить.
 class _Controls extends StatelessWidget {
-  const _Controls({required this.controller});
+  const _Controls({required this.controller, required this.onRetry});
 
   final ConversationController controller;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     final s = controller.state;
-    if (s == TalkState.finished || s == TalkState.error) {
-      return FilledButton.icon(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: const Icon(Icons.home_rounded),
-        label: const Text('Домой'),
+    final home = FilledButton.icon(
+      onPressed: () => Navigator.of(context).pop(),
+      icon: const Icon(Icons.home_rounded),
+      label: const Text('Домой'),
+    );
+    if (s == TalkState.error) {
+      return Wrap(
+        spacing: 16,
+        runSpacing: 12,
+        alignment: WrapAlignment.center,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Ещё раз'),
+          ),
+          home,
+        ],
       );
     }
+    if (s == TalkState.finished) return home;
     final paused = s == TalkState.paused;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
