@@ -249,7 +249,7 @@ class ConversationController extends ChangeNotifier {
       _sayGoodbye();
       return;
     }
-    _client.clearInput();
+    _client.markListening();
     _set(TalkState.listening);
     // Короткая пауза, чтобы хвост собственного голоса не попал в микрофон.
     await Future<void>.delayed(_echoGuard);
@@ -259,7 +259,6 @@ class ConversationController extends ChangeNotifier {
   void _sayGoodbye() {
     _goodbyeSent = true;
     _mic.muted = true;
-    _client.clearInput();
     _ask(goodbyeInstruction);
   }
 

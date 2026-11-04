@@ -126,7 +126,10 @@ class RealtimeClient {
   void appendAudio(Uint8List pcm) =>
       _send({'type': 'input_audio_buffer.append', 'audio': base64Encode(pcm)});
 
-  void clearInput() => _send({'type': 'input_audio_buffer.clear'});
+  /// Начинаем слушать. Очистку буфера (input_audio_buffer.clear) Yandex
+  /// не поддерживает и закрывает связь с ошибкой malformed_event, поэтому
+  /// её не шлём: пока персонаж думает и говорит, микрофон и так молчит.
+  void markListening() => _audioLogged = false;
 
   void requestResponse({String? instructions}) => _send({
         'type': 'response.create',
@@ -160,7 +163,6 @@ class RealtimeClient {
         DebugLog.add('[RT→] $type (микрофон пошёл)');
       }
     } else {
-      if (type == 'input_audio_buffer.clear') _audioLogged = false;
       DebugLog.add('[RT→] $type');
     }
     _channel?.sink.add(jsonEncode(event));
