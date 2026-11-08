@@ -195,7 +195,7 @@
   }
   function fDur(ms) { var m = Math.max(0, Math.round(ms / 60000)); return m < 60 ? m + " мин" : Math.floor(m / 60) + " ч " + (m % 60) + " мин"; }
   function dShort(s) { var d = pISO(s); return d.getDate() + "." + String(d.getMonth() + 1).padStart(2, "0"); }
-  function dLong(s) { var d = pISO(s); return WD_FULL[d.getDay()] + ", " + d.getDate() + " " + MONTHS_G[d.getMonth()]; }
+  function dLong(s) { var d = pISO(s), t = WD_FULL[d.getDay()]; return t.charAt(0).toUpperCase() + t.slice(1) + ", " + d.getDate() + " " + MONTHS_G[d.getMonth()]; }
   function firstInt(s) { var m = String(s || "").match(/\d+/); return m ? +m[0] : null; }
 
   // ---------- начальные данные ----------
@@ -425,7 +425,7 @@
     var live = data.workouts.filter(function (w) { return w.status === "active" && w.date !== state.day; })[0];
     if (live) h += '<button class="wcard" data-act="open" data-v="' + live.id + '"><span class="chip live">идёт</span> <b>' + esc(live.name) + '</b><div class="hint">Начата ' + dShort(live.date) + ". Нажмите, чтобы вернуться.</div></button>";
 
-    h += '<p class="muted small" style="text-transform:capitalize">' + dLong(state.day) + "</p>";
+    h += '<p class="muted small">' + dLong(state.day) + "</p>";
     var list = data.workouts.filter(function (w) { return w.date === state.day; }).sort(wSort);
     list.forEach(function (w) {
       var st = w.status === "done" ? '<span class="chip done">готово</span>' : '<span class="chip live">идёт</span>';
@@ -471,7 +471,7 @@
       '<span class="clock" data-elapsed="' + w.id + '">' + clockOf(w) + "</span>" +
       (live ? '<span class="chip live no">идёт</span>' : '<span class="chip done no">готово</span>') + "</div>";
     h += '<label class="f">Название<input data-b="wname" value="' + esc(w.name) + '"></label>';
-    h += '<p class="hint" style="text-transform:capitalize">' + dLong(w.date) + "</p>";
+    h += '<p class="hint">' + dLong(w.date) + "</p>";
 
     w.items.forEach(function (it, i) { h += exBlockHtml(w, it, i); });
 
