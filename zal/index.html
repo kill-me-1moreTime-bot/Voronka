@@ -140,12 +140,36 @@
 
   /* программы */
   .pday { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
-  .pitem { display: grid; grid-template-columns: 1fr 52px 64px 64px; gap: 6px; align-items: center; margin: 6px 0; }
+  .pitem { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; align-items: center; margin: 2px 0 6px; }
+  .pname { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 14px; font-weight: 500; }
+  .pname span { flex: 1; }
   .pitem input { min-height: 44px; padding: 6px; text-align: center; font-family: "Roboto Mono", monospace; }
-  .pitem .nm { font-size: 14px; }
-  .pitem-ctl { display: flex; gap: 4px; justify-content: flex-end; margin-top: -2px; }
-  .pitem-ctl button { min-height: 36px; min-width: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
-  .phead { display: grid; grid-template-columns: 1fr 52px 64px 64px; gap: 6px; font-size: 12px; color: var(--muted); }
+    .pname button { min-height: 36px; min-width: 40px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
+  .phead { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 12px; color: var(--muted); text-align: center; }
+  /* анкета */
+  .qh { font-weight: 500; margin: 18px 0 6px; }
+  .choice { display: flex; flex-wrap: wrap; gap: 6px; }
+  .choice button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
+  .choice button.on { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+  /* чек-лист */
+  .check { display: flex; align-items: center; gap: 10px; min-height: 44px; border-top: 1px solid var(--line); font-size: 14px; }
+  .check:first-of-type { border-top: 0; }
+  .check i { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); font-style: normal; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .check.ok i { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .check.ok span { color: var(--muted); text-decoration: line-through; }
+  .check span { flex: 1; }
+  /* нагрузка */
+  .verdict { border-left: 4px solid var(--brand); }
+  .verdict.good { border-left-color: var(--ok); }
+  .verdict.bad { border-left-color: var(--warn); }
+  .gbar { display: grid; grid-template-columns: 72px 1fr 36px 64px; gap: 6px; align-items: center; font-size: 14px; min-height: 32px; }
+  .gbar .tr { position: relative; height: 10px; border-radius: 5px; background: var(--card2); overflow: hidden; }
+  .gbar .tr b { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--brand); }
+  .gbar .tr u { position: absolute; top: 0; bottom: 0; background: var(--ok); opacity: .25; }
+  .gbar .lo { color: var(--warn); font-size: 12px; } .gbar .ok { color: var(--ok); font-size: 12px; } .gbar .hi { color: var(--warn); font-size: 12px; }
+  .prow { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 6px 0; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; font-size: 14px; }
+  .prow .t { flex: 1; } .prow small { display: block; color: var(--muted); font-size: 12px; }
+  .up { color: var(--ok); font-weight: 500; } .flat { color: var(--warn); font-weight: 500; }
 
   /* таймер */
   .big { font-family: "Roboto Mono", monospace; font-size: 72px; font-weight: 700; text-align: center; line-height: 1; margin: 12px 0 4px; }
@@ -291,13 +315,13 @@
     });
     return out;
   }
-  function makeItem(exId, w, n, reps, rest) {
+  function makeItem(exId, w, n, reps, rest, startW) {
     var ex = exById(exId), prev = lastSets(exId, w), sets = [];
     n = n || (prev ? prev.sets.length : 3);
     for (var i = 0; i < n; i++) {
       var p = prev ? prev.sets[Math.min(i, prev.sets.length - 1)] : null;
       sets.push({ w: null, r: null, t: null, done: false,
-        pw: p ? p.w : null, pr: p ? p.r : (ex.kind === "t" ? null : firstInt(reps)), pt: p ? p.t : (ex.kind === "t" ? firstInt(reps) : null) });
+        pw: p ? p.w : (startW != null ? startW : null), pr: p ? p.r : (ex.kind === "t" ? null : firstInt(reps)), pt: p ? p.t : (ex.kind === "t" ? firstInt(reps) : null) });
     }
     return { exId: exId, target: reps ? n + "×" + reps : "", rest: rest || data.settings.rest, sets: sets, note: "" };
   }
@@ -396,7 +420,7 @@
   function flash(t) { flashMsg = t; var el = $("flash"); if (el) el.textContent = t; }
 
   // ---------- навигация ----------
-  var TABS = [["home", "Главная"], ["ex", "Упражнения"], ["prog", "Программы"], ["body", "Тело"], ["timer", "Таймер"], ["ai", "Разбор"]];
+  var TABS = [["home", "Главная"], ["ex", "Упражнения"], ["prog", "Программы"], ["body", "Тело"], ["timer", "Таймер"], ["ai", "Нагрузка"]];
   function navHtml() {
     return '<nav id="nav" aria-label="Разделы">' + TABS.map(function (t) {
       return '<button data-act="tab" data-v="' + t[0] + '" class="' + (state.tab === t[0] ? "on" : "") + '">' + t[1] + "</button>";
@@ -446,7 +470,7 @@
       if (last) h += '<button class="opt" data-act="new-copy" data-v="' + last.id + '"><b>Повторить прошлую</b><small>' + esc(last.name) + " · " + dShort(last.date) + "</small></button>";
       h += '<button class="opt" data-act="new-empty"><b>Пустая тренировка</b><small>Упражнения добавите по ходу</small></button></div>';
     }
-    if (!data.workouts.length) h += '<p class="hint">Начните с программы-примера или создайте свою во вкладке «Программы». Программу тренера можно перенести с фото через Claude.</p>';
+    h += checklistHtml();
     h += backupNote();
     return h;
   }
@@ -460,7 +484,7 @@
   function newWorkout(name, items, prog) {
     var w = { id: uid(), date: state.day, name: name, status: "active", startedAt: Date.now(), finishedAt: null, items: [], feel: null, note: "", programId: prog ? prog.p : null, dayId: prog ? prog.d : null };
     data.workouts.push(w);
-    (items || []).forEach(function (it) { w.items.push(makeItem(it.exId, w, it.sets, it.reps, it.rest)); });
+    (items || []).forEach(function (it) { w.items.push(makeItem(it.exId, w, it.sets, it.reps, it.rest, it.w)); });
     save(); state.add = false; state.wid = w.id; syncWake(); window.scrollTo(0, 0);
   }
 
@@ -678,18 +702,20 @@
   }
   function progEditHtml(p) {
     var h = '<div class="top"><button class="btn sm no" data-act="prog-back">← Программы</button></div>' +
+      (p.quiz ? '<div class="card verdict small"><b>Стартовые веса — осторожная оценка.</b> На первой тренировке сделайте первый подход как пробный. Если в конце подхода осталось 3 и больше повторов в запасе — прибавьте 2,5–5 кг (гантели: 1–2 кг). Если не дотянули до нижней цифры повторов — убавьте. Дальше приложение подставит ваши прошлые веса само.</div>' : "") +
       '<label class="f">Название программы<input data-b="pname" value="' + esc(p.name) + '"></label>';
     p.days.forEach(function (d, di) {
       h += '<div class="pday"><div class="row"><input data-b="dname" data-d="' + di + '" value="' + esc(d.name) + '" aria-label="Название дня">' +
         '<button class="iconbtn no" data-act="day-del" data-d="' + di + '" aria-label="Удалить день">✕</button></div>';
-      if (d.items.length) h += '<div class="phead" style="margin-top:8px"><span>Упражнение</span><span>Подх.</span><span>Повт.</span><span>Отдых</span></div>';
       d.items.forEach(function (it, ii) {
-        var path = di + ":" + ii;
-        h += '<div class="pitem"><span class="nm">' + esc(exById(it.exId).name) + "</span>" +
+        var path = di + ":" + ii, ex = exById(it.exId);
+        h += '<div class="pname"><span>' + esc(ex.name) + '</span><button data-act="pi-up" data-p="' + path + '" aria-label="Выше">↑</button><button data-act="pi-del" data-p="' + path + '" aria-label="Убрать">✕</button></div>' +
+          '<div class="phead"><span>Подходы</span><span>Повторы</span><span>Отдых</span><span>' + (ex.kind === "wr" ? "Старт, кг" : ex.kind === "r" ? "Доп. кг" : "") + "</span></div>" +
+          '<div class="pitem">' +
           '<input data-b="pis" data-p="' + path + '" inputmode="numeric" value="' + it.sets + '" aria-label="Подходы">' +
           '<input data-b="pir" data-p="' + path + '" value="' + esc(it.reps) + '" aria-label="Повторы">' +
-          '<input data-b="pit" data-p="' + path + '" inputmode="numeric" value="' + fSec(it.rest) + '" aria-label="Отдых"></div>' +
-          '<div class="pitem-ctl"><button data-act="pi-up" data-p="' + path + '" aria-label="Выше">↑</button><button data-act="pi-del" data-p="' + path + '" aria-label="Убрать">✕</button></div>';
+          '<input data-b="pit" data-p="' + path + '" inputmode="numeric" value="' + fSec(it.rest) + '" aria-label="Отдых">' +
+          (ex.kind !== "t" ? '<input data-b="piw" data-p="' + path + '" inputmode="decimal" value="' + (it.w != null ? fN(it.w) : "") + '" aria-label="Стартовый вес">' : "<span></span>") + "</div>";
       });
       if (state.pick && state.pick.ctx === "p" && state.pick.d === di) h += pickerHtml();
       else h += '<button class="btn sm" style="margin-top:6px" data-act="pick" data-ctx="p" data-d="' + di + '">+ Упражнение</button>';
@@ -769,7 +795,7 @@
     w.items.forEach(function (it) {
       var ex = exById(it.exId), ds = doneSets(it);
       if (!ds.length) return;
-      out.push("  - " + ex.name + (it.target ? " (план " + it.target + ", отдых " + fSec(it.rest) + ")" : "") + ": " + ds.map(function (s) { return setTxt(ex, s); }).join(", ") + (it.sets.length > ds.length ? "; не сделано подходов: " + (it.sets.length - ds.length) : ""));
+      out.push("  - " + ex.name + (it.target ? " (план " + it.target + ", отдых " + fSec(it.rest) + ")" : "") + ": " + ds.map(function (s) { return setTxt(ex, s) + (s.rir != null ? " (RIR " + fN(s.rir) + ")" : ""); }).join(", ") + (it.sets.length > ds.length ? "; не сделано подходов: " + (it.sets.length - ds.length) : ""));
     });
     return out;
   }
@@ -797,6 +823,7 @@
       out.push("", "Замеры тела:");
       bodies.forEach(function (b) { out.push("  " + dShort(b.date) + ": " + BODY_F.filter(function (f) { return b[f[0]] != null; }).map(function (f) { return f[1].split(",")[0].toLowerCase() + " " + fN(b[f[0]]); }).join(", ")); });
     }
+    out = out.concat(["", "Нагрузка (посчитано приложением):"], loadLines());
     out.push("", "Ответь по пунктам, коротко и с цифрами:",
       "1) Где есть прогресс по весам и повторам, а где застой.",
       "2) Хватает ли объёма по группам мышц, нет ли перекоса.",
@@ -823,22 +850,18 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, fallback); else fallback();
   }
   function aiHtml() {
-    var ws = periodWorkouts(state.period), g = groupSets(periodWorkouts(7));
-    var h = '<div class="top"><h1>Разбор</h1></div>';
-    var w7 = periodWorkouts(7), ton = 0, sets = 0;
-    w7.forEach(function (w) { ton += tonnage(w); sets += wSetsCount(w); });
-    h += '<div class="sum"><div><b>' + w7.length + '</b><span>тренировок за 7 дней</span></div><div><b>' + sets + '</b><span>подходов</span></div><div><b>' + fN(Math.round(ton / 100) / 10) + "</b><span>тонн</span></div></div>";
-    if (Object.keys(g).length) h += '<div class="card"><b class="small">Подходов на группу за 7 дней</b><table class="tbl" style="margin-top:6px">' + GROUPS.filter(function (k) { return g[k]; }).map(function (k) {
-      return "<tr><td>" + k + '</td><td class="mono" style="text-align:right">' + g[k] + "</td></tr>";
-    }).join("") + '</table><p class="hint">Для роста мышц обычно советуют 10–20 рабочих подходов на группу в неделю.</p></div>';
+    var ws = periodWorkouts(state.period);
+    var h = '<div class="top"><h1>Нагрузка</h1></div>' + loadHtml();
     h += '<div class="card"><h3>Разобрать в Claude</h3><p class="hint">Соберёт тренировки, программу и замеры в один текст и откроет чат Claude. Текст также копируется.</p>' +
       '<div class="groups">' + [[7, "Неделя"], [14, "2 недели"], [30, "Месяц"], [90, "3 месяца"]].map(function (p) { return '<button data-act="period" data-v="' + p[0] + '" class="' + (state.period === p[0] ? "on" : "") + '">' + p[1] + "</button>"; }).join("") + "</div>" +
       '<p class="small muted">Тренировок за период: ' + ws.length + "</p>" +
       '<label class="f">Свой вопрос (необязательно)<textarea id="ai-q" placeholder="Например: почему встал жим лёжа? Как совместить с бегом?"></textarea></label>' +
       '<div class="row"><button class="btn main" data-act="ai-go"' + (ws.length ? "" : " disabled") + '>Разобрать</button><button class="btn" data-act="ai-copy"' + (ws.length ? "" : " disabled") + ">Скопировать</button></div>" +
       '<p class="msg" id="ai-msg"></p></div>';
+    h += importHtml();
     var s = data.settings;
     h += '<details class="box"><summary>О себе и настройки</summary><div>' +
+      '<button class="btn wide" data-act="quiz-open" style="margin-top:4px">Пройти анкету заново</button>' +
       '<label class="f">Цель<input data-b="goal" placeholder="Например: +5 кг в жиме за 2 месяца, похудеть" value="' + esc(s.goal) + '"></label>' +
       '<label class="f">Рост, см<input data-b="height" inputmode="numeric" value="' + esc(s.height) + '"></label>' +
       '<label class="f">Отдых по умолчанию<input data-b="drest" inputmode="numeric" value="' + fSec(s.rest) + '"></label>' +
@@ -850,6 +873,369 @@
     return h;
   }
 
+  // ---------- анкета: программа и стартовые веса ----------
+  // [название, группа, снаряд, что записывать, вес на 10 повторов в долях от веса тела (новичок, мужчина), верх/низ, что нельзя при болях]
+  var LIB = {};
+  [
+    ["Приседания со штангой", "Ноги", "bb", "wr", 0.6, "l", ["back"]],
+    ["Жим ногами", "Ноги", "m", "wr", 1.2, "l", []],
+    ["Гоблет-приседания", "Ноги", "db", "wr", 0.2, "l", []],
+    ["Болгарские сплит-приседания", "Ноги", "db", "wr", 0.1, "l", ["knee"]],
+    ["Приседания без веса", "Ноги", "bw", "r", 0, "l", []],
+    ["Румынская тяга", "Ноги", "bb", "wr", 0.55, "l", ["back"]],
+    ["Румынская тяга с гантелями", "Ноги", "db", "wr", 0.2, "l", ["back"]],
+    ["Ягодичный мост", "Ноги", "bb", "wr", 0.6, "l", []],
+    ["Ягодичный мост на одной ноге", "Ноги", "bw", "r", 0, "l", []],
+    ["Сгибание ног в тренажёре", "Ноги", "m", "wr", 0.25, "l", []],
+    ["Разгибание ног в тренажёре", "Ноги", "m", "wr", 0.3, "l", ["knee"]],
+    ["Подъёмы на носки", "Ноги", "m", "wr", 0.6, "l", []],
+    ["Жим штанги лёжа", "Грудь", "bb", "wr", 0.5, "u", ["shoulder"]],
+    ["Жим гантелей лёжа", "Грудь", "db", "wr", 0.16, "u", []],
+    ["Отжимания от пола", "Грудь", "bw", "r", 0, "u", []],
+    ["Жим гантелей на наклонной", "Грудь", "db", "wr", 0.14, "u", []],
+    ["Жим на наклонной скамье", "Грудь", "bb", "wr", 0.4, "u", ["shoulder"]],
+    ["Жим штанги стоя", "Плечи", "bb", "wr", 0.3, "u", ["shoulder", "back"]],
+    ["Жим гантелей сидя", "Плечи", "db", "wr", 0.1, "u", ["shoulder"]],
+    ["Тяга верхнего блока", "Спина", "m", "wr", 0.4, "u", []],
+    ["Подтягивания", "Спина", "bar", "r", 0, "u", []],
+    ["Тяга горизонтального блока", "Спина", "m", "wr", 0.4, "u", []],
+    ["Тяга штанги в наклоне", "Спина", "bb", "wr", 0.4, "u", ["back"]],
+    ["Тяга гантели одной рукой", "Спина", "db", "wr", 0.18, "u", []],
+    ["Махи гантелями в стороны", "Плечи", "db", "wr", 0.05, "u", []],
+    ["Махи в наклоне", "Плечи", "db", "wr", 0.05, "u", []],
+    ["Тяга каната к лицу", "Плечи", "m", "wr", 0.2, "u", []],
+    ["Подъём штанги на бицепс", "Руки", "bb", "wr", 0.2, "u", []],
+    ["Молотки с гантелями", "Руки", "db", "wr", 0.1, "u", []],
+    ["Разгибание рук на блоке", "Руки", "m", "wr", 0.2, "u", []],
+    ["Французский жим с гантелью", "Руки", "db", "wr", 0.12, "u", ["shoulder"]],
+    ["Отжимания на брусьях", "Грудь", "bar", "r", 0, "u", ["shoulder"]],
+    ["Планка", "Пресс", "bw", "t", 0, "l", []],
+    ["Скручивания", "Пресс", "bw", "r", 0, "l", []],
+    ["Подъём ног в висе", "Пресс", "bar", "r", 0, "l", []]
+  ].forEach(function (x) { LIB[x[0]] = { n: x[0], g: x[1], eq: x[2], k: x[3], c: x[4], p: x[5], x: x[6] }; });
+  var SLOTS = {
+    squat: ["Приседания со штангой", "Жим ногами", "Гоблет-приседания", "Болгарские сплит-приседания", "Приседания без веса"],
+    squat2: ["Жим ногами", "Болгарские сплит-приседания", "Гоблет-приседания", "Приседания без веса"],
+    hinge: ["Румынская тяга", "Румынская тяга с гантелями", "Ягодичный мост", "Ягодичный мост на одной ноге"],
+    glute: ["Ягодичный мост", "Ягодичный мост на одной ноге"],
+    hpush: ["Жим штанги лёжа", "Жим гантелей лёжа", "Отжимания от пола"],
+    ipush: ["Жим гантелей на наклонной", "Жим на наклонной скамье", "Отжимания от пола"],
+    vpush: ["Жим гантелей сидя", "Жим штанги стоя"],
+    vpull: ["Тяга верхнего блока", "Подтягивания"],
+    hpull: ["Тяга горизонтального блока", "Тяга штанги в наклоне", "Тяга гантели одной рукой"],
+    hpull2: ["Тяга гантели одной рукой", "Тяга горизонтального блока"],
+    lat: ["Махи гантелями в стороны"],
+    rear: ["Тяга каната к лицу", "Махи в наклоне"],
+    bi: ["Подъём штанги на бицепс", "Молотки с гантелями"],
+    bi2: ["Молотки с гантелями", "Подъём штанги на бицепс"],
+    tri: ["Разгибание рук на блоке", "Французский жим с гантелью", "Отжимания на брусьях"],
+    curl: ["Сгибание ног в тренажёре", "Румынская тяга с гантелями"],
+    calf: ["Подъёмы на носки"],
+    core: ["Планка", "Скручивания"],
+    core2: ["Подъём ног в висе", "Скручивания", "Планка"]
+  };
+  var MAIN_SLOTS = { squat: 1, squat2: 1, hinge: 1, hpush: 1, ipush: 1, vpush: 1, vpull: 1, hpull: 1, hpull2: 1 };
+  var FB_A = ["squat", "hpush", "vpull", "lat", "core", "tri"], FB_B = ["hinge", "vpush", "hpull", "bi", "core2", "calf"], FB_C = ["squat2", "ipush", "hpull2", "rear", "core", "curl"];
+  var UP_A = ["hpush", "hpull", "vpush", "vpull", "bi", "tri"], LO_A = ["squat", "hinge", "curl", "calf", "core"], UP_B = ["ipush", "vpull", "hpull2", "lat", "tri", "bi2"], LO_B = ["squat2", "glute", "calf", "core2", "curl"], ARMS = ["lat", "rear", "bi", "tri", "bi2", "core"];
+  var SPLITS = {
+    "2": [["Всё тело А", FB_A], ["Всё тело Б", FB_B]],
+    "3": [["Всё тело А", FB_A], ["Всё тело Б", FB_B], ["Всё тело В", FB_C]],
+    "4": [["Верх А", UP_A], ["Низ А", LO_A], ["Верх Б", UP_B], ["Низ Б", LO_B]],
+    "5": [["Верх А", UP_A], ["Низ А", LO_A], ["Верх Б", UP_B], ["Низ Б", LO_B], ["Плечи и руки", ARMS]]
+  };
+  // [подходы, повторы, отдых в секундах]
+  var SCHEME = {
+    strength: { main: [4, "5", 180], acc: [3, "8", 90] },
+    mass: { main: [4, "6-8", 150], acc: [3, "10-12", 75] },
+    cut: { main: [3, "10", 90], acc: [3, "12-15", 60] },
+    fit: { main: [3, "8-10", 120], acc: [3, "12", 60] }
+  };
+  var GOAL_NAME = { mass: "набор мышц", strength: "сила", cut: "похудение и рельеф", fit: "общая форма" };
+  var EQ_OK = { gym: ["bb", "db", "m", "bw", "bar"], db: ["db", "bw"], bw: ["bw", "bar"] };
+  var GROUP_NORM = { mass: [10, 20], strength: [6, 12], cut: [8, 16], fit: [6, 12] };
+  var QZ = [
+    ["goal", "Цель", [["mass", "Набрать мышцы"], ["strength", "Стать сильнее"], ["cut", "Похудеть, рельеф"], ["fit", "Общая форма"]]],
+    ["exp", "Опыт в зале", [["new", "Меньше полугода"], ["mid", "Полгода – 2 года"], ["adv", "Больше 2 лет"]]],
+    ["days", "Сколько раз в неделю", [["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"]]],
+    ["time", "Время на тренировку", [["45", "45 мин"], ["60", "1 час"], ["90", "1,5 часа"]]],
+    ["place", "Где занимаетесь", [["gym", "Зал"], ["db", "Дома с гантелями"], ["bw", "Свой вес и турник"]]],
+    ["sex", "Пол", [["m", "Мужской"], ["f", "Женский"]]]
+  ];
+  var INJ = [["back", "Спина"], ["knee", "Колени"], ["shoulder", "Плечи"]];
+
+  function lastBodyWeight() { var b = data.body.filter(function (x) { return x.weight != null; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }).pop(); return b ? b.weight : null; }
+  function quizDefaults() {
+    var pr = data.settings.profile || {};
+    return Object.assign({ goal: "mass", exp: "new", days: "3", time: "60", place: "gym", sex: "m", age: "", height: data.settings.height || "", weight: lastBodyWeight() != null ? fN(lastBodyWeight()) : "", inj: [], bench8: "", squat8: "" }, pr, { inj: (pr.inj || []).slice() });
+  }
+  function quizHtml() {
+    var q = state.q || (state.q = quizDefaults());
+    var h = '<div class="top"><h1>Анкета</h1>' + (data.settings.quizDone ? '<button class="link no" data-act="tab" data-v="ai">Отмена</button>' : '<button class="link no" data-act="quiz-skip">Пропустить</button>') + "</div>" +
+      '<p class="hint">Минута на ответы. Приложение составит программу и подберёт стартовые веса. Потом всё можно поменять.</p>';
+    QZ.forEach(function (x) {
+      h += '<p class="qh">' + x[1] + '</p><div class="choice">' + x[2].map(function (o) { return '<button data-act="q" data-k="' + x[0] + '" data-v="' + o[0] + '" class="' + (q[x[0]] === o[0] ? "on" : "") + '">' + o[1] + "</button>"; }).join("") + "</div>";
+    });
+    h += '<div class="row"><label class="f">Возраст<input data-b="q" data-k="age" inputmode="numeric" value="' + esc(q.age) + '"></label>' +
+      '<label class="f">Рост, см<input data-b="q" data-k="height" inputmode="numeric" value="' + esc(q.height) + '"></label>' +
+      '<label class="f">Вес, кг<input data-b="q" data-k="weight" inputmode="decimal" value="' + esc(q.weight) + '"></label></div>';
+    h += '<p class="qh">Что беспокоит</p><div class="choice">' + INJ.map(function (o) { return '<button data-act="qinj" data-v="' + o[0] + '" class="' + (q.inj.indexOf(o[0]) >= 0 ? "on" : "") + '">' + o[1] + "</button>"; }).join("") +
+      '</div><p class="hint">Упражнения с осевой нагрузкой на это место не попадут в программу. При травме сначала к врачу.</p>';
+    if (q.place === "gym") h += '<p class="qh">Если знаете свои рабочие веса</p><p class="hint">Вес, с которым делаете 8 повторов. Можно не заполнять — тогда оценка по весу тела.</p>' +
+      '<div class="row"><label class="f">Жим лёжа, кг<input data-b="q" data-k="bench8" inputmode="decimal" value="' + esc(q.bench8) + '"></label>' +
+      '<label class="f">Присед, кг<input data-b="q" data-k="squat8" inputmode="decimal" value="' + esc(q.squat8) + '"></label></div>';
+    h += '<button class="btn main wide" style="margin-top:12px" data-act="quiz-go">Составить программу</button>';
+    if (data.settings.quizDone) h += '<p class="hint">Новая программа заменит программу из прошлой анкеты. Записанные тренировки останутся.</p>';
+    return h;
+  }
+  function roundW(w, eq) {
+    if (eq === "bb") return Math.max(20, Math.round(w / 2.5) * 2.5);
+    if (eq === "m") return Math.max(5, Math.round(w / 5) * 5);
+    return Math.max(1, Math.round(w));
+  }
+  function norm(n) { return String(n).toLowerCase().replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim(); }
+  function findEx(name) { var k = norm(name); return data.exercises.filter(function (e) { return norm(e.name) === k; })[0] || null; }
+  function ensureEx(e) {
+    var x = findEx(e.n);
+    if (!x) { x = { id: uid(), name: e.n, group: e.g, kind: e.k, note: "", video: "" }; data.exercises.push(x); }
+    return x;
+  }
+  function buildProgram(q) {
+    var ok = EQ_OK[q.place] || EQ_OK.gym, inj = q.inj || [], bw = num(q.weight) || (q.sex === "f" ? 60 : 75);
+    var expF = { "new": 1, mid: 1.35, adv: 1.7 }[q.exp] || 1, age = num(q.age), ageF = age && age >= 50 ? 0.85 : 1;
+    var sexU = q.sex === "f" ? 0.55 : 1, sexL = q.sex === "f" ? 0.7 : 1, R = SCHEME[q.goal] || SCHEME.mass;
+    function base(e, reps) { return e.c * bw * (e.p === "u" ? sexU : sexL) * expF * ageF * (1 + 10 / 30) / (1 + reps / 30); }
+    function clamp(v) { return Math.max(0.3, Math.min(3, v)); }
+    var kU = 1, kL = 1, b8 = num(q.bench8), s8 = num(q.squat8);
+    if (q.place === "gym" && b8) kU = clamp(b8 / base(LIB["Жим штанги лёжа"], 8));
+    if (q.place === "gym" && s8) kL = clamp(s8 / base(LIB["Приседания со штангой"], 8));
+    var max = { "45": 4, "60": 5, "90": 6 }[q.time] || 5;
+    var p = { id: uid(), name: "Моя программа: " + GOAL_NAME[q.goal || "mass"], quiz: true, days: [] };
+    (SPLITS[q.days] || SPLITS["3"]).forEach(function (d) {
+      var used = {}, items = [];
+      d[1].forEach(function (slot) {
+        if (items.length >= max) return;
+        var e = null;
+        SLOTS[slot].some(function (n) { var c = LIB[n]; if (ok.indexOf(c.eq) < 0 || used[n] || c.x.some(function (z) { return inj.indexOf(z) >= 0; })) return false; e = c; return true; });
+        if (!e) return;
+        used[e.n] = 1;
+        var sc = MAIN_SLOTS[slot] ? R.main : R.acc, sets = sc[0], reps = sc[1], rest = sc[2];
+        if (MAIN_SLOTS[slot] && q.exp === "new") sets = Math.min(sets, 3);
+        if (e.k === "t") { sets = 3; reps = q.exp === "new" ? "30" : "45"; rest = 45; }
+        var w = null;
+        if (e.k === "wr" && e.c) w = roundW(base(e, firstInt(reps)) * (e.p === "u" ? kU : kL), e.eq);
+        items.push({ exId: ensureEx(e).id, sets: sets, reps: reps, rest: rest, w: w });
+      });
+      p.days.push({ id: uid(), name: d[0], items: items });
+    });
+    return p;
+  }
+  function applyQuiz(q) {
+    var p = buildProgram(q);
+    var used = {}; data.workouts.forEach(function (w) { if (w.programId) used[w.programId] = 1; });
+    data.programs = data.programs.filter(function (x) { return !(x.quiz && !used[x.id]) && !(x.id === "p1" && !used.p1); });
+    data.programs.unshift(p);
+    var st = data.settings;
+    st.profile = JSON.parse(JSON.stringify(q)); st.quizDone = true;
+    if (q.height) st.height = q.height;
+    st.goal = GOAL_NAME[q.goal] + ", " + q.days + " раза в неделю по " + q.time + " мин" + (q.place === "gym" ? ", зал" : q.place === "db" ? ", дома с гантелями" : ", свой вес") +
+      ", опыт: " + { "new": "меньше полугода", mid: "полгода – 2 года", adv: "больше 2 лет" }[q.exp] + (q.inj.length ? ", беспокоит: " + q.inj.map(function (k) { return INJ.filter(function (x) { return x[0] === k; })[0][1].toLowerCase(); }).join(", ") : "") +
+      (q.age ? ", возраст " + q.age : "") + (q.sex === "f" ? ", женщина" : ", мужчина");
+    var bwv = num(q.weight);
+    if (bwv && !data.body.some(function (b) { return b.date === iso(); })) data.body.push({ id: uid(), date: iso(), weight: bwv });
+    save();
+    return p;
+  }
+
+  // ---------- чек-лист первых шагов ----------
+  function checklistHtml() {
+    if (data.settings.checkHidden) return "";
+    var items = [
+      [!!data.settings.quizDone && !!data.settings.profile, "Пройти анкету: программа и стартовые веса", "quiz-open", "Пройти"],
+      [data.workouts.some(function (w) { return w.src === "import"; }), "Перенести тренировки из TransformMate", "go-import", "Как"],
+      [data.workouts.some(function (w) { return w.status === "done" && w.src !== "import"; }), "Провести первую тренировку с таймером отдыха", "add", "Начать"],
+      [data.body.length > 0, "Записать вес и обхваты", "go-body", "Записать"],
+      [!!data.settings.backup, "Скачать копию данных", "export", "Скачать"]
+    ];
+    if (items.every(function (x) { return x[0]; })) return "";
+    var n = items.filter(function (x) { return x[0]; }).length;
+    return '<div class="card" style="margin-top:16px"><div class="top" style="margin:0 0 4px"><h3>Первые шаги · ' + n + " из " + items.length + '</h3><button class="link no" data-act="check-hide">Скрыть</button></div>' +
+      items.map(function (x) { return '<div class="check' + (x[0] ? " ok" : "") + '"><i>' + (x[0] ? "✓" : "") + "</i><span>" + x[1] + "</span>" + (x[0] ? "" : '<button class="link no" data-act="' + x[2] + '">' + x[3] + "</button>") + "</div>"; }).join("") + "</div>";
+  }
+
+  // ---------- анализ нагрузки ----------
+  function weeksBack(n) { var ws = weekStart(iso()), a = []; for (var i = n - 1; i >= 0; i--) a.push(addDays(ws, -7 * i)); return a; }
+  function setsIn(from, to) { // включительно
+    var r = { sets: 0, ton: 0, n: 0 };
+    doneW().forEach(function (w) { if (w.date >= from && w.date <= to) { r.sets += wSetsCount(w); r.ton += tonnage(w); r.n++; } });
+    return r;
+  }
+  function loadData() {
+    var today = iso(), weeks = weeksBack(8), by = {};
+    weeks.forEach(function (k) { by[k] = setsIn(k, addDays(k, 6)); });
+    var acute = setsIn(addDays(today, -6), today), chronic = setsIn(addDays(today, -34), addDays(today, -7));
+    var chSets = chronic.sets / 4, chTon = chronic.ton / 4;
+    var ratio = chSets >= 1 ? acute.sets / chSets : null, tonCh = chTon > 0 ? (acute.ton - chTon) / chTon : null;
+    var goal = (data.settings.profile && data.settings.profile.goal) || "mass", nr = GROUP_NORM[goal] || GROUP_NORM.mass;
+    var g = groupSets(doneW().filter(function (w) { return w.date >= addDays(today, -6); }));
+    // прогресс по упражнениям за 8 недель
+    var from = addDays(today, -55), prog = [];
+    data.exercises.forEach(function (e) {
+      var ses = [];
+      doneW().forEach(function (w) {
+        if (w.date < from) return;
+        var m = 0;
+        w.items.forEach(function (it) {
+          if (it.exId !== e.id) return;
+          doneSets(it).forEach(function (s) { m = Math.max(m, e.kind === "t" ? (s.t || 0) : (s.w ? e1rm(s.w, s.r) : (s.r || 0))); });
+        });
+        if (m) ses.push({ d: w.date, m: m });
+      });
+      if (ses.length < 2) return;
+      var first = ses[0].m, last = ses[ses.length - 1].m, best = 0, stall = false;
+      if (ses.length >= 4) { ses.slice(0, -3).forEach(function (x) { best = Math.max(best, x.m); }); stall = ses.slice(-3).every(function (x) { return x.m <= best; }); }
+      prog.push({ e: e, n: ses.length, first: first, last: last, ch: first ? (last - first) / first : 0, stall: stall });
+    });
+    prog.sort(function (a, b) { return b.n - a.n; });
+    // фактический отдых
+    var rs = [], plan = [];
+    doneW().forEach(function (w) {
+      if (w.date < addDays(today, -13)) return;
+      w.items.forEach(function (it) {
+        var ts = doneSets(it).map(function (s) { return s.at; }).filter(Boolean).sort();
+        for (var i = 1; i < ts.length; i++) { var d = (ts[i] - ts[i - 1]) / 1000; if (d > 10 && d < 900) { rs.push(d); plan.push(it.rest); } }
+      });
+    });
+    function avg(a) { return a.length ? a.reduce(function (x, y) { return x + y; }, 0) / a.length : 0; }
+    return { weeks: weeks, by: by, acute: acute, chSets: chSets, ratio: ratio, tonCh: tonCh, g: g, norm: nr, prog: prog, rest: rs.length >= 3 ? { fact: avg(rs), plan: avg(plan), n: rs.length } : null };
+  }
+  function verdictOf(L) {
+    if (L.ratio == null) return { cls: "", t: "Мало истории для сравнения", d: "Нужны записи хотя бы за 2–5 недель. Перенесите тренировки из TransformMate — сравнение появится сразу." };
+    var r = L.ratio, pct = Math.round((r - 1) * 100);
+    var tail = " Подходов за 7 дней: " + L.acute.sets + ", в среднем за прошлые 4 недели: " + fN(Math.round(L.chSets)) + ".";
+    if (r > 1.5) return { cls: "bad", t: "Резкий рост нагрузки (+" + pct + "%)", d: "Так часто перегружаются. Следующую неделю оставьте объём как есть или снизьте на 10–20%." + tail };
+    if (r > 1.3) return { cls: "bad", t: "Нагрузка растёт быстро (+" + pct + "%)", d: "Держите этот уровень неделю, прежде чем добавлять подходы." + tail };
+    if (r >= 0.8) return { cls: "good", t: "Нагрузка ровная", d: "Можно постепенно прибавлять вес или повторы." + tail };
+    if (r >= 0.5) return { cls: "", t: "Нагрузка снизилась (" + pct + "%)", d: "Это нормально, если неделя разгрузочная. Если нет — вернитесь к обычному объёму." + tail };
+    return { cls: "bad", t: "Нагрузка сильно упала (" + pct + "%)", d: "После перерыва начинайте с весов на 10–20% ниже прошлых." + tail };
+  }
+  function barChart(pts) {
+    var W = 360, H = 150, B = 22, T = 18, n = pts.length, bw = (W - 8) / n, mx = 0;
+    pts.forEach(function (p) { mx = Math.max(mx, p.y); });
+    if (!mx) mx = 1;
+    var s = '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" style="height:150px" role="img" aria-label="Нагрузка по неделям">';
+    pts.forEach(function (p, i) {
+      var h = (H - B - T) * p.y / mx, x = 4 + i * bw + bw * 0.15, y = H - B - h;
+      s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + (bw * 0.7).toFixed(1) + '" height="' + Math.max(h, p.y ? 2 : 0).toFixed(1) + '" rx="3" fill="var(--brand)" opacity="' + (i === n - 1 ? 1 : 0.6) + '"/>';
+      if (p.top) s += '<text x="' + (x + bw * 0.35).toFixed(1) + '" y="' + (y - 4).toFixed(1) + '" text-anchor="middle">' + p.top + "</text>";
+      if (i % 2 === (n - 1) % 2) s += '<text x="' + (x + bw * 0.35).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(p.x) + "</text>";
+    });
+    return s + "</svg>";
+  }
+  function progVal(x) {
+    var k = x.e.kind;
+    function f(v) { return k === "t" ? fSec(v) : fN(Math.round(v * 10) / 10); }
+    return f(x.first) + " → " + f(x.last) + (k === "t" ? "" : x.e.kind === "wr" || x.last > 40 ? " кг" : "");
+  }
+  function loadHtml() {
+    var L = loadData(), V = verdictOf(L), h = "";
+    var w7 = L.acute;
+    h += '<div class="sum"><div><b>' + w7.n + '</b><span>тренировок за 7 дней</span></div><div><b>' + w7.sets + '</b><span>подходов</span></div><div><b>' + fN(Math.round(w7.ton / 100) / 10) + "</b><span>тонн</span></div></div>";
+    h += '<div class="card verdict ' + V.cls + '"><b>' + V.t + '</b><p class="small">' + V.d + (L.tonCh != null ? " Тоннаж к среднему: " + (L.tonCh >= 0 ? "+" : "") + Math.round(L.tonCh * 100) + "%." : "") + "</p></div>";
+    h += "<h2>По неделям</h2>" + barChart(L.weeks.map(function (k) { return { x: dShort(k), y: L.by[k].ton / 1000, top: L.by[k].sets || "" }; })) +
+      '<p class="hint">Высота — тоннаж (вес × повторы), число — подходы. Последний столбик — текущая неделя.</p>';
+    var gs = GROUPS.filter(function (k) { return k !== "Кардио" && k !== "Другое"; }), lo = L.norm[0], hi = L.norm[1], top = hi * 1.3;
+    h += '<h2>Подходы на группу мышц</h2><div class="card">' + gs.map(function (k) {
+      var n = L.g[k] || 0, st = n < lo ? '<span class="lo">мало</span>' : n > hi ? '<span class="hi">много</span>' : '<span class="ok">норма</span>';
+      return '<div class="gbar"><span>' + k + '</span><span class="tr"><u style="left:' + (lo / top * 100) + "%;width:" + ((hi - lo) / top * 100) + '%"></u><b style="width:' + Math.min(100, n / top * 100) + '%"></b></span><span class="mono" style="text-align:right">' + n + "</span>" + st + "</div>";
+    }).join("") + '<p class="hint">За последние 7 дней. Зелёная зона — ' + lo + "–" + hi + " подходов в неделю для вашей цели (" + GOAL_NAME[(data.settings.profile && data.settings.profile.goal) || "mass"] + ").</p></div>";
+    if (L.prog.length) {
+      h += '<h2>Рост за 8 недель</h2><div class="card" style="padding-top:4px">' + L.prog.slice(0, 10).map(function (x) {
+        var pct = Math.round(x.ch * 100), tag = x.stall ? '<span class="flat">застой</span>' : pct > 0 ? '<span class="up">+' + pct + "%</span>" : '<span class="muted">' + pct + "%</span>";
+        return '<button class="prow" data-act="prog-row" data-v="' + x.e.id + '"><span class="t">' + esc(x.e.name) + "<small>" + progVal(x) + " · тренировок: " + x.n + "</small></span>" + tag + "</button>";
+      }).join("") + '<p class="hint">Для упражнений с весом — расчётный максимум на 1 раз (вес × (1 + повторы/30)), для остальных — повторы или время. «Застой» — 3 тренировки подряд без нового лучшего результата.</p></div>';
+    }
+    if (L.rest) {
+      var diff = L.rest.fact - L.rest.plan;
+      h += '<div class="card"><b>Отдых между подходами</b><p class="small">За 2 недели в среднем <span class="mono">' + fSec(L.rest.fact) + "</span> при плане <span class=\"mono\">" + fSec(L.rest.plan) + "</span>. " +
+        (diff > 45 ? "Отдыхаете заметно дольше плана — тренировка растягивается, нагрузка ниже задуманной." : diff < -30 ? "Отдыхаете меньше плана — для силовых подходов это может мешать прибавлять вес." : "Держитесь плана.") + "</p></div>";
+    }
+    return h;
+  }
+  function loadLines() {
+    var L = loadData(), V = verdictOf(L), out = [];
+    out.push("По неделям (начало недели: подходы / тоннаж, т): " + L.weeks.map(function (k) { return dShort(k) + ": " + L.by[k].sets + "/" + fN(Math.round(L.by[k].ton / 100) / 10); }).join("; ") + ".");
+    out.push("Оценка нагрузки: " + V.t + (L.ratio != null ? " (подходы за 7 дней к среднему за 4 недели = " + fN(Math.round(L.ratio * 100) / 100) + ")" : "") + ".");
+    var gs = Object.keys(L.g);
+    if (gs.length) out.push("Подходов на группу за 7 дней (норма для цели " + L.norm[0] + "–" + L.norm[1] + "): " + gs.map(function (k) { return k + " " + L.g[k]; }).join(", ") + ".");
+    if (L.prog.length) out.push("Рост за 8 недель: " + L.prog.slice(0, 12).map(function (x) { return x.e.name + " " + progVal(x) + (x.stall ? " (застой)" : ""); }).join("; ") + ".");
+    if (L.rest) out.push("Фактический отдых в среднем " + fSec(L.rest.fact) + " при плане " + fSec(L.rest.plan) + ".");
+    return out;
+  }
+
+  // ---------- перенос тренировок из TransformMate ----------
+  function importPrompt() {
+    return [
+      "Перенеси мои тренировки со скриншотов приложения TransformMate (приложу их к этому сообщению). Верни только JSON без пояснений и без markdown, по схеме:",
+      '{"workouts":[{"date":"ГГГГ-ММ-ДД","name":"Название тренировки","durationMin":60,"items":[{"name":"Жим штанги лёжа","group":"Грудь","sets":[{"w":60,"r":8},{"w":60,"r":8}]}]}]}',
+      "w — вес в кг (для упражнений со своим весом — дополнительный вес или 0), r — повторы. Для упражнений на время вместо r пиши t — секунды.",
+      "group — одно из: " + GROUPS.join(", ") + ".",
+      "Если год на скриншоте не виден, считай год " + new Date().getFullYear() + "; даты позже " + dShort(iso()) + " относятся к прошлому году. durationMin — если видно, иначе не пиши.",
+      "Если это то же упражнение, бери название из моего списка: " + data.exercises.map(function (e) { return e.name; }).join(", ") + ".",
+      "В TransformMate у каждого подхода два числа: слева серое — план, справа белое — что сделано. Бери белое (факт). Если факта нет (прочерк) — подход не выполнен, пропусти его. Если в строке RIR есть число — добавь его в подход как \"rir\".",
+      "Переноси только выполненные подходы. Ничего не придумывай: если вес или повторы не видны — пропусти подход."
+    ].join("\n");
+  }
+  function importWorkouts(txt) {
+    var a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+    if (a < 0 || b < a) throw new Error("в ответе нет JSON.");
+    var j = JSON.parse(txt.slice(a, b + 1)), list = Array.isArray(j) ? j : j.workouts;
+    if (!Array.isArray(list)) throw new Error("нет списка workouts.");
+    var res = { added: 0, skipped: 0, newEx: 0 };
+    list.forEach(function (x) {
+      if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(x.date || "") || !Array.isArray(x.items)) { res.skipped++; return; }
+      var name = String(x.name || "Тренировка").trim();
+      if (data.workouts.some(function (w) { return w.date === x.date && norm(w.name) === norm(name); })) { res.skipped++; return; }
+      var start = pISO(x.date); start.setHours(12, 0, 0, 0);
+      var dur = Math.max(10, Math.min(300, parseInt(x.durationMin, 10) || 60));
+      var w = { id: uid(), date: x.date, name: name, status: "done", startedAt: start.getTime(), finishedAt: start.getTime() + dur * 60000, items: [], feel: null, note: "", programId: null, dayId: null, src: "import" };
+      x.items.forEach(function (it) {
+        var nm = String(it.name || "").trim(); if (!nm || !Array.isArray(it.sets)) return;
+        var sets = it.sets.map(function (s) {
+          var t = s.t != null ? (typeof s.t === "string" ? pSec(s.t) : Math.round(num(s.t) || 0)) : null;
+          var o = { w: num(s.w), r: s.r != null ? Math.round(num(s.r) || 0) : null, t: t || null, done: true };
+          if (num(s.rir) != null) o.rir = num(s.rir);
+          return o;
+        }).filter(function (s) { return s.r || s.t; });
+        if (!sets.length) return;
+        var e = findEx(nm);
+        if (!e) {
+          var kind = sets.some(function (s) { return s.t; }) ? "t" : sets.every(function (s) { return !s.w; }) ? "r" : "wr";
+          e = { id: uid(), name: nm, group: GROUPS.indexOf(it.group) >= 0 ? it.group : "Другое", kind: kind, note: "", video: "" };
+          data.exercises.push(e); res.newEx++;
+        }
+        w.items.push({ exId: e.id, target: "", rest: data.settings.rest, sets: sets, note: "" });
+      });
+      if (!w.items.length) { res.skipped++; return; }
+      data.workouts.push(w); res.added++;
+    });
+    if (!res.added && !res.skipped) throw new Error("в JSON нет тренировок.");
+    save();
+    return res;
+  }
+  function importHtml() {
+    var n = data.workouts.filter(function (w) { return w.src === "import"; }).length;
+    return '<details class="box" id="importBox"' + (state.openImport ? " open" : "") + '><summary>Перенести тренировки из TransformMate</summary><div>' +
+      '<p class="small">Выгрузки данных в TransformMate нет, поэтому переносим через скриншоты:</p>' +
+      '<ol class="small" style="padding-left:20px;margin:6px 0">' +
+      "<li>В TransformMate выберите день в календаре, откройте тренировку и сделайте скриншоты всех упражнений с подходами (прокрутите до конца).</li>" +
+      "<li>Нажмите «Открыть Claude» и приложите в чате скриншоты (до 20 за раз).</li>" +
+      "<li>Скопируйте ответ Claude целиком и вставьте ниже.</li></ol>" +
+      '<p class="hint">Можно частями: повторы (та же дата и название) пропускаются. Уже перенесено: ' + n + ".</p>" +
+      '<div class="row"><button class="btn main" data-act="imp-ai">Открыть Claude</button><button class="btn" data-act="imp-ai-copy">Скопировать запрос</button></div>' +
+      '<label class="f">Ответ Claude (JSON)<textarea id="imp-json" placeholder="{&quot;workouts&quot;: …}"></textarea></label>' +
+      '<p class="msg" id="imp-msg"></p><button class="btn wide" data-act="imp-go">Перенести</button></div></details>';
+  }
+
   // ---------- отрисовка ----------
   function render() {
     var body;
@@ -859,6 +1245,7 @@
       case "body": body = bodyHtml(); break;
       case "timer": body = timerHtml(); break;
       case "ai": body = aiHtml(); break;
+      case "quiz": body = quizHtml(); break;
       default: body = homeHtml();
     }
     $("app").innerHTML = navHtml() + '<p class="msg" id="flash" role="status">' + esc(flashMsg) + "</p>" + body;
@@ -882,6 +1269,8 @@
       case "pis": var n = parseInt(t.value, 10); if (n > 0 && n <= 20) p.days[path[0]].items[path[1]].sets = n; break;
       case "pir": p.days[path[0]].items[path[1]].reps = t.value; break;
       case "pit": var rr = pSec(t.value); if (rr && rr > 0) p.days[path[0]].items[path[1]].rest = rr; break;
+      case "piw": p.days[path[0]].items[path[1]].w = num(t.value); break;
+      case "q": state.q[t.getAttribute("data-k")] = t.value; return;
       case "goal": data.settings.goal = t.value; break;
       case "height": data.settings.height = t.value; break;
       case "drest": var dr = pSec(t.value); if (dr && dr > 0) data.settings.rest = dr; break;
@@ -933,7 +1322,7 @@
           if (ex.kind === "wr" && (s.r == null || s.w == null)) { flash("Впишите вес и повторы подхода " + (path[1] + 1) + "."); break; }
           if (ex.kind === "r" && s.r == null) { flash("Впишите повторы подхода " + (path[1] + 1) + "."); break; }
           if (ex.kind === "t" && !s.t) { flash("Впишите время подхода " + (path[1] + 1) + "."); break; }
-          s.done = true;
+          s.done = true; s.at = Date.now();
           if (w.status === "active") {
             var lastEx = path[0] === w.items.length - 1 && it.sets.every(function (x) { return x.done; });
             if (!lastEx) startRest(w.id, path[0], it.rest);
@@ -1030,6 +1419,25 @@
       case "iv-reset": iv = null; syncWake(); break;
 
       case "period": state.period = +v; break;
+      case "q": state.q[t.getAttribute("data-k")] = v; break;
+      case "qinj": var ij = state.q.inj = state.q.inj || [], k0 = ij.indexOf(v); if (k0 >= 0) ij.splice(k0, 1); else ij.push(v); break;
+      case "quiz-open": state.q = null; state.tab = "quiz"; window.scrollTo(0, 0); break;
+      case "quiz-skip": data.settings.quizDone = true; save(); state.tab = "home"; break;
+      case "quiz-go":
+        var qp = applyQuiz(state.q);
+        state.tab = "prog"; state.progId = qp.id; window.scrollTo(0, 0);
+        flash("Программа «" + qp.name + "» готова: " + qp.days.length + " дн. Тренировку начинают на главной.");
+        break;
+      case "check-hide": data.settings.checkHidden = true; save(); break;
+      case "go-import": state.tab = "ai"; state.openImport = true; setTimeout(function () { var el = $("importBox"); if (el) el.scrollIntoView(); }, 0); break;
+      case "go-body": state.tab = "body"; window.scrollTo(0, 0); break;
+      case "imp-ai": openClaude(importPrompt(), "imp-msg"); keep = true; break;
+      case "imp-ai-copy": copyText(importPrompt(), "imp-msg"); keep = true; break;
+      case "imp-go":
+        try { var rs = importWorkouts($("imp-json").value); state.openImport = true; flash("Перенесено тренировок: " + rs.added + (rs.skipped ? ", пропущено повторов: " + rs.skipped : "") + (rs.newEx ? ", новых упражнений: " + rs.newEx : "") + "."); }
+        catch (e) { $("imp-msg").textContent = "Не получилось: " + (e.message || e); keep = true; }
+        break;
+      case "prog-row": state.tab = "ex"; state.exId = v; state.exEdit = null; window.scrollTo(0, 0); break;
       case "ai-go": var ws = periodWorkouts(state.period); openClaude(analysisText(ws, "последние " + state.period + " дн."), "ai-msg"); keep = true; break;
       case "ai-copy": copyText(analysisText(periodWorkouts(state.period), "последние " + state.period + " дн."), "ai-msg"); keep = true; break;
       case "export": exportData(); keep = state.tab === "ai"; break;
@@ -1067,6 +1475,7 @@
     r.readAsText(ev.target.files[0]);
   });
 
+  if (!data.settings.quizDone && !data.workouts.length) state.tab = "quiz";
   render();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js").catch(function () {});
 })();
