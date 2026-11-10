@@ -12,6 +12,7 @@ class CharacterProfile {
     required this.kind,
     required this.color,
     required this.voice,
+    required this.liveVoice,
     required this.persona,
     required this.hook,
   });
@@ -24,6 +25,10 @@ class CharacterProfile {
   /// Голос Yandex SpeechKit. Проверьте доступные имена в плейграунде
   /// AI Studio и замените при необходимости.
   final String voice;
+
+  /// Голос LiveTTS для модели «Живые голоса»: sofia, vera, irina
+  /// (женские), vasily, sergey, denis (мужские).
+  final String liveVoice;
 
   /// Характер и манера речи.
   final String persona;
@@ -39,6 +44,7 @@ const characters = <CharacterProfile>[
     kind: CharacterKind.bear,
     color: Color(0xFFB07A4F),
     voice: 'ermil',
+    liveVoice: 'vasily',
     persona: 'Добродушный, немного неуклюжий медвежонок. Говорит медленно, '
         'басом, любит мёд и малину. Иногда смешно ворчит, но быстро радуется.',
     hook: 'в лесу с ёлки на тебя всё время падают шишки, и ты не знаешь, '
@@ -50,6 +56,7 @@ const characters = <CharacterProfile>[
     kind: CharacterKind.wolf,
     color: Color(0xFF8A94A6),
     voice: 'filipp',
+    liveVoice: 'denis',
     persona: 'Совсем не страшный, весёлый волчонок. Любит выть на луну '
         '«у-у-у», но только потому, что ему скучно одному. Мечтает о друзьях.',
     hook: 'тебе скучно, ты воешь на луну «у-у-у» и ищешь друга, '
@@ -61,6 +68,7 @@ const characters = <CharacterProfile>[
     kind: CharacterKind.bunny,
     color: Color(0xFFE6E0D8),
     voice: 'jane',
+    liveVoice: 'sofia',
     persona: 'Ласковая, чуть-чуть плаксивая зайка. Иногда хнычет, но быстро '
         'утешается, когда ей помогают. Любит морковку и прыгать.',
     hook: 'ты потеряла в траве свою оранжевую морковку и немножко хнычешь — '

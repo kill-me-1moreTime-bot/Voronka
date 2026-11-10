@@ -112,8 +112,9 @@ class RealtimeClient {
             'format': format,
             'turn_detection': {
               'type': 'server_vad',
-              // Малыши делают длинные паузы внутри фразы.
-              'silence_duration_ms': 1000,
+              // Малыши делают паузы внутри фразы: меньше 0,7 с — персонаж
+              // начнёт отвечать, не дослушав.
+              'silence_duration_ms': 700,
               'prefix_padding_ms': 300,
             },
           },

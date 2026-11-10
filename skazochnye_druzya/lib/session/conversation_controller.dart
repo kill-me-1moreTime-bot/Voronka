@@ -79,8 +79,10 @@ class ConversationController extends ChangeNotifier {
       return;
     }
     DebugLog.clear();
-    DebugLog.add('[App] подключаемся к ${Uri.parse(AppConfig.realtimeUrl).host}, '
-        'голос ${character.voice}');
+    DebugLog.add(
+        '[App] подключаемся к ${Uri.parse(AppConfig.realtimeUrl).host}, '
+        '${AppConfig.model.label.toLowerCase()} модель, '
+        'голос ${AppConfig.voiceFor(character)}');
     try {
       await _client.connect();
     } catch (e) {
@@ -93,7 +95,10 @@ class ConversationController extends ChangeNotifier {
       return;
     }
     _sub = _client.events.listen(_onEvent);
-    _client.configure(instructions: _instructions, voice: character.voice);
+    _client.configure(
+      instructions: _instructions,
+      voice: AppConfig.voiceFor(character),
+    );
 
     _mic.muted = true; // персонаж говорит первым
     final micOk = await _mic.start(_client.appendAudio);

@@ -48,9 +48,9 @@ flutter pub get
 3. **API-ключ.** В AI Studio кнопка создания API-ключа справа вверху. Ключ, созданный там, уже имеет нужную область `yc.ai.foundationModels.execute`. Если создаёте ключ в консоли Yandex Cloud: сервисный аккаунт с ролью `ai.models.user`, ключ с этой областью. Ключ показывается один раз, сохраните его.
 4. По желанию: в AI Studio «Создать голосового агента», вставьте текст из `lib/prompts.dart` и поговорите голосом. Так можно послушать голоса и подобрать их персонажам.
 
-Приложение подключается так же, как [официальный пример Yandex](https://github.com/yandex-ai-studio/yandex-ai-studio-api-examples/blob/main/realtime/voice_agent.py): `wss://ai.api.cloud.yandex.net/v1/realtime?model=gpt://<каталог>/speech-realtime-deepseek-v4-flash`, заголовок `Authorization: Api-Key <ключ>`, звук PCM 44100 Гц.
+Приложение подключается так же, как [официальный пример Yandex](https://github.com/yandex-ai-studio/yandex-ai-studio-api-examples/blob/main/realtime/voice_agent.py): `wss://ai.api.cloud.yandex.net/v1/realtime?model=gpt://<каталог>/speech-realtime-max-tts-live/latest`, заголовок `Authorization: Api-Key <ключ>`, звук PCM 44100 Гц.
 
-Модель `speech-realtime-250923` из примера на GitHub больше не открывается (ошибка `model_access_denied`). Список моделей Realtime API есть в документации AI Studio. `speech-realtime-deepseek-v4-flash` работает с голосами `ermil`, `filipp` и `jane`. `speech-realtime-max-tts-live/latest` работает только с голосами LiveTTS (`sofia`, `vera`, `vasily`, `sergey`, `denis`, `irina`); для неё нужно поменять голоса в `lib/characters.dart`.
+Модель `speech-realtime-250923` из примера на GitHub больше не открывается (ошибка `model_access_denied`). Список моделей Realtime API есть в документации AI Studio. В настройках родителя есть выбор модели. «Живые голоса» (по умолчанию) — `speech-realtime-max-tts-live/latest`, голоса LiveTTS (`sofia`, `vera`, `vasily`, `sergey`, `denis`, `irina`, поле `liveVoice` в `lib/characters.dart`). «Прежняя» — `speech-realtime-deepseek-v4-flash`, голоса `ermil`, `filipp`, `jane` (поле `voice`).
 
 Событие `input_audio_buffer.clear` Yandex сейчас не поддерживает и закрывает связь с ошибкой `malformed_event`, поэтому приложение его не отправляет.
 

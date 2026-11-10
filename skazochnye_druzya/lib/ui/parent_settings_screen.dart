@@ -15,6 +15,8 @@ class ParentSettingsScreen extends StatefulWidget {
 class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
   late ChildProfile _p = widget.initial;
   late final _name = TextEditingController(text: widget.initial.name);
+  late final _notes = TextEditingController(text: widget.initial.notes);
+  VoiceModel _model = AppConfig.model;
   final _url = TextEditingController();
   final _key = TextEditingController();
   final _folder = TextEditingController();
@@ -38,6 +40,7 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _notes.dispose();
     _url.dispose();
     _key.dispose();
     _folder.dispose();
@@ -52,13 +55,18 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
 
   Future<void> _save() async {
     if (_urlError != null) return;
-    final p = _p.copyWith(name: _name.text.trim());
+    var notes = _notes.text.trim();
+    if (notes.length > ChildProfile.maxNotes) {
+      notes = notes.substring(0, ChildProfile.maxNotes);
+    }
+    final p = _p.copyWith(name: _name.text.trim(), notes: notes);
     await p.save();
     await AppConfig.save(
       url: _url.text,
       key: _key.text,
       scheme: _scheme,
       folder: _folder.text,
+      voiceModel: _model,
     );
     if (mounted) Navigator.of(context).pop(p);
   }
@@ -76,6 +84,22 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             decoration: const InputDecoration(
               labelText: 'Как зовут ребёнка (необязательно)',
               helperText: 'Хранится только на этом телефоне и уходит в промпт.',
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _notes,
+            minLines: 2,
+            maxLines: 5,
+            maxLength: ChildProfile.maxNotes,
+            decoration: const InputDecoration(
+              labelText: 'О ребёнке (необязательно)',
+              hintText: 'Любит динозавров и машинки. Кота зовут Барсик. '
+                  'Ходит в садик, лучший друг — Миша.',
+              helperText: 'Персонаж будет говорить о знакомом. '
+                  'Хранится только на этом телефоне.',
+              helperMaxLines: 2,
+              alignLabelWithHint: true,
             ),
           ),
           const SizedBox(height: 24),
@@ -151,6 +175,26 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Модель:', style: t.bodyMedium),
+              for (final m in VoiceModel.values)
+                ChoiceChip(
+                  label: Text(m.label),
+                  selected: _model == m,
+                  onSelected: (_) => setState(() => _model = m),
+                ),
+            ],
+          ),
+          Text(
+            _model == VoiceModel.live
+                ? 'Живые голоса: быстрее и естественнее.'
+                : 'Прежняя модель: если с новой что-то не работает.',
+            style: t.bodySmall,
+          ),
+          const SizedBox(height: 12),
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
             title: Text('Дополнительно', style: t.bodyMedium),
@@ -165,7 +209,7 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
                   labelText: 'Адрес (wss://…), необязательно',
                   helperText: _folder.text.trim().isEmpty
                       ? 'Пусто — адрес соберётся из каталога.'
-                      : 'Пусто — ${AppConfig.defaultUrlFor(_folder.text.trim())}',
+                      : 'Пусто — ${AppConfig.defaultUrlFor(_folder.text.trim(), _model)}',
                   helperMaxLines: 4,
                   errorText: _urlError,
                 ),

@@ -1,5 +1,21 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'characters.dart';
+
+/// Модель Realtime API. Голоса у моделей разные и между собой
+/// несовместимы, поэтому у каждого персонажа два голоса.
+enum VoiceModel {
+  /// Живые голоса LiveTTS (sofia, vera, vasily, sergey, denis, irina).
+  live('speech-realtime-max-tts-live/latest', 'Живые голоса'),
+
+  /// Экспериментальная, голоса general (ermil, filipp, jane).
+  deepseek('speech-realtime-deepseek-v4-flash', 'Прежняя');
+
+  const VoiceModel(this.path, this.label);
+  final String path;
+  final String label;
+}
+
 /// Настройки подключения.
 ///
 /// Есть два способа их задать:
@@ -24,12 +40,15 @@ class AppConfig {
   static const _kKey = 'rt_key';
   static const _kScheme = 'rt_scheme';
   static const _kFolder = 'rt_folder';
+  static const _kModel = 'rt_model';
 
-  /// Модель по умолчанию. Из списка моделей Realtime API в документации
-  /// AI Studio выбрана та, что работает с голосами `general`
-  /// (ermil, filipp, jane). Старая speech-realtime-250923 из примера
-  /// на GitHub отвечает model_access_denied.
-  static const defaultModel = 'speech-realtime-deepseek-v4-flash';
+  /// Модель из списка Realtime API в документации AI Studio. Старая
+  /// speech-realtime-250923 из примера на GitHub отвечает model_access_denied.
+  static VoiceModel model = VoiceModel.live;
+
+  /// Голос персонажа для выбранной модели.
+  static String voiceFor(CharacterProfile c) =>
+      model == VoiceModel.live ? c.liveVoice : c.voice;
 
   /// Адрес, введённый вручную (или из config.json). Пусто — собрать сам.
   static String _url = _builtUrl;
@@ -42,9 +61,17 @@ class AppConfig {
     return defaultUrlFor(folderId);
   }
 
-  static String defaultUrlFor(String folder) =>
+  static String defaultUrlFor(String folder, [VoiceModel? m]) =>
       'wss://ai.api.cloud.yandex.net/v1/realtime'
-      '?model=gpt://$folder/$defaultModel';
+      '?model=gpt://$folder/${(m ?? model).path}';
+
+  /// Адрес, собранный по нашему же шаблону (вставлен вручную раньше,
+  /// когда модель нельзя было выбрать). Такой адрес не держим: иначе
+  /// он перебивает выбор модели.
+  static bool isTemplateUrl(String u) => RegExp(
+        r'^wss://ai\.api\.cloud\.yandex\.net/v1/realtime\?model=gpt://'
+        r'[A-Za-z0-9]+/speech-realtime-[a-z0-9./-]+$',
+      ).hasMatch(u.trim());
 
   /// API-ключ сервисного аккаунта Yandex Cloud.
   static String apiKey = _builtKey;
@@ -73,7 +100,13 @@ class AppConfig {
   /// Читает настройки с телефона. Вызывается один раз при запуске.
   static Future<void> load() async {
     final p = await SharedPreferences.getInstance();
+    final stored = p.getString(_kUrl);
+    if (stored != null && isTemplateUrl(stored)) await p.remove(_kUrl);
     _url = _pick(p.getString(_kUrl), _builtUrl);
+    model = VoiceModel.values.firstWhere(
+      (m) => m.name == p.getString(_kModel),
+      orElse: () => VoiceModel.live,
+    );
     apiKey = _pick(p.getString(_kKey), _builtKey);
     authScheme = _pick(p.getString(_kScheme), _builtScheme);
     folderId = _pick(p.getString(_kFolder), _builtFolder);
@@ -85,12 +118,14 @@ class AppConfig {
     required String key,
     required String scheme,
     required String folder,
+    VoiceModel? voiceModel,
   }) async {
     final p = await SharedPreferences.getInstance();
     Future<void> put(String k, String v) =>
         v.isEmpty ? p.remove(k) : p.setString(k, v);
     final fixed = fixFields(url: url, folder: folder);
-    await put(_kUrl, fixed.url);
+    await put(_kUrl, isTemplateUrl(fixed.url) ? '' : fixed.url);
+    if (voiceModel != null) await p.setString(_kModel, voiceModel.name);
     await put(_kKey, key.trim());
     await put(_kScheme, scheme);
     await put(_kFolder, fixed.folder);
