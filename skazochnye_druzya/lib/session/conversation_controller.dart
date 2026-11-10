@@ -111,6 +111,8 @@ class ConversationController extends ChangeNotifier {
       _fail('Нет доступа к микрофону. Разрешите его в настройках телефона.');
       return;
     }
+    // Сервер мог закрыть связь, пока включался микрофон.
+    if (_closed) return;
 
     _ask(greetingInstruction);
 

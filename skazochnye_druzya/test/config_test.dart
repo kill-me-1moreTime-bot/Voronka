@@ -97,6 +97,7 @@ void main() {
     });
     await AppConfig.load();
     expect(AppConfig.realtimeUrl, contains('speech-realtime-max-tts-live'));
+    expect(AppConfig.realtimeUrl, contains('gpt://b1gX/'));
     final p = await SharedPreferences.getInstance();
     expect(p.getString('rt_url'), isNull);
   });
@@ -105,6 +106,24 @@ void main() {
     await AppConfig.save(
         url: 'wss://example.test/rt', key: 'k', scheme: 'Api-Key', folder: '');
     expect(AppConfig.realtimeUrl, 'wss://example.test/rt');
+  });
+
+  test('каталог из старой ссылки важнее неверного поля каталога', () async {
+    SharedPreferences.setMockInitialValues({
+      'rt_url': 'wss://ai.api.cloud.yandex.net/v1/realtime'
+          '?model=gpt://b1gjc7t1eprosnb5lrh8/speech-realtime-deepseek-v4-flash',
+      'rt_folder': 'b13963ffd26e9754',
+      'rt_key': 'k',
+    });
+    await AppConfig.load();
+    expect(AppConfig.folderId, 'b1gjc7t1eprosnb5lrh8');
+    expect(AppConfig.realtimeUrl,
+        contains('gpt://b1gjc7t1eprosnb5lrh8/speech-realtime-max-tts-live'));
+  });
+
+  test('похоже ли на каталог', () {
+    expect(AppConfig.looksLikeFolder('b1gjc7t1eprosnb5lrh8'), isTrue);
+    expect(AppConfig.looksLikeFolder('b13963ffd26e9754'), isFalse);
   });
 
   testWidgets('форма родителя сохраняет адрес и ключ', (tester) async {

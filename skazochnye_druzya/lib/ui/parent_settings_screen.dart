@@ -152,9 +152,18 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             controller: _folder,
             autocorrect: false,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Идентификатор каталога',
               hintText: 'b1g…',
+              // Не запрещаем, только подсказываем: формат может смениться.
+              helperText: _folder.text.trim().isEmpty ||
+                      AppConfig.looksLikeFolder(_folder.text)
+                  ? null
+                  : 'Не похоже на каталог: обычно b1g и ещё 17 букв и цифр. '
+                      'Его видно в адресе страницы AI Studio после folders/.',
+              helperMaxLines: 3,
+              helperStyle:
+                  TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
           const SizedBox(height: 12),

@@ -101,7 +101,13 @@ class AppConfig {
   static Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     final stored = p.getString(_kUrl);
-    if (stored != null && isTemplateUrl(stored)) await p.remove(_kUrl);
+    if (stored != null && isTemplateUrl(stored)) {
+      // Каталог в этой ссылке точно рабочий: берём его, а не то, что
+      // лежит в поле каталога (там могло остаться что угодно).
+      final f = folderFrom(stored);
+      if (f != null) await p.setString(_kFolder, f);
+      await p.remove(_kUrl);
+    }
     _url = _pick(p.getString(_kUrl), _builtUrl);
     model = VoiceModel.values.firstWhere(
       (m) => m.name == p.getString(_kModel),
@@ -123,8 +129,11 @@ class AppConfig {
     final p = await SharedPreferences.getInstance();
     Future<void> put(String k, String v) =>
         v.isEmpty ? p.remove(k) : p.setString(k, v);
-    final fixed = fixFields(url: url, folder: folder);
-    await put(_kUrl, isTemplateUrl(fixed.url) ? '' : fixed.url);
+    var fixed = fixFields(url: url, folder: folder);
+    if (isTemplateUrl(fixed.url)) {
+      fixed = (url: '', folder: folderFrom(fixed.url) ?? fixed.folder);
+    }
+    await put(_kUrl, fixed.url);
     if (voiceModel != null) await p.setString(_kModel, voiceModel.name);
     await put(_kKey, key.trim());
     await put(_kScheme, scheme);
@@ -152,7 +161,11 @@ class AppConfig {
 
   /// Каталог из ссылки: `gpt://b1g…/модель` или `…/folders/b1g…/…`.
   static String? folderFrom(String s) =>
-      RegExp(r'(?:gpt://|folders/)([a-z0-9]+)').firstMatch(s)?.group(1);
+      RegExp(r'(?:gpt://|folders/)([A-Za-z0-9]+)').firstMatch(s)?.group(1);
+
+  /// Каталоги Yandex Cloud выглядят как b1g и ещё 17 знаков.
+  static bool looksLikeFolder(String f) =>
+      RegExp(r'^b1g[a-z0-9]{17}$').hasMatch(f.trim());
 
   /// Что сейчас сохранено на телефоне (без значений из сборки) — для формы.
   static Future<Map<String, String>> stored() async {
