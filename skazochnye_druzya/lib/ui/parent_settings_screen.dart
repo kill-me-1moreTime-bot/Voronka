@@ -138,6 +138,21 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
             'вместе со взрослым. Персонаж сам попрощается по таймеру.',
             style: t.bodySmall,
           ),
+          const SizedBox(height: 24),
+          Text('Скорость речи персонажа', style: t.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final e in ChildProfile.speechRates.entries)
+                ChoiceChip(
+                  label: Text(e.value),
+                  selected: _p.speechRate == e.key,
+                  onSelected: (_) =>
+                      setState(() => _p = _p.copyWith(speechRate: e.key)),
+                ),
+            ],
+          ),
           const SizedBox(height: 32),
           Text('Подключение к Yandex AI Studio', style: t.titleMedium),
           const SizedBox(height: 4),

@@ -30,6 +30,12 @@ void main() {
     expect(p, isNot(contains('На любой вопрос, где нужен взрослый')));
   });
 
+  test('не подсказывает модели добавлять «да или нет?»', () {
+    final p = buildInstructions(bear, const ChildProfile());
+    expect(p, isNot(contains('«да или нет?»')));
+    expect(p, contains('Не добавляй к вопросу «да или нет»'));
+  });
+
   test('заметки родителей попадают в промпт, пустые — нет', () {
     const notes = 'Кота зовут Барсик.';
     expect(buildInstructions(bear, const ChildProfile(notes: notes)),

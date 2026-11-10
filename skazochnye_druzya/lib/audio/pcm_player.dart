@@ -28,14 +28,17 @@ class PcmPlayer {
   Future<void> play(
     Uint8List pcm,
     int sampleRate,
-    void Function(double level) onLevel,
-  ) async {
+    void Function(double level) onLevel, {
+    double rate = 1.0,
+  }) async {
     await stop();
     // В PCM16 на сэмпл два байта — нечётный хвост отбрасываем.
     if (pcm.length.isOdd) pcm = Uint8List.sublistView(pcm, 0, pcm.length - 1);
 
     final envelope = _envelope(pcm, sampleRate);
-    final durationMs = pcm.length ~/ 2 * 1000 ~/ sampleRate;
+    // При замедлении звук длится дольше — и рот, и ожидание конца
+    // считаем по реальному времени.
+    final durationMs = (pcm.length ~/ 2 * 1000 / sampleRate / rate).round();
     final done = Completer<void>();
     _done = done;
 
@@ -45,6 +48,9 @@ class PcmPlayer {
     Timer? timer;
     try {
       await _player.play(BytesSource(_wav(pcm, sampleRate)));
+      // Скорость ставим после запуска: на Android установка до play()
+      // в некоторых версиях сама запускает звук. Высота голоса не меняется.
+      if (rate != 1.0) await _player.setPlaybackRate(rate);
       // stop() мог прийти, пока звук запускался.
       if (done.isCompleted) {
         await _player.stop();
@@ -53,7 +59,7 @@ class PcmPlayer {
 
       final clock = Stopwatch()..start();
       timer = Timer.periodic(const Duration(milliseconds: 40), (_) {
-        final i = clock.elapsedMilliseconds ~/ _windowMs;
+        final i = (clock.elapsedMilliseconds * rate) ~/ _windowMs;
         onLevel(i < envelope.length ? envelope[i] : 0);
       });
 

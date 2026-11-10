@@ -235,10 +235,15 @@ class ConversationController extends ChangeNotifier {
     log.add('${character.name}: $text');
     _set(TalkState.speaking);
     try {
-      await _player.play(pcm, AppConfig.sampleRate, (level) {
-        mouth = level;
-        if (!_disposed) notifyListeners();
-      });
+      await _player.play(
+        pcm,
+        AppConfig.sampleRate,
+        (level) {
+          mouth = level;
+          if (!_disposed) notifyListeners();
+        },
+        rate: child.speechRate,
+      );
     } catch (e) {
       DebugLog.add('[Audio] ошибка воспроизведения: $e');
     }
