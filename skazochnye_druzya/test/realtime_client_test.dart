@@ -96,4 +96,27 @@ void main() {
     final texts = ev.whereType<AssistantTranscript>().map((e) => e.text);
     expect(texts, ['Первый', '']);
   });
+
+  test('отменённый сервером ответ помечен — его не играем', () async {
+    final ev = await run([
+      {'type': 'response.created'},
+      {'type': 'response.output_text.delta', 'delta': 'Полфразы'},
+      {
+        'type': 'response.done',
+        'response': {'status': 'cancelled', 'output': []},
+      },
+    ]);
+    expect(ev.whereType<ResponseDone>().single.cancelled, isTrue);
+  });
+
+  test('обычный ответ не помечен отменённым', () async {
+    final ev = await run([
+      {'type': 'response.created'},
+      {
+        'type': 'response.done',
+        'response': {'status': 'completed', 'output': []},
+      },
+    ]);
+    expect(ev.whereType<ResponseDone>().single.cancelled, isFalse);
+  });
 }

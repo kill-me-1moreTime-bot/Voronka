@@ -26,8 +26,9 @@ enum TalkState {
 
 /// Ведёт один разговор с персонажем.
 ///
-/// Разговор полудуплексный: пока персонаж думает и говорит, микрофон
-/// не передаёт звук. Это защищает от эха из динамика и проще для малыша.
+/// Разговор полудуплексный: пока персонаж говорит, микрофон не передаёт
+/// звук — это защищает от эха из динамика. Пока думает — передаёт:
+/// малыш может договорить фразу после паузы.
 class ConversationController extends ChangeNotifier {
   ConversationController({required this.character, required this.child});
 
@@ -64,6 +65,11 @@ class ConversationController extends ChangeNotifier {
   late final String _instructions = buildInstructions(character, child);
 
   String _transcript = '';
+
+  /// Сервер начал отвечать, а ребёнок продолжил говорить: этот ответ
+  /// на полфразы, его не играем, ждём ответ на всю фразу.
+  bool _responseOpen = false;
+  bool _dropOpenResponse = false;
 
   /// Замер задержки: от конца фразы ребёнка (или просьбы) до готового ответа.
   final _wait = Stopwatch();
@@ -178,9 +184,18 @@ class ConversationController extends ChangeNotifier {
         _silenceTimer?.cancel();
         _silentNudges = 0;
         if (state == TalkState.listening) _set(TalkState.childSpeaking);
+        // Договаривает после паузы: микрофон во время «думает» не
+        // выключаем, сервер дослушает и ответит на всю фразу.
+        if (state == TalkState.thinking && !_mic.muted) {
+          if (_responseOpen) _dropOpenResponse = true;
+          _audio.clear();
+          DebugLog.add('[App] ребёнок договаривает — ждём конец фразы');
+          _set(TalkState.childSpeaking);
+        }
       case SpeechStopped():
+        // Микрофон не выключаем: если ребёнок продолжит после паузы,
+        // сервер это услышит. Выключится перед тем, как персонаж заговорит.
         if (state == TalkState.childSpeaking || state == TalkState.listening) {
-          _mic.muted = true;
           _wait.reset();
           _wait.start();
           _set(TalkState.thinking);
@@ -189,8 +204,8 @@ class ConversationController extends ChangeNotifier {
         _audio.clear();
         _transcript = '';
         _firstAudio = false;
+        _responseOpen = true;
         if (state == TalkState.listening || state == TalkState.childSpeaking) {
-          _mic.muted = true;
           _set(TalkState.thinking);
         }
       case AudioDelta(:final bytes):
@@ -202,8 +217,24 @@ class ConversationController extends ChangeNotifier {
       case AssistantTranscript(:final text):
         _transcript = text;
       case UserTranscript(:final text):
-        if (text.trim().isNotEmpty) log.add('Ребёнок: $text');
-      case ResponseDone(:final itemIds):
+        if (text.trim().isNotEmpty) {
+          log.add('Ребёнок: $text');
+          // Что расслышал Яндекс — видно, когда «плохо понимает».
+          DebugLog.add('[Ребёнок] $text');
+        }
+      case ResponseDone(:final itemIds, :final cancelled):
+        _responseOpen = false;
+        if (_dropOpenResponse) {
+          _dropOpenResponse = false;
+          _audio.clear();
+          DebugLog.add('[App] ответ на полфразы пропущен');
+          return;
+        }
+        if (cancelled) {
+          _audio.clear();
+          if (state == TalkState.thinking) _resumeListening();
+          return;
+        }
         _onResponseDone(itemIds);
       case RealtimeError(:final message):
         errorText = message;
@@ -249,6 +280,9 @@ class ConversationController extends ChangeNotifier {
     _safetyRetries = 0;
 
     log.add('${character.name}: $text');
+    DebugLog.add('[Ответ] $text');
+    // Перед речью — выключить микрофон, чтобы персонаж не слышал себя.
+    _mic.muted = true;
     _set(TalkState.speaking);
     try {
       await _player.play(

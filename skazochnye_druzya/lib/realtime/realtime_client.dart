@@ -44,7 +44,11 @@ class UserTranscript extends RealtimeEvent {
 }
 
 class ResponseDone extends RealtimeEvent {
-  const ResponseDone(this.itemIds);
+  const ResponseDone(this.itemIds, {this.cancelled = false});
+
+  /// Сервер отменил ответ: обычно ребёнок заговорил снова, пока
+  /// персонаж думал. Такой ответ не играем — он на полфразы.
+  final bool cancelled;
 
   /// Идентификаторы реплик ответа — нужны, чтобы удалить
   /// заблокированный ответ из контекста разговора.
@@ -112,9 +116,9 @@ class RealtimeClient {
             'format': format,
             'turn_detection': {
               'type': 'server_vad',
-              // Малыши делают паузы внутри фразы: меньше 0,7 с — персонаж
-              // начнёт отвечать, не дослушав.
-              'silence_duration_ms': 700,
+              // Малыши делают паузы внутри фразы. При 0,7 с персонаж
+              // отвечал на полфразы, поэтому 1 с.
+              'silence_duration_ms': 1000,
               'prefix_padding_ms': 300,
             },
           },
@@ -229,7 +233,11 @@ class RealtimeClient {
         if (text.trim().isEmpty) text = _textFromOutput(output);
         DebugLog.add('[RT] текст ответа: ${text.length} симв.');
         _emit(AssistantTranscript(text));
-        _emit(ResponseDone(ids));
+        final status = (m['response'] as Map?)?['status'];
+        if (status != null && status != 'completed') {
+          DebugLog.add('[RT] ответ: $status');
+        }
+        _emit(ResponseDone(ids, cancelled: status == 'cancelled'));
       case 'error':
         final err = m['error'];
         final msg = err is Map ? (err['message'] ?? err).toString() : '$m';
