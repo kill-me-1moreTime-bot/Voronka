@@ -7,6 +7,11 @@ import 'package:skazochnye_druzya/config.dart';
 import 'package:skazochnye_druzya/ui/parent_settings_screen.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await loadCharacters();
+  });
+
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   test('без настроек приложение не считается подключённым', () async {

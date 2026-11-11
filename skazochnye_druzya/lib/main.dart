@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'characters.dart';
 import 'ui/home_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Персонажи из assets/characters.json — до первого экрана.
+  await loadCharacters();
   runApp(const SkazochnyeDruzyaApp());
 }
 

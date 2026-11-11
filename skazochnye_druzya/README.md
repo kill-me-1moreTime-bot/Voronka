@@ -132,7 +132,8 @@ flutter build apk --release --dart-define-from-file=config.json
 | Файл | Что внутри |
 | --- | --- |
 | `lib/prompts.dart` | детский системный промпт, приветствие, прощание |
-| `lib/characters.dart` | персонажи: характер, история, голос, цвет |
+| `assets/characters.json` | персонажи: характер, дом, семья, друзья, факты, истории, голоса, цвет. Новый персонаж — запись здесь |
+| `lib/characters.dart` | чтение characters.json |
 | `lib/safety/safety_filter.dart` | список опасных тем и лимит длины ответа |
 | `lib/session/conversation_controller.dart` | логика разговора и состояния |
 | `lib/realtime/realtime_client.dart` | WebSocket и разбор событий сервера |

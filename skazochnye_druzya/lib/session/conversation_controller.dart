@@ -62,7 +62,11 @@ class ConversationController extends ChangeNotifier {
   /// Больше двух раз подряд в тишину не говорим — ждём молча.
   static const _maxNudges = 2;
 
-  late final String _instructions = buildInstructions(character, child);
+  /// История на этот разговор — случайная из нескольких, чтобы
+  /// разговоры не повторялись.
+  late final String _hook = character.randomHook();
+  late final String _instructions =
+      buildInstructions(character, child, hook: _hook);
 
   String _transcript = '';
 
@@ -387,6 +391,20 @@ class ConversationController extends ChangeNotifier {
     _silenceTimer = Timer(_silenceWait, () {
       if (state == TalkState.listening) nudge(auto: true);
     });
+  }
+
+  /// Кнопка «Угадай, кто я»: персонаж начинает игру. Работает, пока он
+  /// слушает — не перебиваем его на полуслове.
+  bool get canStartGame => state == TalkState.listening;
+
+  void startGuessGame() {
+    if (!canStartGame) return;
+    _silenceTimer?.cancel();
+    _micLogTimer?.cancel();
+    _silentNudges = 0;
+    DebugLog.add('[App] игра «Угадай, кто я»');
+    _mic.muted = true;
+    _ask(guessGameInstruction);
   }
 
   /// Персонаж сам продолжает разговор: малыш молчит, или взрослый

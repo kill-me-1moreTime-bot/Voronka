@@ -32,6 +32,8 @@ flutter:
   # listen.png, think.png. Нет картинок — персонаж рисуется кодом.
   # Новый персонаж — новая строка с его папкой.
   assets:
+    # Персонажи: характер, дом, друзья, факты, истории, голоса.
+    - assets/characters.json
     - assets/characters/bear/
     - assets/characters/wolf/
     - assets/characters/bunny/

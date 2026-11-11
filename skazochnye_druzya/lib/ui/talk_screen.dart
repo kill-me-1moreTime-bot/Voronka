@@ -235,6 +235,14 @@ class _Controls extends StatelessWidget {
           icon: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded),
         ),
         const SizedBox(width: 24),
+        // «Угадай, кто я» — большая лапка, без слов: малыш не читает.
+        IconButton.filled(
+          iconSize: 48,
+          tooltip: 'Угадай, кто я',
+          onPressed: controller.canStartGame ? controller.startGuessGame : null,
+          icon: const Icon(Icons.pets_rounded),
+        ),
+        const SizedBox(width: 24),
         IconButton.filledTonal(
           iconSize: 40,
           onPressed: controller.finish,

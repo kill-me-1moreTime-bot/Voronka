@@ -1,77 +1,109 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:math' as math;
 
-/// Форма персонажа для рисования (пока без Rive).
+import 'package:flutter/services.dart';
+
+/// Форма персонажа, нарисованного кодом (если нет картинок).
 enum CharacterKind { bear, wolf, bunny }
 
-/// Оригинальные персонажи. Стихи и образы Агнии Барто охраняются
-/// авторским правом до 31.12.2051, поэтому здесь свои истории.
+/// Персонаж. Все данные — в assets/characters.json: новый персонаж
+/// добавляется записью там, без правки кода.
 class CharacterProfile {
   const CharacterProfile({
     required this.id,
     required this.name,
+    required this.who,
+    required this.kin,
     required this.kind,
     required this.color,
     required this.voice,
     required this.liveVoice,
     required this.persona,
-    required this.hook,
+    required this.home,
+    required this.family,
+    required this.day,
+    required this.facts,
+    required this.hooks,
   });
 
   final String id;
   final String name;
+
+  /// Кто он: «медвежонок», «зайка» — для рассказов друзей о нём.
+  final String who;
+
+  /// Сородичи во множественном числе: «медведи», «зайцы».
+  final String kin;
   final CharacterKind kind;
   final Color color;
 
-  /// Голос Yandex SpeechKit. Проверьте доступные имена в плейграунде
-  /// AI Studio и замените при необходимости.
+  /// Голос прежней модели (general): ermil, filipp, jane…
   final String voice;
 
-  /// Голос LiveTTS для модели «Живые голоса»: sofia, vera, irina
-  /// (женские), vasily, sergey, denis (мужские).
+  /// Голос модели «Живые голоса» (LiveTTS): sofia, vera, irina —
+  /// женские, vasily, sergey, denis — мужские.
   final String liveVoice;
 
   /// Характер и манера речи.
   final String persona;
 
-  /// Маленькая проблема, с которой персонаж начинает разговор.
-  final String hook;
+  /// Где живёт, кто рядом, чем обычно занят.
+  final String home;
+  final String family;
+  final String day;
+
+  /// Добрые факты о своём звере — рассказывает «про себя».
+  final List<String> facts;
+
+  /// Маленькие истории-завязки. На каждый разговор выбирается одна.
+  final List<String> hooks;
+
+  /// Первое предложение характера — для рассказа о нём другим.
+  String get short {
+    final i = persona.indexOf('.');
+    return i < 0 ? persona : persona.substring(0, i + 1);
+  }
+
+  String randomHook([math.Random? rnd]) =>
+      hooks[(rnd ?? math.Random()).nextInt(hooks.length)];
+
+  factory CharacterProfile.fromJson(Map<String, dynamic> j) {
+    List<String> list(String k) =>
+        (j[k] as List).map((e) => e as String).toList();
+    final hex = (j['color'] as String).replaceFirst('#', '');
+    final hooks = list('hooks');
+    if (hooks.isEmpty) throw FormatException('у ${j['id']} нет hooks');
+    return CharacterProfile(
+      id: j['id'] as String,
+      name: j['name'] as String,
+      who: j['who'] as String,
+      kin: j['kin'] as String,
+      kind: CharacterKind.values.byName(j['kind'] as String),
+      color: Color(int.parse('FF$hex', radix: 16)),
+      voice: j['voice'] as String,
+      liveVoice: j['liveVoice'] as String,
+      persona: j['persona'] as String,
+      home: j['home'] as String,
+      family: j['family'] as String,
+      day: j['day'] as String,
+      facts: list('facts'),
+      hooks: hooks,
+    );
+  }
 }
 
-const characters = <CharacterProfile>[
-  CharacterProfile(
-    id: 'bear',
-    name: 'Мишка Топтыжка',
-    kind: CharacterKind.bear,
-    color: Color(0xFFB07A4F),
-    voice: 'ermil',
-    liveVoice: 'vasily',
-    persona: 'Добродушный, немного неуклюжий медвежонок. Говорит медленно, '
-        'басом, любит мёд и малину. Иногда смешно ворчит, но быстро радуется.',
-    hook: 'в лесу с ёлки на тебя всё время падают шишки, и ты не знаешь, '
-        'что с ними делать — может, ребёнок подскажет',
-  ),
-  CharacterProfile(
-    id: 'wolf',
-    name: 'Волчонок Вова',
-    kind: CharacterKind.wolf,
-    color: Color(0xFF8A94A6),
-    voice: 'filipp',
-    liveVoice: 'denis',
-    persona: 'Совсем не страшный, весёлый волчонок. Любит выть на луну '
-        '«у-у-у», но только потому, что ему скучно одному. Мечтает о друзьях.',
-    hook: 'тебе скучно, ты воешь на луну «у-у-у» и ищешь друга, '
-        'с которым можно поиграть',
-  ),
-  CharacterProfile(
-    id: 'bunny',
-    name: 'Зайка Зоя',
-    kind: CharacterKind.bunny,
-    color: Color(0xFFE6E0D8),
-    voice: 'jane',
-    liveVoice: 'sofia',
-    persona: 'Ласковая, чуть-чуть плаксивая зайка. Иногда хнычет, но быстро '
-        'утешается, когда ей помогают. Любит морковку и прыгать.',
-    hook: 'ты потеряла в траве свою оранжевую морковку и немножко хнычешь — '
-        'может, ребёнок поможет её найти',
-  ),
-];
+/// Все персонажи. Заполняется при запуске из assets/characters.json.
+List<CharacterProfile> characters = const [];
+
+List<CharacterProfile> parseCharacters(String json) {
+  final root = jsonDecode(json) as Map<String, dynamic>;
+  return (root['characters'] as List)
+      .map((e) => CharacterProfile.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
+
+Future<void> loadCharacters({AssetBundle? bundle}) async {
+  final text =
+      await (bundle ?? rootBundle).loadString('assets/characters.json');
+  characters = parseCharacters(text);
+}
