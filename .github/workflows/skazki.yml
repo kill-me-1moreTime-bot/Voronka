@@ -37,11 +37,32 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-      # Отладочная сборка: подписана отладочным ключом, ставится без настройки подписи.
-      - run: flutter build apk --debug
+      # Постоянный ключ подписи из секрета SKAZKI_KEYSTORE_BASE64 (Settings →
+      # Secrets and variables → Actions). С ним APK ставится поверх прежнего
+      # и настройки на телефоне сохраняются. Без секрета — отладочный ключ,
+      # и такой APK встанет только после удаления приложения.
+      - name: Ключ подписи
+        env:
+          KEYSTORE_B64: ${{ secrets.SKAZKI_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/skazki.jks"
+            echo "SKAZKI_KEYSTORE=$RUNNER_TEMP/skazki.jks" >> "$GITHUB_ENV"
+            echo "Подпись постоянным ключом"
+          else
+            echo "::warning::Нет секрета SKAZKI_KEYSTORE_BASE64 — подпись отладочным ключом, APK не встанет поверх"
+          fi
+
+      # Как сборки на компьютере: release, только arm64 (почти все телефоны),
+      # тот же номер версии — поэтому ставится поверх.
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64
+        env:
+          SKAZKI_STORE_PASSWORD: ${{ secrets.SKAZKI_STORE_PASSWORD || 'android' }}
+          SKAZKI_KEY_ALIAS: ${{ secrets.SKAZKI_KEY_ALIAS || 'androiddebugkey' }}
+          SKAZKI_KEY_PASSWORD: ${{ secrets.SKAZKI_KEY_PASSWORD || 'android' }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: skazochnye-druzya-apk
-          path: skazochnye_druzya/build/app/outputs/flutter-apk/app-debug.apk
+          path: skazochnye_druzya/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           retention-days: 14

@@ -1,8 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Постоянный ключ подписи: одним ключом подписаны все сборки, поэтому
+// новая версия ставится поверх старой и настройки на телефоне остаются.
+// Откуда берётся (сам ключ в репозиторий не кладём — он публичный):
+// 1) android/key.properties (в .gitignore) — для сборки на компьютере;
+// 2) переменные окружения SKAZKI_KEYSTORE… — для GitHub Actions.
+// Нет ни того, ни другого — подпись отладочным ключом, как раньше.
+val keyProps = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun keyValue(prop: String, env: String): String? =
+    keyProps.getProperty(prop) ?: System.getenv(env)
+val keystorePath = keyValue("storeFile", "SKAZKI_KEYSTORE")
+val hasStableKey = keystorePath != null && file(keystorePath).exists()
 
 android {
     namespace = "ru.skazki.skazochnye_druzya"
@@ -29,11 +46,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasStableKey) {
+            create("stable") {
+                storeFile = file(keystorePath!!)
+                storePassword = keyValue("storePassword", "SKAZKI_STORE_PASSWORD")
+                keyAlias = keyValue("keyAlias", "SKAZKI_KEY_ALIAS")
+                keyPassword = keyValue("keyPassword", "SKAZKI_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (hasStableKey) "stable" else "debug")
+        }
+        debug {
+            if (hasStableKey) signingConfig = signingConfigs.getByName("stable")
         }
     }
 }
