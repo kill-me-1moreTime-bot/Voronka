@@ -51,6 +51,16 @@ class ConversationController extends ChangeNotifier {
   StreamSubscription<RealtimeEvent>? _sub;
   Timer? _limitTimer;
 
+  /// Пока персонаж слушает: раз в 5 с пишет в журнал, идёт ли звук,
+  /// и через 15 с тишины сам продолжает разговор.
+  Timer? _micLogTimer;
+  Timer? _silenceTimer;
+  int _silentNudges = 0;
+  static const _silenceWait = Duration(seconds: 15);
+
+  /// Больше двух раз подряд в тишину не говорим — ждём молча.
+  static const _maxNudges = 2;
+
   late final String _instructions = buildInstructions(character, child);
 
   String _transcript = '';
@@ -142,6 +152,10 @@ class ConversationController extends ChangeNotifier {
 
   /// Касание персонажа во время речи — замолчать и слушать.
   Future<void> interrupt() async {
+    if (state == TalkState.listening) {
+      nudge();
+      return;
+    }
     if (state != TalkState.speaking) return;
     await _player.stop(); // play() вернётся и сам переведёт в listening
   }
@@ -161,6 +175,8 @@ class ConversationController extends ChangeNotifier {
   void _onEvent(RealtimeEvent e) {
     switch (e) {
       case SpeechStarted():
+        _silenceTimer?.cancel();
+        _silentNudges = 0;
         if (state == TalkState.listening) _set(TalkState.childSpeaking);
       case SpeechStopped():
         if (state == TalkState.childSpeaking || state == TalkState.listening) {
@@ -266,7 +282,11 @@ class ConversationController extends ChangeNotifier {
     _set(TalkState.listening);
     // Короткая пауза, чтобы хвост собственного голоса не попал в микрофон.
     await Future<void>.delayed(_echoGuard);
-    if (state == TalkState.listening) _mic.muted = false;
+    if (state == TalkState.listening) {
+      _mic.muted = false;
+      _mic.takeStats();
+      _watchListening();
+    }
   }
 
   void _sayGoodbye() {
@@ -317,6 +337,38 @@ class ConversationController extends ChangeNotifier {
     _set(TalkState.error);
   }
 
+  void _watchListening() {
+    _micLogTimer?.cancel();
+    _micLogTimer = Timer.periodic(const Duration(seconds: 5), (t) {
+      if (state != TalkState.listening && state != TalkState.childSpeaking) {
+        t.cancel();
+        return;
+      }
+      final st = _mic.takeStats();
+      DebugLog.add('[Mic] за 5 с: кусков ${st.chunks}, '
+          'громкость ${(st.peak * 100).round()}%');
+    });
+    _silenceTimer?.cancel();
+    if (_silentNudges >= _maxNudges) return;
+    _silenceTimer = Timer(_silenceWait, () {
+      if (state == TalkState.listening) nudge(auto: true);
+    });
+  }
+
+  /// Персонаж сам продолжает разговор: малыш молчит, или взрослый
+  /// нажал на персонажа, пока тот слушает.
+  void nudge({bool auto = false}) {
+    if (state != TalkState.listening) return;
+    _silenceTimer?.cancel();
+    _micLogTimer?.cancel();
+    if (auto) _silentNudges++;
+    DebugLog.add(auto
+        ? '[App] тишина ${_silenceWait.inSeconds} с — персонаж продолжает сам'
+        : '[App] нажали на персонажа — он продолжает сам');
+    _mic.muted = true;
+    _ask(silenceInstruction);
+  }
+
   void _set(TalkState s) {
     state = s;
     if (!_disposed) notifyListeners();
@@ -326,6 +378,8 @@ class ConversationController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _limitTimer?.cancel();
+    _micLogTimer?.cancel();
+    _silenceTimer?.cancel();
     _sub?.cancel();
     _mic.dispose();
     _player.dispose();

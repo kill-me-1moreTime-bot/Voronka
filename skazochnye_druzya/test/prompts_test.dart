@@ -51,4 +51,9 @@ void main() {
       expect(c.voice, isNotEmpty);
     }
   });
+
+  test('просьба при молчании — без упрёков и коротко', () {
+    expect(silenceInstruction, contains('Не упрекай'));
+    expect(silenceInstruction, contains('одной-двумя фразами'));
+  });
 }
