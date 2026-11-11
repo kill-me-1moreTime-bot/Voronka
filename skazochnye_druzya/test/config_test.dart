@@ -126,6 +126,24 @@ void main() {
     expect(AppConfig.looksLikeFolder('b13963ffd26e9754'), isFalse);
   });
 
+  testWidgets('кнопка «Сохранить» есть и в заголовке', (tester) async {
+    tester.view.physicalSize = const Size(800, 6000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const MaterialApp(
+      home: ParentSettingsScreen(initial: ChildProfile()),
+    ));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.widgetWithText(TextField, 'Идентификатор каталога'), 'b1gTOP');
+    await tester.tap(find.descendant(
+      of: find.byType(AppBar),
+      matching: find.text('Сохранить'),
+    ));
+    await tester.pumpAndSettle();
+    expect(AppConfig.folderId, 'b1gTOP');
+  });
+
   testWidgets('форма родителя сохраняет адрес и ключ', (tester) async {
     // Высокий экран: вся форма строится сразу, без прокрутки.
     tester.view.physicalSize = const Size(800, 6000);
@@ -140,12 +158,12 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, 'API-ключ'), 'secret');
     await tester.scrollUntilVisible(
-      find.text('Сохранить'),
+      find.text('Сохранить').last,
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Сохранить'));
+    await tester.tap(find.text('Сохранить').last);
     await tester.pumpAndSettle();
     expect(AppConfig.realtimeUrl, contains('gpt://b1gTEST/'));
     expect(AppConfig.apiKey, 'secret');
@@ -175,12 +193,12 @@ void main() {
     await tester.pump();
     expect(find.text('Адрес должен начинаться с wss://'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('Сохранить'),
+      find.text('Сохранить').last,
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Сохранить'));
+    await tester.tap(find.text('Сохранить').last);
     await tester.pumpAndSettle();
     expect(AppConfig.isConfigured, isFalse);
   });
