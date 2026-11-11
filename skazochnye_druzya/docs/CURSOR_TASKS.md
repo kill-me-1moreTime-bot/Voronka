@@ -19,6 +19,8 @@
 
 ## 1. Персонаж на Rive
 
+> **Как рисовать:** пошаговый план в `docs/RIVE.md`. Rive сейчас советует управлять анимацией через Data Binding (View Model `Character`: `mouth`, `listening`, `thinking`, `happy`) вместо Inputs — подключать тем способом, каким сделан файл. Картинки-кадры (`SpriteSet`) остаются запасным вариантом для персонажей без `.riv`. Экспорт `.riv` в Rive — на платном тарифе.
+
 **Задание:**
 > Замени нарисованного персонажа (`lib/ui/character_painter.dart`, `character_view.dart`) на анимацию Rive. Добавь пакет `rive`. Файл `assets/characters/bear.riv` я положу сам. Его state machine `Main` имеет входы: `mouth` (число 0–100), `listening` (bool), `thinking` (bool), `happy` (trigger). Сохрани интерфейс `CharacterView` (character, mouth, listening, thinking), чтобы остальной код не менялся. Для персонажей без .riv-файла оставь нарисованную версию.
 
