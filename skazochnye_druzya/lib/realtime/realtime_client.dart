@@ -60,6 +60,14 @@ class RealtimeError extends RealtimeEvent {
   final String message;
 }
 
+/// Модель вызвала функцию (сейчас одна: remember — запомнить о малыше).
+class FunctionCall extends RealtimeEvent {
+  const FunctionCall(this.name, this.callId, this.arguments);
+  final String name;
+  final String callId;
+  final Map<String, dynamic> arguments;
+}
+
 class Disconnected extends RealtimeEvent {
   const Disconnected();
 }
@@ -103,7 +111,11 @@ class RealtimeClient {
   }
 
   /// Настройка сессии: промпт, голос, формат звука, детектор речи.
-  void configure({required String instructions, required String voice}) {
+  void configure({
+    required String instructions,
+    required String voice,
+    List<Map<String, Object?>> tools = const [],
+  }) {
     final format = {'type': 'audio/pcm', 'rate': AppConfig.sampleRate};
     _send({
       'type': 'session.update',
@@ -124,9 +136,21 @@ class RealtimeClient {
           },
           'output': {'format': format, 'voice': voice},
         },
+        if (tools.isNotEmpty) 'tools': tools,
       },
     });
   }
+
+  /// Ответ приложения на вызов функции. Новый ответ модели после этого
+  /// просит контроллер, если в этом ответе персонаж ничего не сказал.
+  void sendFunctionOutput(String callId, String output) => _send({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'function_call_output',
+          'call_id': callId,
+          'output': output,
+        },
+      });
 
   void appendAudio(Uint8List pcm) =>
       _send({'type': 'input_audio_buffer.append', 'audio': base64Encode(pcm)});
@@ -221,6 +245,22 @@ class RealtimeClient {
         _keepFinal(m['transcript']);
       case 'conversation.item.input_audio_transcription.completed':
         _emit(UserTranscript(m['transcript'] as String? ?? ''));
+      case 'response.output_item.done':
+        final item = m['item'];
+        if (item is Map && item['type'] == 'function_call') {
+          Map<String, dynamic> args;
+          try {
+            args = jsonDecode(item['arguments'] as String? ?? '{}')
+                as Map<String, dynamic>;
+          } catch (_) {
+            args = const {};
+          }
+          _emit(FunctionCall(
+            item['name'] as String? ?? '',
+            item['call_id'] as String? ?? '',
+            args,
+          ));
+        }
       case 'response.done':
         final output = (m['response'] as Map?)?['output'] as List? ?? const [];
         final ids = output

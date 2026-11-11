@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../child_memory.dart';
 import '../child_profile.dart';
 import '../config.dart';
 
@@ -61,6 +62,8 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
     }
     final p = _p.copyWith(name: _name.text.trim(), notes: notes);
     await p.save();
+    // Новая модель — новая попытка: может, она умеет запоминать.
+    if (_model != AppConfig.model) await ChildMemory.setToolsBroken(false);
     await AppConfig.save(
       url: _url.text,
       key: _key.text,
@@ -171,6 +174,8 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
               ],
             ),
             const SizedBox(height: 32),
+            const _MemorySection(),
+            const SizedBox(height: 32),
             Text('Подключение к Yandex AI Studio', style: t.titleMedium),
             const SizedBox(height: 4),
             Text(
@@ -277,6 +282,99 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// «Что запомнил персонаж»: выключатель, список с удалением, «Стереть всё».
+/// Меняется сразу, без кнопки «Сохранить».
+class _MemorySection extends StatefulWidget {
+  const _MemorySection();
+
+  @override
+  State<_MemorySection> createState() => _MemorySectionState();
+}
+
+class _MemorySectionState extends State<_MemorySection> {
+  Future<void> _forgetAll() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Стереть всё, что запомнил персонаж?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Стереть'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    await ChildMemory.forgetAll();
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final facts = ChildMemory.facts.reversed.toList(); // новые сверху
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Персонаж запоминает о малыше', style: t.titleMedium),
+          subtitle: const Text(
+            'Любимое, имена питомцев и друзей, увлечения. Хранится только '
+            'на этом телефоне, в разговоре уходит Яндексу вместе с промптом. '
+            'Адрес, садик, телефон и здоровье не запоминаются.',
+          ),
+          value: ChildMemory.enabled,
+          onChanged: (on) async {
+            await ChildMemory.setEnabled(on);
+            if (on) await ChildMemory.setToolsBroken(false);
+            setState(() {});
+          },
+        ),
+        if (ChildMemory.enabled && ChildMemory.toolsBroken)
+          Text(
+            'Выбранная модель не умеет запоминать, память выключилась сама. '
+            'Выключите и включите переключатель, чтобы попробовать снова.',
+            style: t.bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.error),
+          ),
+        const SizedBox(height: 8),
+        if (facts.isEmpty)
+          Text('Пока ничего не запомнил.', style: t.bodyMedium)
+        else ...[
+          Text('Что запомнил персонаж', style: t.titleSmall),
+          for (final f in facts)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(f),
+              trailing: IconButton(
+                tooltip: 'Забыть',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () async {
+                  await ChildMemory.forget(f);
+                  setState(() {});
+                },
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _forgetAll,
+              icon: const Icon(Icons.delete_outline_rounded),
+              label: const Text('Стереть всё'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

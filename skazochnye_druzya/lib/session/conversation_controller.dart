@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../audio/mic_stream.dart';
 import '../audio/pcm_player.dart';
 import '../characters.dart';
+import '../child_memory.dart';
 import '../child_profile.dart';
 import '../config.dart';
 import '../debug_log.dart';
@@ -65,8 +66,22 @@ class ConversationController extends ChangeNotifier {
   /// История на этот разговор — случайная из нескольких, чтобы
   /// разговоры не повторялись.
   late final String _hook = character.randomHook();
-  late final String _instructions =
-      buildInstructions(character, child, hook: _hook);
+  late final String _instructions = buildInstructions(
+    character,
+    child,
+    hook: _hook,
+    memory: ChildMemory.facts,
+    canRemember: ChildMemory.active,
+  );
+
+  /// Функцию «запомнить» отправили, а сервер ещё не подтвердил настройки:
+  /// ошибка в это время — скорее всего, модель её не принимает.
+  bool _toolsSent = false;
+  bool _sessionReady = false;
+
+  /// Модель вызвала «запомнить» и ничего не сказала — после ответа
+  /// функции просим её продолжить разговор.
+  bool _needFollowUp = false;
 
   String _transcript = '';
 
@@ -115,9 +130,11 @@ class ConversationController extends ChangeNotifier {
       return;
     }
     _sub = _client.events.listen(_onEvent);
+    _toolsSent = ChildMemory.active;
     _client.configure(
       instructions: _instructions,
       voice: AppConfig.voiceFor(character),
+      tools: _toolsSent ? [ChildMemory.tool] : const [],
     );
 
     _mic.muted = true; // персонаж говорит первым
@@ -235,18 +252,28 @@ class ConversationController extends ChangeNotifier {
           return;
         }
         if (cancelled) {
+          _needFollowUp = false;
           _audio.clear();
           if (state == TalkState.thinking) _resumeListening();
           return;
         }
         _onResponseDone(itemIds);
       case RealtimeError(:final message):
+        if (_toolsSent && !_sessionReady) {
+          // Разговор не должен ломаться из-за памяти: в следующий раз
+          // подключимся без функции.
+          ChildMemory.setToolsBroken(true);
+          DebugLog.add('[Память] модель не приняла функцию «запомнить» — '
+              'память выключена до смены модели');
+        }
         errorText = message;
         if (!_disposed) notifyListeners();
       case Disconnected():
         if (!_closed) _fail('Связь прервалась.');
       case SessionReady():
-        break;
+        _sessionReady = true;
+      case FunctionCall(:final name, :final callId, :final arguments):
+        _onFunctionCall(name, callId, arguments);
     }
   }
 
@@ -260,9 +287,19 @@ class ConversationController extends ChangeNotifier {
     if (state != TalkState.thinking) return;
 
     if (pcm.isEmpty) {
+      if (_needFollowUp) {
+        // Персонаж только запомнил и промолчал — пусть продолжит.
+        _needFollowUp = false;
+        _wait
+          ..reset()
+          ..start();
+        _client.requestResponse();
+        return;
+      }
       _resumeListening();
       return;
     }
+    _needFollowUp = false;
 
     // Пустой текст фильтр считает опасным: без него проверить нечего.
     final verdict = SafetyFilter.check(text);
@@ -419,6 +456,28 @@ class ConversationController extends ChangeNotifier {
         : '[App] нажали на персонажа — он продолжает сам');
     _mic.muted = true;
     _ask(silenceInstruction);
+  }
+
+  void _onFunctionCall(String name, String callId, Map<String, dynamic> args) {
+    if (name != 'remember') {
+      _client.sendFunctionOutput(callId, 'Такой функции нет.');
+      _needFollowUp = true;
+      return;
+    }
+    final fact = (args['fact'] as String? ?? '').trim();
+    final why = ChildMemory.remember(fact);
+    if (why == null) {
+      DebugLog.add('[Память] запомнил: $fact');
+      _client.sendFunctionOutput(callId, 'Запомнил.');
+    } else {
+      DebugLog.add('[Память] не запомнил ($why): $fact');
+      _client.sendFunctionOutput(
+        callId,
+        'Это не запоминай: такое знают только мама и папа. '
+        'Просто продолжай разговор и не говори об этом.',
+      );
+    }
+    _needFollowUp = true;
   }
 
   void _set(TalkState s) {

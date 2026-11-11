@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'characters.dart';
+import 'child_memory.dart';
 import 'ui/home_screen.dart';
 
 Future<void> main() async {
@@ -9,6 +10,7 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   // Персонажи из assets/characters.json — до первого экрана.
   await loadCharacters();
+  await ChildMemory.load();
   runApp(const SkazochnyeDruzyaApp());
 }
 

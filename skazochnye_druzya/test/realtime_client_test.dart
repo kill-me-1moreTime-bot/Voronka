@@ -119,4 +119,37 @@ void main() {
     ]);
     expect(ev.whereType<ResponseDone>().single.cancelled, isFalse);
   });
+
+  test('вызов функции «запомнить» разбирается', () async {
+    final ev = await run([
+      {
+        'type': 'response.output_item.done',
+        'item': {
+          'type': 'function_call',
+          'name': 'remember',
+          'call_id': 'c1',
+          'arguments': '{"fact":"кота зовут Барсик"}',
+        },
+      },
+    ]);
+    final f = ev.whereType<FunctionCall>().single;
+    expect(f.name, 'remember');
+    expect(f.callId, 'c1');
+    expect(f.arguments['fact'], 'кота зовут Барсик');
+  });
+
+  test('сломанные аргументы функции не роняют разбор', () async {
+    final ev = await run([
+      {
+        'type': 'response.output_item.done',
+        'item': {
+          'type': 'function_call',
+          'name': 'remember',
+          'call_id': 'c2',
+          'arguments': '{сломано',
+        },
+      },
+    ]);
+    expect(ev.whereType<FunctionCall>().single.arguments, isEmpty);
+  });
 }
