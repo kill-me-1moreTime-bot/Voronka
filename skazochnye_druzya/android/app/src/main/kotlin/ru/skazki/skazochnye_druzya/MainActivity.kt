@@ -1,5 +1,6 @@
 package ru.skazki.skazochnye_druzya
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FragmentActivity нужна для окна входа по отпечатку (local_auth).
+class MainActivity : FlutterFragmentActivity()

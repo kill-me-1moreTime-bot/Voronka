@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text('С кем поговорим?',
                         style: theme.textTheme.headlineMedium),
                   ),
-                  ParentGate(onUnlocked: _openSettings),
+                  ParentGate(onUnlocked: _openSettings, deviceAuth: true),
                 ],
               ),
             ),
@@ -67,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Padding(
                     padding: EdgeInsets.all(12),
                     child: Text('Не заданы адрес и ключ Yandex AI Studio. '
-                        'Удерживайте значок настроек справа вверху 3 секунды '
-                        'и заполните раздел «Подключение».'),
+                        'Нажмите значок настроек справа вверху (вход по '
+                        'отпечатку пальца) и заполните раздел «Подключение».'),
                   ),
                 ),
               ),
