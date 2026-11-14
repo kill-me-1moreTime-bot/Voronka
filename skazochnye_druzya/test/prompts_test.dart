@@ -128,4 +128,19 @@ void main() {
       expect(p.length, lessThan(9000), reason: c.id);
     }
   });
+
+  test('имя известно — не спрашивает, как зовут', () {
+    final p = buildInstructions(bear, const ChildProfile(name: 'Ева'));
+    expect(p, contains('Имя малыша ты уже знаешь: Ева'));
+    expect(p, contains('Никогда не спрашивай, как его зовут'));
+    expect(greetingInstruction, contains('не про имя'));
+    // Имени нет — правила нет, спросить можно.
+    expect(buildInstructions(bear, const ChildProfile()),
+        isNot(contains('Имя малыша ты уже знаешь')));
+  });
+
+  test('только по-русски', () {
+    expect(buildInstructions(bear, const ChildProfile()),
+        contains('Только по-русски'));
+  });
 }
