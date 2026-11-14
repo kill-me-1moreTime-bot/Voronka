@@ -143,4 +143,10 @@ void main() {
     expect(buildInstructions(bear, const ChildProfile()),
         contains('Только по-русски'));
   });
+
+  test('странную распознанную фразу не понимает буквально', () {
+    final p = buildInstructions(bear, const ChildProfile());
+    expect(p, contains('не понимай её буквально'));
+    expect(p, contains('Не повторяй дословно'));
+  });
 }

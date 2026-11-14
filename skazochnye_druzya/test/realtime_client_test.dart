@@ -152,4 +152,18 @@ void main() {
     ]);
     expect(ev.whereType<FunctionCall>().single.arguments, isEmpty);
   });
+
+  test('«нечего отменять» не считается ошибкой', () async {
+    final ev = await run([
+      {
+        'type': 'error',
+        'error': {'code': 'response_cancel_not_active', 'message': 'x'},
+      },
+      {
+        'type': 'error',
+        'error': {'code': 'other', 'message': 'настоящая'},
+      },
+    ]);
+    expect(ev.whereType<RealtimeError>().map((e) => e.message), ['настоящая']);
+  });
 }

@@ -126,6 +126,9 @@ class RealtimeClient {
         'audio': {
           'input': {
             'format': format,
+            // Без подсказки сервер сам угадывает язык и на коротких
+            // детских фразах ошибается чаще.
+            'languages': ['ru-RU'],
             'turn_detection': {
               'type': 'server_vad',
               // Малыши делают паузы внутри фразы. При 0,7 с персонаж
@@ -282,6 +285,8 @@ class RealtimeClient {
         final err = m['error'];
         final msg = err is Map ? (err['message'] ?? err).toString() : '$m';
         DebugLog.add('[RT] ошибка сервера: ${err ?? m}');
+        // «Нечего отменять» — не ошибка: ответ успел закончиться сам.
+        if (err is Map && err['code'] == 'response_cancel_not_active') return;
         _emit(RealtimeError(msg));
     }
   }

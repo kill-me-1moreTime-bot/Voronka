@@ -168,7 +168,8 @@ class ConversationController extends ChangeNotifier {
     // Состояние — до остановки звука, чтобы прерванный play() не открыл микрофон.
     _mic.muted = true;
     _set(TalkState.paused);
-    _client.cancelResponse();
+    // Отменять есть что, только пока сервер ещё готовит ответ.
+    if (_responseOpen) _client.cancelResponse();
     await _player.stop();
   }
 
