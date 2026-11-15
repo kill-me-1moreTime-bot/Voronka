@@ -158,21 +158,33 @@ class CharacterPainter extends CustomPainter {
           canvas.drawCircle(p, r * 0.18, inner);
         }
       case CharacterKind.pig:
-        // Маленькие треугольные ушки с загнутым кончиком. Рисуем одно
-        // и отражаем — так они точно одинаковые.
+        // Крупные уши-лепестки: светлый край, тёмно-розовая серединка.
+        // Рисуем одно и отражаем — так они точно одинаковые.
+        final edge = Paint()..color = Color.lerp(color, Colors.white, 0.12)!;
+        final rim = Paint()
+          ..color = Color.lerp(color, const Color(0xFFB85C74), 0.55)!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = r * 0.025
+          ..strokeJoin = StrokeJoin.round;
+        final mid = Paint()
+          ..color = Color.lerp(color, const Color(0xFFD9778A), 0.6)!;
         for (final side in [-1.0, 1.0]) {
           canvas.save();
           canvas.translate(c.dx, c.dy);
           canvas.scale(side, 1);
-          final ear = Path()
-            ..moveTo(r * 0.3, -r * 0.82)
-            ..quadraticBezierTo(r * 0.78, -r * 1.3, r * 0.98, -r * 0.92)
-            ..quadraticBezierTo(r * 0.95, -r * 0.6, r * 0.82, -r * 0.42)
+          final outer = Path()
+            ..moveTo(r * 0.36, -r * 0.86)
+            ..quadraticBezierTo(r * 0.62, -r * 1.24, r * 1.08, -r * 1.14)
+            ..quadraticBezierTo(r * 1.16, -r * 0.78, r * 0.9, -r * 0.5)
             ..close();
-          canvas.drawPath(
-            ear,
-            Paint()..color = Color.lerp(color, const Color(0xFFD9778A), 0.6)!,
-          );
+          canvas.drawPath(outer, edge);
+          canvas.drawPath(outer, rim);
+          final inn = Path()
+            ..moveTo(r * 0.56, -r * 0.84)
+            ..quadraticBezierTo(r * 0.72, -r * 1.08, r * 0.99, -r * 1.05)
+            ..quadraticBezierTo(r * 1.02, -r * 0.82, r * 0.86, -r * 0.64)
+            ..close();
+          canvas.drawPath(inn, mid);
           canvas.restore();
         }
       case CharacterKind.puppy:
