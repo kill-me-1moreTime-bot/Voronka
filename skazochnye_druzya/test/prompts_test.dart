@@ -68,8 +68,8 @@ void main() {
   });
 
   group('characters.json', () {
-    test('три персонажа, у всех дом, факты и несколько историй', () {
-      expect(characters.map((c) => c.id), ['bear', 'wolf', 'bunny']);
+    test('шесть персонажей, у всех дом, факты и несколько историй', () {
+      expect(characters.map((c) => c.id), ['bear', 'wolf', 'bunny', 'fox', 'pig', 'puppy']);
       for (final c in characters) {
         expect(c.home, isNotEmpty, reason: c.id);
         expect(c.facts.length, greaterThanOrEqualTo(6), reason: c.id);

@@ -45,10 +45,25 @@ class CharacterPainter extends CustomPainter {
 
     canvas.drawCircle(c, r, fur);
 
+    // Щенок: пятнышко вокруг глаза.
+    if (kind == CharacterKind.puppy) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: c.translate(r * 0.38, -r * 0.1),
+          width: r * 0.62,
+          height: r * 0.7,
+        ),
+        dark,
+      );
+    }
+
     // Мордочка
     final muzzle = Rect.fromCenter(
       center: c.translate(0, r * 0.38),
-      width: r * (kind == CharacterKind.wolf ? 1.0 : 0.95),
+      width: r *
+          (kind == CharacterKind.wolf || kind == CharacterKind.fox
+              ? 1.0
+              : 0.95),
       height: r * 0.72,
     );
     canvas.drawOval(muzzle, light);
@@ -75,21 +90,38 @@ class CharacterPainter extends CustomPainter {
       }
     }
 
-    // Нос
+    // Нос. У поросёнка — пятачок с двумя ноздрями.
     final nose = c.translate(0, r * 0.2);
-    canvas.drawOval(
-      Rect.fromCenter(center: nose, width: r * 0.24, height: r * 0.16),
-      ink,
-    );
+    if (kind == CharacterKind.pig) {
+      canvas.drawOval(
+        Rect.fromCenter(center: nose, width: r * 0.52, height: r * 0.36),
+        Paint()..color = Color.lerp(color, const Color(0xFFE0607A), 0.45)!,
+      );
+      for (final dx in [-0.09, 0.09]) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: nose.translate(dx * r, 0),
+            width: r * 0.07,
+            height: r * 0.13,
+          ),
+          dark,
+        );
+      }
+    } else {
+      canvas.drawOval(
+        Rect.fromCenter(center: nose, width: r * 0.24, height: r * 0.16),
+        ink,
+      );
+    }
 
     // Рот: улыбка или открытый овал
-    final mouthTop = nose.translate(0, r * 0.18);
+    final mouthTop =
+        nose.translate(0, r * (kind == CharacterKind.pig ? 0.26 : 0.18));
     if (mouth < 0.08) {
       final smile = Path()
         ..moveTo(mouthTop.dx - r * 0.18, mouthTop.dy)
-        ..quadraticBezierTo(
-            mouthTop.dx, mouthTop.dy + r * 0.14, mouthTop.dx + r * 0.18,
-            mouthTop.dy);
+        ..quadraticBezierTo(mouthTop.dx, mouthTop.dy + r * 0.14,
+            mouthTop.dx + r * 0.18, mouthTop.dy);
       canvas.drawPath(
         smile,
         Paint()
@@ -124,6 +156,64 @@ class CharacterPainter extends CustomPainter {
           final p = c.translate(dx * r, -r * 0.72);
           canvas.drawCircle(p, r * 0.32, fur);
           canvas.drawCircle(p, r * 0.18, inner);
+        }
+      case CharacterKind.pig:
+        // Маленькие треугольные ушки с загнутым кончиком. Рисуем одно
+        // и отражаем — так они точно одинаковые.
+        for (final side in [-1.0, 1.0]) {
+          canvas.save();
+          canvas.translate(c.dx, c.dy);
+          canvas.scale(side, 1);
+          final ear = Path()
+            ..moveTo(r * 0.3, -r * 0.82)
+            ..quadraticBezierTo(r * 0.78, -r * 1.3, r * 0.98, -r * 0.92)
+            ..quadraticBezierTo(r * 0.95, -r * 0.6, r * 0.82, -r * 0.42)
+            ..close();
+          canvas.drawPath(
+            ear,
+            Paint()..color = Color.lerp(color, const Color(0xFFD9778A), 0.6)!,
+          );
+          canvas.restore();
+        }
+      case CharacterKind.puppy:
+        // Висячие уши по бокам.
+        for (final side in [-1.0, 1.0]) {
+          canvas.save();
+          final base = c.translate(side * r * 0.82, -r * 0.35);
+          canvas.translate(base.dx, base.dy);
+          canvas.rotate(side * -0.35);
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: Offset(0, r * 0.3),
+              width: r * 0.46,
+              height: r * 0.95,
+            ),
+            inner,
+          );
+          canvas.restore();
+        }
+      case CharacterKind.fox:
+        // Острые уши с тёмными кончиками.
+        for (final side in [-1.0, 1.0]) {
+          final base = c.translate(side * r * 0.55, -r * 0.6);
+          final tip = Offset(base.dx + side * r * 0.14, base.dy - r * 0.72);
+          final outer = Path()
+            ..moveTo(base.dx - r * 0.34, base.dy + r * 0.2)
+            ..lineTo(tip.dx, tip.dy)
+            ..lineTo(base.dx + r * 0.34, base.dy + r * 0.2)
+            ..close();
+          canvas.drawPath(outer, fur);
+          final dx0 = base.dx - r * 0.34, dx1 = base.dx + r * 0.34;
+          final y0 = base.dy + r * 0.2;
+          // Кончик — верхняя треть уха.
+          final cap = Path()
+            ..moveTo(tip.dx, tip.dy)
+            ..lineTo(
+                tip.dx + (dx0 - tip.dx) * 0.38, tip.dy + (y0 - tip.dy) * 0.38)
+            ..lineTo(
+                tip.dx + (dx1 - tip.dx) * 0.38, tip.dy + (y0 - tip.dy) * 0.38)
+            ..close();
+          canvas.drawPath(cap, Paint()..color = const Color(0xFF3B2A22));
         }
       case CharacterKind.wolf:
         for (final side in [-1.0, 1.0]) {

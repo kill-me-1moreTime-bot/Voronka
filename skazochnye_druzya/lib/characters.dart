@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart';
 
 /// Форма персонажа, нарисованного кодом (если нет картинок).
-enum CharacterKind { bear, wolf, bunny }
+enum CharacterKind { bear, wolf, bunny, fox, pig, puppy }
 
 /// Персонаж. Все данные — в assets/characters.json: новый персонаж
 /// добавляется записью там, без правки кода.

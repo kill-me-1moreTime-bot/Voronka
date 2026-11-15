@@ -37,3 +37,6 @@ flutter:
     - assets/characters/bear/
     - assets/characters/wolf/
     - assets/characters/bunny/
+    - assets/characters/fox/
+    - assets/characters/pig/
+    - assets/characters/puppy/
