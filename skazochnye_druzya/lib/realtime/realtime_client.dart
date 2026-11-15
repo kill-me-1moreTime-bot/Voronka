@@ -44,7 +44,10 @@ class UserTranscript extends RealtimeEvent {
 }
 
 class ResponseDone extends RealtimeEvent {
-  const ResponseDone(this.itemIds, {this.cancelled = false});
+  const ResponseDone(this.itemIds, {this.cancelled = false, this.usage});
+
+  /// Расход токенов этого ответа, если сервер его прислал.
+  final Map<String, dynamic>? usage;
 
   /// Сервер отменил ответ: обычно ребёнок заговорил снова, пока
   /// персонаж думал. Такой ответ не играем — он на полфразы.
@@ -155,8 +158,13 @@ class RealtimeClient {
         },
       });
 
-  void appendAudio(Uint8List pcm) =>
-      _send({'type': 'input_audio_buffer.append', 'audio': base64Encode(pcm)});
+  /// Сколько байт звука с микрофона отправлено — для счётчика расхода.
+  int sentAudioBytes = 0;
+
+  void appendAudio(Uint8List pcm) {
+    sentAudioBytes += pcm.length;
+    _send({'type': 'input_audio_buffer.append', 'audio': base64Encode(pcm)});
+  }
 
   /// Начинаем слушать. Очистку буфера (input_audio_buffer.clear) Yandex
   /// не поддерживает и закрывает связь с ошибкой malformed_event, поэтому
@@ -280,7 +288,12 @@ class RealtimeClient {
         if (status != null && status != 'completed') {
           DebugLog.add('[RT] ответ: $status');
         }
-        _emit(ResponseDone(ids, cancelled: status == 'cancelled'));
+        final usage = (m['response'] as Map?)?['usage'];
+        _emit(ResponseDone(
+          ids,
+          cancelled: status == 'cancelled',
+          usage: usage is Map ? Map<String, dynamic>.from(usage) : null,
+        ));
       case 'error':
         final err = m['error'];
         final msg = err is Map ? (err['message'] ?? err).toString() : '$m';

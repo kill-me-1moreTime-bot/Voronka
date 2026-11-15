@@ -9,6 +9,7 @@ import '../characters.dart';
 import '../child_memory.dart';
 import '../child_profile.dart';
 import '../config.dart';
+import '../cost_meter.dart';
 import '../debug_log.dart';
 import '../prompts.dart';
 import '../realtime/realtime_client.dart';
@@ -43,6 +44,15 @@ class ConversationController extends ChangeNotifier {
   double mouth = 0;
 
   String? errorText;
+
+  /// Счётчик расхода этого разговора (оценка в рублях).
+  final cost = CostMeter(live: AppConfig.model == VoiceModel.live);
+
+  /// Сколько символов разговора накопилось: сервер перечитывает его
+  /// вместе с промптом на каждый ответ.
+  int _historyChars = 0;
+  bool _usageLogged = false;
+  bool _costLogged = false;
 
   /// Что сейчас показано на экране: счёт, прятки, загадка, картина дома.
   Scene? scene;
@@ -159,6 +169,7 @@ class ConversationController extends ChangeNotifier {
       return;
     }
     _sub = _client.events.listen(_onEvent);
+    cost.start();
     _toolsSent = ChildMemory.active;
     _configure(character, _instructions);
 
@@ -226,6 +237,7 @@ class ConversationController extends ChangeNotifier {
     // Состояние меняем сразу, чтобы закрытие сокета не считалось обрывом.
     mouth = 0;
     _set(TalkState.finished);
+    _logFinalCost();
     _limitTimer?.cancel();
     _mic.muted = true;
     await _mic.stop();
@@ -268,17 +280,20 @@ class ConversationController extends ChangeNotifier {
           _firstAudio = true;
           DebugLog.add('[Задержка] первый звук через ${_sec(_wait)} с');
         }
+        cost.addOutputAudio(bytes.length);
         _audio.add(bytes);
       case AssistantTranscript(:final text):
         _transcript = text;
       case UserTranscript(:final text):
         if (text.trim().isNotEmpty) {
           log.add('Ребёнок: $text');
+          _historyChars += text.length;
           // Что расслышал Яндекс — видно, когда «плохо понимает».
           DebugLog.add('[Ребёнок] $text');
         }
-      case ResponseDone(:final itemIds, :final cancelled):
+      case ResponseDone(:final itemIds, :final cancelled, :final usage):
         _responseOpen = false;
+        _countCost(usage);
         if (_dropOpenResponse) {
           _dropOpenResponse = false;
           _audio.clear();
@@ -437,6 +452,36 @@ class ConversationController extends ChangeNotifier {
       _sceneAge = 0;
       if (next != null) DebugLog.add('[Сцена] ${_sceneName(next)}');
     }
+  }
+
+  /// Учитывает расход ответа и пишет итог в журнал.
+  void _countCost(Map<String, dynamic>? usage) {
+    if (usage != null && !_usageLogged) {
+      // Один раз показываем, что именно присылает сервер: по этому
+      // видно, работает ли кеш и как считаются токены.
+      _usageLogged = true;
+      DebugLog.add('[Расход] сервер считает так: $usage');
+    }
+    cost.addInputAudio(_client.sentAudioBytes - _countedInBytes);
+    _countedInBytes = _client.sentAudioBytes;
+    cost.addResponse(
+      usage: usage,
+      contextChars: (_callInstructions ?? _instructions).length + _historyChars,
+      answerChars: _transcript.length,
+    );
+    _historyChars += _transcript.length;
+    DebugLog.add('[Расход] ${cost.summary()}');
+  }
+
+  int _countedInBytes = 0;
+
+  /// Итог разговора — один раз, при завершении или выходе.
+  void _logFinalCost() {
+    if (_costLogged || cost.responses == 0) return;
+    _costLogged = true;
+    cost.addInputAudio(_client.sentAudioBytes - _countedInBytes);
+    _countedInBytes = _client.sentAudioBytes;
+    DebugLog.add('[Расход] итог разговора: ${cost.summary()}');
   }
 
   static String _sceneName(Scene s) => switch (s) {
@@ -688,6 +733,7 @@ class ConversationController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _logFinalCost();
     _disposed = true;
     _limitTimer?.cancel();
     _micLogTimer?.cancel();

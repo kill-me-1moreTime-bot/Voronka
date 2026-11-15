@@ -166,4 +166,24 @@ void main() {
     ]);
     expect(ev.whereType<RealtimeError>().map((e) => e.message), ['настоящая']);
   });
+
+  test('расход токенов из response.done доходит до счётчика', () async {
+    final ev = await run([
+      {
+        'type': 'response.done',
+        'response': {
+          'status': 'completed',
+          'output': [],
+          'usage': {'input_tokens': 1200, 'output_tokens': 30},
+        },
+      },
+      {
+        'type': 'response.done',
+        'response': {'output': []},
+      },
+    ]);
+    final done = ev.whereType<ResponseDone>().toList();
+    expect(done[0].usage?['input_tokens'], 1200);
+    expect(done[1].usage, isNull);
+  });
 }

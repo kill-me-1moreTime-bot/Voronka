@@ -253,7 +253,9 @@ class _LogSheet extends StatelessWidget {
           children: [
             ListTile(
               title: const Text('Журнал подключения'),
-              subtitle: const Text('Время московское'),
+              subtitle: const Text(
+                  'Время московское. Строки [Расход] — оценка по прайсу '
+                  'Яндекса, точные суммы в биллинге.'),
               trailing: TextButton.icon(
                 icon: const Icon(Icons.copy_rounded),
                 label: const Text('Копировать'),
