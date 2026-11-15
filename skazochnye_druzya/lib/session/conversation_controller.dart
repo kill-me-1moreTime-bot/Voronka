@@ -13,6 +13,7 @@ import '../debug_log.dart';
 import '../prompts.dart';
 import '../realtime/realtime_client.dart';
 import '../safety/safety_filter.dart';
+import '../scenes.dart';
 
 enum TalkState {
   connecting,
@@ -42,6 +43,34 @@ class ConversationController extends ChangeNotifier {
   double mouth = 0;
 
   String? errorText;
+
+  /// Что сейчас показано на экране: счёт, прятки, загадка, картина дома.
+  Scene? scene;
+
+  /// Сколько ответа уже прозвучало, 0..1 — по нему появляются предметы
+  /// счёта и слои картины.
+  double speechProgress = 0;
+  int _sceneAge = 0;
+
+  /// Друг, которому сейчас «звонят»: он говорит своим голосом вместо
+  /// главного персонажа. null — звонка нет.
+  CharacterProfile? friend;
+
+  /// Кто сейчас говорит.
+  CharacterProfile get speaker => friend ?? character;
+
+  CharacterProfile? _pendingCall;
+  int _friendReplies = 0;
+  bool _callEnding = false;
+  String? _callInstructions;
+
+  /// Отправили серверу голос друга и ждём подтверждения. Ошибка в это
+  /// время значит, что сменить голос посреди разговора нельзя.
+  bool _switchingVoice = false;
+
+  /// Сколько реплик говорит друг (вместе с приветствием), прежде чем
+  /// попрощаться: звонок короткий.
+  static const _friendTurns = 3;
 
   /// Журнал реплик только в памяти, для отладки родителем. Не сохраняется.
   final log = <String>[];
@@ -131,11 +160,7 @@ class ConversationController extends ChangeNotifier {
     }
     _sub = _client.events.listen(_onEvent);
     _toolsSent = ChildMemory.active;
-    _client.configure(
-      instructions: _instructions,
-      voice: AppConfig.voiceFor(character),
-      tools: _toolsSent ? [ChildMemory.tool] : const [],
-    );
+    _configure(character, _instructions);
 
     _mic.muted = true; // персонаж говорит первым
     final micOk = await _mic.start(_client.appendAudio);
@@ -158,6 +183,14 @@ class ConversationController extends ChangeNotifier {
       // Если ребёнок сейчас говорит, прощание будет после ответа на его фразу.
       if (state == TalkState.listening) _sayGoodbye();
     });
+  }
+
+  void _configure(CharacterProfile who, String instructions) {
+    _client.configure(
+      instructions: instructions,
+      voice: AppConfig.voiceFor(who),
+      tools: _toolsSent ? [ChildMemory.tool] : const [],
+    );
   }
 
   /// Пауза по кнопке родителя.
@@ -267,12 +300,23 @@ class ConversationController extends ChangeNotifier {
           DebugLog.add('[Память] модель не приняла функцию «запомнить» — '
               'память выключена до смены модели');
         }
+        if (_switchingVoice && friend != null) {
+          // Сервер не дал сменить голос — звонок не состоялся, разговор
+          // продолжает главный персонаж.
+          _switchingVoice = false;
+          DebugLog.add('[Звонок] сервер не сменил голос — звонок отменён');
+          friend = null;
+          _callInstructions = null;
+          _callEnding = false;
+          return;
+        }
         errorText = message;
         if (!_disposed) notifyListeners();
       case Disconnected():
         if (!_closed) _fail('Связь прервалась.');
       case SessionReady():
         _sessionReady = true;
+        _switchingVoice = false;
       case FunctionCall(:final name, :final callId, :final arguments):
         _onFunctionCall(name, callId, arguments);
     }
@@ -321,17 +365,25 @@ class ConversationController extends ChangeNotifier {
     }
     _safetyRetries = 0;
 
-    log.add('${character.name}: $text');
-    DebugLog.add('[Ответ] $text');
+    log.add('${speaker.name}: $text');
+    DebugLog.add('[Ответ] ${friend == null ? '' : '(${friend!.name}) '}$text');
+    // Сцена и звонок — только из ответа, который прошёл фильтр.
+    _afterSafeText(text);
     // Перед речью — выключить микрофон, чтобы персонаж не слышал себя.
     _mic.muted = true;
+    speechProgress = 0;
     _set(TalkState.speaking);
+    final totalMs =
+        pcm.length / 2 / AppConfig.sampleRate / child.speechRate * 1000;
+    final clock = Stopwatch()..start();
     try {
       await _player.play(
         pcm,
         AppConfig.sampleRate,
         (level) {
           mouth = level;
+          speechProgress =
+              (clock.elapsedMilliseconds / totalMs).clamp(0.0, 1.0);
           if (!_disposed) notifyListeners();
         },
         rate: child.speechRate,
@@ -341,7 +393,153 @@ class ConversationController extends ChangeNotifier {
     }
     mouth = 0;
     if (_disposed || state != TalkState.speaking) return;
+    speechProgress = 1;
+
+    if (friend != null) {
+      if (_callEnding) {
+        _finishCall();
+        return;
+      }
+      _friendReplies++;
+      if (_friendReplies >= _friendTurns) {
+        _callEnding = true;
+        _mic.muted = true;
+        _ask(callGoodbyeInstruction(character));
+        return;
+      }
+    } else if (_pendingCall != null && !_wrapRequested) {
+      final f = _pendingCall!;
+      _pendingCall = null;
+      _beginCall(f);
+      return;
+    }
     _resumeListening();
+  }
+
+  /// По тексту ответа: что показать на экране и не пора ли звонить другу.
+  void _afterSafeText(String text) {
+    if (friend != null) {
+      // Во время звонка сцен нет; друг может попрощаться раньше срока.
+      if (SceneDetector.saysBye(text)) _callEnding = true;
+      return;
+    }
+    _pendingCall = SceneDetector.detectCall(
+      text,
+      characters.where((c) => c.id != character.id),
+    );
+    final next = SceneDetector.detect(text, current: scene);
+    if (identical(next, scene) && scene != null) {
+      // Прятки и загадка не висят вечно, если разговор ушёл в сторону.
+      _sceneAge++;
+      if (_sceneAge >= 4) scene = null;
+    } else {
+      scene = next;
+      _sceneAge = 0;
+      if (next != null) DebugLog.add('[Сцена] ${_sceneName(next)}');
+    }
+  }
+
+  static String _sceneName(Scene s) => switch (s) {
+        CountScene(:final thing, :final n) => 'счёт: $thing × $n',
+        HideScene(:final place) => 'прятки, куст ${place + 1}',
+        GuessScene(:final animal) => 'загадка: ${animal ?? 'вопрос'}',
+        HomeScene() => 'картина дома',
+      };
+
+  // ── Звонок другу ──────────────────────────────────────────────────
+
+  /// Позвонить можно, пока персонаж слушает и никому не звонит.
+  bool get canCall => state == TalkState.listening && friend == null;
+
+  /// Кнопка-трубка: позвонить выбранному другу.
+  void callFriend(CharacterProfile f) {
+    if (!canCall || f.id == character.id) return;
+    _stopListeningTimers();
+    _beginCall(f);
+  }
+
+  void _beginCall(CharacterProfile f) {
+    DebugLog.add('[Звонок] ${character.name} звонит: ${f.name}');
+    friend = f;
+    _friendReplies = 0;
+    _callEnding = false;
+    scene = null;
+    _mic.muted = true;
+    _callInstructions = '${buildInstructions(f, child, hook: f.hooks.first)}'
+        '\n\n${callContext(character)}';
+    // Голос и характер друга — на время звонка.
+    _switchingVoice = true;
+    _configure(f, _callInstructions!);
+    _ask(callGreetingInstruction(character));
+  }
+
+  /// Кнопка «положить трубку».
+  Future<void> endCall() async {
+    if (friend == null) return;
+    if (state == TalkState.speaking) {
+      _callEnding = true;
+      await _player.stop(); // play() вернётся и закончит звонок
+      return;
+    }
+    if (state == TalkState.listening || state == TalkState.childSpeaking) {
+      _stopListeningTimers();
+      _mic.muted = true;
+      _finishCall();
+    } else {
+      _callEnding = true; // друг договорит — и звонок закончится
+    }
+  }
+
+  /// Вернуть голос и характер главного персонажа.
+  void _restoreAfterCall() {
+    final f = friend;
+    if (f == null) return;
+    DebugLog.add('[Звонок] закончен: ${f.name}');
+    friend = null;
+    _callEnding = false;
+    _callInstructions = null;
+    _configure(character, _instructions);
+  }
+
+  void _finishCall() {
+    final f = friend;
+    if (f == null) return;
+    _restoreAfterCall();
+    _mic.muted = true;
+    _ask(afterCallInstruction(f));
+  }
+
+  void _stopListeningTimers() {
+    _silenceTimer?.cancel();
+    _micLogTimer?.cancel();
+    _silentNudges = 0;
+  }
+
+  // ── Сцены: нажатия малыша и кнопка «мой дом» ──────────────────────
+
+  /// Нажали на куст в прятках. Верный — персонаж выглядывает.
+  bool tapHidePlace(int place) {
+    final s = scene;
+    if (s is! HideScene || s.place != place) return false;
+    scene = null;
+    DebugLog.add('[Сцена] малыш нашёл персонажа');
+    if (state == TalkState.listening) {
+      _stopListeningTimers();
+      _mic.muted = true;
+      _ask(foundInstruction);
+    } else {
+      notifyListeners();
+    }
+    return true;
+  }
+
+  /// Кнопка-домик: персонаж рассказывает, где живёт, и рисуется картина.
+  void showHome() {
+    if (!canStartGame) return;
+    _stopListeningTimers();
+    DebugLog.add('[App] кнопка «мой дом»');
+    _mic.muted = true;
+    _ask(homeInstruction);
   }
 
   Future<void> _resumeListening() async {
@@ -366,6 +564,9 @@ class ConversationController extends ChangeNotifier {
   }
 
   void _sayGoodbye() {
+    // Время вышло посреди звонка — прощается главный персонаж.
+    _restoreAfterCall();
+    scene = null;
     _goodbyeSent = true;
     _mic.muted = true;
     _ask(goodbyeInstruction);
@@ -380,7 +581,8 @@ class ConversationController extends ChangeNotifier {
     _wait.reset();
     _wait.start();
     _client.requestResponse(
-      instructions: '$_instructions\n\n## Сейчас\n$extra',
+      instructions: '${_callInstructions ?? _instructions}'
+          '\n\n## Сейчас\n$extra',
     );
     _set(TalkState.thinking);
   }
@@ -433,13 +635,11 @@ class ConversationController extends ChangeNotifier {
 
   /// Кнопка «Угадай, кто я»: персонаж начинает игру. Работает, пока он
   /// слушает — не перебиваем его на полуслове.
-  bool get canStartGame => state == TalkState.listening;
+  bool get canStartGame => state == TalkState.listening && friend == null;
 
   void startGuessGame() {
     if (!canStartGame) return;
-    _silenceTimer?.cancel();
-    _micLogTimer?.cancel();
-    _silentNudges = 0;
+    _stopListeningTimers();
     DebugLog.add('[App] игра «Угадай, кто я»');
     _mic.muted = true;
     _ask(guessGameInstruction);

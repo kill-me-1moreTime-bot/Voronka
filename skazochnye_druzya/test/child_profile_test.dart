@@ -21,4 +21,10 @@ void main() {
       expect(r, inInclusiveRange(0.7, 1.0));
     }
   });
+
+  test('экран не гаснет по умолчанию, выключатель сохраняется', () async {
+    expect((await ChildProfile.load()).keepScreenOn, isTrue);
+    await const ChildProfile(keepScreenOn: false).save();
+    expect((await ChildProfile.load()).keepScreenOn, isFalse);
+  });
 }

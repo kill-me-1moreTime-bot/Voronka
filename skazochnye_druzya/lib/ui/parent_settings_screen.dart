@@ -173,6 +173,16 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Не гасить экран во время разговора'),
+              subtitle: const Text(
+                  'На паузе и после прощания экран гаснет как обычно.'),
+              value: _p.keepScreenOn,
+              onChanged: (v) =>
+                  setState(() => _p = _p.copyWith(keepScreenOn: v)),
+            ),
             const SizedBox(height: 32),
             const _MemorySection(),
             const SizedBox(height: 32),

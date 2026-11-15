@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../characters.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
 import '../child_profile.dart';
 import '../debug_log.dart';
+import '../scenes.dart';
 import '../session/conversation_controller.dart';
 import 'character_view.dart';
 import 'parent_gate.dart';
+import 'scene_view.dart';
 
 class TalkScreen extends StatefulWidget {
   const TalkScreen({super.key, required this.character, required this.child});
@@ -28,14 +32,83 @@ class _TalkScreenState extends State<TalkScreen> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _c.addListener(_syncWakelock);
     _c.start();
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _c.removeListener(_syncWakelock);
+    _setWakelock(false);
     _c.dispose();
     super.dispose();
+  }
+
+  bool _awake = false;
+
+  /// Экран не гаснет, пока идёт разговор. На паузе, после прощания и
+  /// при ошибке — гаснет как обычно, чтобы забытый телефон не разрядился.
+  void _syncWakelock() {
+    final s = _c.state;
+    _setWakelock(widget.child.keepScreenOn &&
+        s != TalkState.paused &&
+        s != TalkState.finished &&
+        s != TalkState.error);
+  }
+
+  void _setWakelock(bool on) {
+    if (on == _awake) return;
+    _awake = on;
+    // Разрешений не нужно: это флаг окна «не выключать экран».
+    (on ? WakelockPlus.enable() : WakelockPlus.disable())
+        .catchError((Object _) {});
+  }
+
+  Future<void> _pickFriend() async {
+    final friends =
+        characters.where((c) => c.id != widget.character.id).toList();
+    final f = await showModalBottomSheet<CharacterProfile>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final f in friends)
+                InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => Navigator.of(context).pop(f),
+                  child: Container(
+                    width: 104,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Color.lerp(f.color, Colors.white, 0.75),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 88,
+                          child: CharacterView(character: f),
+                        ),
+                        Text(
+                          f.name.split(' ').first,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (f != null) _c.callFriend(f);
   }
 
   /// Новая попытка — новый экран с тем же персонажем: так разговор
@@ -49,15 +122,29 @@ class _TalkScreenState extends State<TalkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bg = Color.lerp(widget.character.color, Colors.white, 0.8)!;
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _c,
-          builder: (context, _) {
-            final s = _c.state;
-            return Column(
+    return ListenableBuilder(
+      listenable: _c,
+      builder: (context, _) {
+        final s = _c.state;
+        final scene = _c.scene;
+        final friend = _c.friend;
+        final listening =
+            s == TalkState.listening || s == TalkState.childSpeaking;
+        // Фон — цвет того, кто сейчас говорит.
+        final bg = Color.lerp(_c.speaker.color, Colors.white, 0.8)!;
+        final hero = GestureDetector(
+          onTap: _c.interrupt,
+          child: CharacterView(
+            character: _c.speaker,
+            mouth: _c.mouth,
+            listening: listening,
+            thinking: s == TalkState.thinking,
+          ),
+        );
+        return Scaffold(
+          backgroundColor: bg,
+          body: SafeArea(
+            child: Column(
               children: [
                 Row(
                   children: [
@@ -74,27 +161,72 @@ class _TalkScreenState extends State<TalkScreen> {
                     ),
                   ],
                 ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _c.interrupt,
-                    child: CharacterView(
+                if (friend != null)
+                  // Звонок: друг крупно, тот, кто позвонил, — в уголке.
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(child: hero),
+                        Positioned(
+                          left: 12,
+                          bottom: 0,
+                          width: 110,
+                          height: 110,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Color.lerp(
+                                  widget.character.color, Colors.white, 0.7),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                            ),
+                            child: CharacterView(character: widget.character),
+                          ),
+                        ),
+                        const Positioned(
+                          right: 20,
+                          top: 8,
+                          child: Icon(Icons.phone_in_talk_rounded,
+                              size: 44, color: Colors.green),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (scene is HideScene)
+                  // В прятках персонаж сидит за кустом — отдельно его нет.
+                  Expanded(
+                    child: SceneView(
+                      scene: scene,
                       character: widget.character,
-                      mouth: _c.mouth,
-                      listening: s == TalkState.listening ||
-                          s == TalkState.childSpeaking,
-                      thinking: s == TalkState.thinking,
+                      progress: _c.speechProgress,
+                      onHideTap: _c.tapHidePlace,
+                    ),
+                  )
+                else if (scene != null) ...[
+                  Expanded(
+                    flex: 3,
+                    child: SceneView(
+                      scene: scene,
+                      character: widget.character,
+                      progress: _c.speechProgress,
+                      onHideTap: _c.tapHidePlace,
                     ),
                   ),
-                ),
+                  SizedBox(height: 150, child: hero),
+                ] else
+                  Expanded(child: hero),
                 _StatusHint(state: s, error: _c.errorText),
                 const SizedBox(height: 16),
-                _Controls(controller: _c, onRetry: _retry),
+                _Controls(
+                  controller: _c,
+                  onRetry: _retry,
+                  onCall: _pickFriend,
+                ),
                 const SizedBox(height: 24),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -196,10 +328,15 @@ class _StatusHint extends StatelessWidget {
 
 /// Кнопки для взрослого: пауза/продолжить и завершить.
 class _Controls extends StatelessWidget {
-  const _Controls({required this.controller, required this.onRetry});
+  const _Controls({
+    required this.controller,
+    required this.onRetry,
+    required this.onCall,
+  });
 
   final ConversationController controller;
   final VoidCallback onRetry;
+  final VoidCallback onCall;
 
   @override
   Widget build(BuildContext context) {
@@ -226,25 +363,51 @@ class _Controls extends StatelessWidget {
     }
     if (s == TalkState.finished) return home;
     final paused = s == TalkState.paused;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final inCall = controller.friend != null;
+    // Значки без слов: малыш не читает. По краям — кнопки взрослого,
+    // в середине — занятия.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 10,
       children: [
         IconButton.filledTonal(
-          iconSize: 40,
+          iconSize: 34,
           onPressed: paused ? controller.resume : controller.pause,
           icon: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded),
         ),
-        const SizedBox(width: 24),
-        // «Угадай, кто я» — большая лапка, без слов: малыш не читает.
-        IconButton.filled(
-          iconSize: 48,
-          tooltip: 'Угадай, кто я',
-          onPressed: controller.canStartGame ? controller.startGuessGame : null,
-          icon: const Icon(Icons.pets_rounded),
-        ),
-        const SizedBox(width: 24),
+        if (inCall)
+          IconButton.filled(
+            iconSize: 44,
+            tooltip: 'Положить трубку',
+            style: IconButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: controller.endCall,
+            icon: const Icon(Icons.call_end_rounded),
+          )
+        else ...[
+          IconButton.filled(
+            iconSize: 40,
+            tooltip: 'Где ты живёшь',
+            onPressed: controller.canStartGame ? controller.showHome : null,
+            icon: const Icon(Icons.cottage_rounded),
+          ),
+          IconButton.filled(
+            iconSize: 40,
+            tooltip: 'Угадай, кто я',
+            onPressed:
+                controller.canStartGame ? controller.startGuessGame : null,
+            icon: const Icon(Icons.pets_rounded),
+          ),
+          IconButton.filled(
+            iconSize: 40,
+            tooltip: 'Позвонить другу',
+            onPressed: controller.canCall ? onCall : null,
+            icon: const Icon(Icons.call_rounded),
+          ),
+        ],
         IconButton.filledTonal(
-          iconSize: 40,
+          iconSize: 34,
           onPressed: controller.finish,
           icon: const Icon(Icons.stop_rounded),
         ),

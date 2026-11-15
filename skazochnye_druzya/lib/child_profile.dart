@@ -8,6 +8,7 @@ class ChildProfile {
     this.sessionMinutes = 10,
     this.notes = '',
     this.speechRate = 0.9,
+    this.keepScreenOn = true,
   });
 
   final String name;
@@ -22,6 +23,9 @@ class ChildProfile {
   /// Живые голоса Yandex к концу фразы ускоряются, а задать скорость
   /// в Realtime API нельзя, поэтому замедляем у себя.
   final double speechRate;
+
+  /// Не гасить экран, пока идёт разговор.
+  final bool keepScreenOn;
 
   static final speechRates = <double, String>{
     1.0: 'Обычная',
@@ -38,6 +42,7 @@ class ChildProfile {
     int? sessionMinutes,
     String? notes,
     double? speechRate,
+    bool? keepScreenOn,
   }) =>
       ChildProfile(
         name: name ?? this.name,
@@ -45,6 +50,7 @@ class ChildProfile {
         sessionMinutes: sessionMinutes ?? this.sessionMinutes,
         notes: notes ?? this.notes,
         speechRate: speechRate ?? this.speechRate,
+        keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       );
 
   static Future<ChildProfile> load() async {
@@ -55,6 +61,7 @@ class ChildProfile {
       sessionMinutes: p.getInt('session_minutes') ?? 10,
       notes: p.getString('child_notes') ?? '',
       speechRate: p.getDouble('speech_rate') ?? 0.9,
+      keepScreenOn: p.getBool('keep_screen_on') ?? true,
     );
   }
 
@@ -65,5 +72,6 @@ class ChildProfile {
     await p.setInt('session_minutes', sessionMinutes);
     await p.setString('child_notes', notes);
     await p.setDouble('speech_rate', speechRate);
+    await p.setBool('keep_screen_on', keepScreenOn);
   }
 }
