@@ -69,7 +69,8 @@ void main() {
 
   group('characters.json', () {
     test('шесть персонажей, у всех дом, факты и несколько историй', () {
-      expect(characters.map((c) => c.id), ['bear', 'wolf', 'bunny', 'fox', 'pig', 'puppy']);
+      expect(characters.map((c) => c.id),
+          ['bear', 'wolf', 'bunny', 'fox', 'pig', 'puppy']);
       for (final c in characters) {
         expect(c.home, isNotEmpty, reason: c.id);
         expect(c.facts.length, greaterThanOrEqualTo(6), reason: c.id);
@@ -148,5 +149,15 @@ void main() {
     final p = buildInstructions(bear, const ChildProfile());
     expect(p, contains('не понимай её буквально'));
     expect(p, contains('Не повторяй дословно'));
+  });
+
+  test('щенок живёт в будке, а не в лесу', () {
+    final puppy = characters.firstWhere((c) => c.id == 'puppy');
+    final p = buildInstructions(puppy, const ChildProfile());
+    final own = p.substring(0, p.indexOf('## Твои друзья'));
+    // До списка друзей слово «лес» не встречается: нечему сбивать с толку.
+    expect(own.toLowerCase(), isNot(contains('лес')));
+    expect(own, contains('в уютной будке'));
+    expect(own, contains('единственный дом'));
   });
 }
