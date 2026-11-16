@@ -74,9 +74,16 @@ class ConversationController extends ChangeNotifier {
   bool _callEnding = false;
   String? _callInstructions;
 
-  /// Отправили серверу голос друга и ждём подтверждения. Ошибка в это
-  /// время значит, что сменить голос посреди разговора нельзя.
-  bool _switchingVoice = false;
+  /// Отдельное соединение друга на время звонка: свой промпт, голос и
+  /// чистая история. В общем соединении друг видел реплики главного
+  /// персонажа и продолжал говорить за него.
+  RealtimeClient? _friendClient;
+  StreamSubscription<RealtimeEvent>? _friendSub;
+
+  bool _justCalled = false;
+
+  /// Что друг сказал за звонок — коротко передаём главному персонажу.
+  final _friendLines = <String>[];
 
   /// Сколько реплик говорит друг (вместе с приветствием), прежде чем
   /// попрощаться: звонок короткий.
@@ -85,7 +92,9 @@ class ConversationController extends ChangeNotifier {
   /// Журнал реплик только в памяти, для отладки родителем. Не сохраняется.
   final log = <String>[];
 
-  final _client = RealtimeClient();
+  /// Активное соединение: главного персонажа или друга во время звонка.
+  RealtimeClient _client = RealtimeClient();
+  late final RealtimeClient _main = _client;
   final _mic = MicStream();
   final _player = PcmPlayer();
   final _audio = BytesBuilder(copy: false);
@@ -168,13 +177,21 @@ class ConversationController extends ChangeNotifier {
       await _client.close();
       return;
     }
-    _sub = _client.events.listen(_onEvent);
+    _sub = _main.events.listen((e) {
+      // Пока идёт звонок, говорит соединение друга. Обрыв главного
+      // соединения важен всегда.
+      if (identical(_client, _main) || e is Disconnected) _onEvent(e);
+    });
     cost.start();
     _toolsSent = ChildMemory.active;
     _configure(character, _instructions);
 
     _mic.muted = true; // персонаж говорит первым
-    final micOk = await _mic.start(_client.appendAudio);
+    // Звук — в то соединение, что сейчас активно (во время звонка — другу).
+    final micOk = await _mic.start((chunk) {
+      cost.addInputAudio(chunk.length);
+      _client.appendAudio(chunk);
+    });
     if (_disposed) {
       await _mic.stop();
       await _client.close();
@@ -242,7 +259,8 @@ class ConversationController extends ChangeNotifier {
     _mic.muted = true;
     await _mic.stop();
     await _player.stop();
-    await _client.close();
+    _restoreAfterCall();
+    await _main.close();
   }
 
   void _onEvent(RealtimeEvent e) {
@@ -308,22 +326,12 @@ class ConversationController extends ChangeNotifier {
         }
         _onResponseDone(itemIds);
       case RealtimeError(:final message):
-        if (_toolsSent && !_sessionReady) {
+        if (_toolsSent && !_sessionReady && identical(_client, _main)) {
           // Разговор не должен ломаться из-за памяти: в следующий раз
           // подключимся без функции.
           ChildMemory.setToolsBroken(true);
           DebugLog.add('[Память] модель не приняла функцию «запомнить» — '
               'память выключена до смены модели');
-        }
-        if (_switchingVoice && friend != null) {
-          // Сервер не дал сменить голос — звонок не состоялся, разговор
-          // продолжает главный персонаж.
-          _switchingVoice = false;
-          DebugLog.add('[Звонок] сервер не сменил голос — звонок отменён');
-          friend = null;
-          _callInstructions = null;
-          _callEnding = false;
-          return;
         }
         errorText = message;
         if (!_disposed) notifyListeners();
@@ -331,7 +339,6 @@ class ConversationController extends ChangeNotifier {
         if (!_closed) _fail('Связь прервалась.');
       case SessionReady():
         _sessionReady = true;
-        _switchingVoice = false;
       case FunctionCall(:final name, :final callId, :final arguments):
         _onFunctionCall(name, callId, arguments);
     }
@@ -381,6 +388,7 @@ class ConversationController extends ChangeNotifier {
     _safetyRetries = 0;
 
     log.add('${speaker.name}: $text');
+    if (friend != null) _friendLines.add(text);
     DebugLog.add('[Ответ] ${friend == null ? '' : '(${friend!.name}) '}$text');
     // Сцена и звонок — только из ответа, который прошёл фильтр.
     _afterSafeText(text);
@@ -438,10 +446,14 @@ class ConversationController extends ChangeNotifier {
       if (SceneDetector.saysBye(text)) _callEnding = true;
       return;
     }
-    _pendingCall = SceneDetector.detectCall(
-      text,
-      characters.where((c) => c.id != character.id),
-    );
+    // Первая реплика после звонка — рассказ о нём, а не новый звонок.
+    _pendingCall = _justCalled
+        ? null
+        : SceneDetector.detectCall(
+            text,
+            characters.where((c) => c.id != character.id),
+          );
+    _justCalled = false;
     final next = SceneDetector.detect(text, current: scene);
     if (identical(next, scene) && scene != null) {
       // Прятки и загадка не висят вечно, если разговор ушёл в сторону.
@@ -462,8 +474,6 @@ class ConversationController extends ChangeNotifier {
       _usageLogged = true;
       DebugLog.add('[Расход] сервер считает так: $usage');
     }
-    cost.addInputAudio(_client.sentAudioBytes - _countedInBytes);
-    _countedInBytes = _client.sentAudioBytes;
     cost.addResponse(
       usage: usage,
       contextChars: (_callInstructions ?? _instructions).length + _historyChars,
@@ -473,14 +483,10 @@ class ConversationController extends ChangeNotifier {
     DebugLog.add('[Расход] ${cost.summary()}');
   }
 
-  int _countedInBytes = 0;
-
   /// Итог разговора — один раз, при завершении или выходе.
   void _logFinalCost() {
     if (_costLogged || cost.responses == 0) return;
     _costLogged = true;
-    cost.addInputAudio(_client.sentAudioBytes - _countedInBytes);
-    _countedInBytes = _client.sentAudioBytes;
     DebugLog.add('[Расход] итог разговора: ${cost.summary()}');
   }
 
@@ -503,24 +509,71 @@ class ConversationController extends ChangeNotifier {
     _beginCall(f);
   }
 
-  void _beginCall(CharacterProfile f) {
+  Future<void> _beginCall(CharacterProfile f) async {
     DebugLog.add('[Звонок] ${character.name} звонит: ${f.name}');
     friend = f;
     _friendReplies = 0;
     _callEnding = false;
+    _friendLines.clear();
     scene = null;
     _mic.muted = true;
-    _callInstructions = '${buildInstructions(f, child, hook: f.hooks.first)}'
-        '\n\n${callContext(character)}';
-    // Голос и характер друга — на время звонка.
-    _switchingVoice = true;
-    _configure(f, _callInstructions!);
+    _set(TalkState.thinking);
+
+    final fc = RealtimeClient();
+    try {
+      await fc.connect();
+    } catch (e) {
+      DebugLog.add('[Звонок] не дозвонились: $e');
+      fc.dispose();
+      friend = null;
+      if (_closed) return;
+      _ask(callFailedInstruction(f));
+      return;
+    }
+    // Пока подключались, разговор могли закончить или положить трубку.
+    if (_closed || friend != f) {
+      fc.dispose();
+      return;
+    }
+    _friendClient = fc;
+    _friendSub = fc.events.listen((e) {
+      if (identical(_client, fc)) _onEvent(e);
+    });
+    _callInstructions =
+        '${buildInstructions(f, child, hook: f.hooks.first, canCall: false)}'
+        '\n\n${callContext(character, _recap())}';
+    fc.configure(
+      instructions: _callInstructions!,
+      voice: AppConfig.voiceFor(f),
+    );
+    _resetResponseState();
+    _client = fc;
     _ask(callGreetingInstruction(character));
+  }
+
+  /// Последние реплики разговора — чтобы друг знал, о чём шла речь.
+  String _recap() {
+    final last = log.where((l) => !l.startsWith('[')).toList();
+    return last.skip(last.length > 4 ? last.length - 4 : 0).join('\n');
+  }
+
+  void _resetResponseState() {
+    _responseOpen = false;
+    _dropOpenResponse = false;
+    _needFollowUp = false;
+    _audio.clear();
+    _transcript = '';
   }
 
   /// Кнопка «положить трубку».
   Future<void> endCall() async {
     if (friend == null) return;
+    if (_friendClient == null) {
+      // Ещё дозваниваемся — просто не соединяем.
+      friend = null;
+      _resumeListening();
+      return;
+    }
     if (state == TalkState.speaking) {
       _callEnding = true;
       await _player.stop(); // play() вернётся и закончит звонок
@@ -535,7 +588,7 @@ class ConversationController extends ChangeNotifier {
     }
   }
 
-  /// Вернуть голос и характер главного персонажа.
+  /// Закрыть соединение друга и вернуться к главному персонажу.
   void _restoreAfterCall() {
     final f = friend;
     if (f == null) return;
@@ -543,15 +596,23 @@ class ConversationController extends ChangeNotifier {
     friend = null;
     _callEnding = false;
     _callInstructions = null;
-    _configure(character, _instructions);
+    final fc = _friendClient;
+    _friendClient = null;
+    _client = _main;
+    _resetResponseState();
+    _friendSub?.cancel();
+    _friendSub = null;
+    fc?.dispose();
   }
 
   void _finishCall() {
     final f = friend;
     if (f == null) return;
+    final said = _friendLines.join(' ');
     _restoreAfterCall();
+    _justCalled = true;
     _mic.muted = true;
-    _ask(afterCallInstruction(f));
+    _ask(afterCallInstruction(f, said));
   }
 
   void _stopListeningTimers() {
@@ -741,7 +802,9 @@ class ConversationController extends ChangeNotifier {
     _sub?.cancel();
     _mic.dispose();
     _player.dispose();
-    _client.dispose();
+    _friendSub?.cancel();
+    _friendClient?.dispose();
+    _main.dispose();
     log.clear();
     super.dispose();
   }

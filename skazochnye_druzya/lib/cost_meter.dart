@@ -24,6 +24,11 @@ class CostMeter {
   /// прислал точные числа и токены приходится оценивать по символам.
   static const charsPerToken = 3.0;
 
+  /// Какая доля промпта приходит из кеша, когда сервер не прислал точные
+  /// числа. Из детализации биллинга за ноябрь 2026: 290 тыс. кешированных
+  /// токенов на 773 тыс. входящих у «Живых голосов» — 37 %.
+  static const assumedCacheShare = 0.37;
+
   int _inBytes = 0;
   int _outBytes = 0;
   int inTokens = 0;
@@ -62,7 +67,9 @@ class CostMeter {
     final output = _int(usage?['output_tokens']);
     if (usage == null || (input == 0 && output == 0)) {
       estimated = true;
-      inTokens += (contextChars / charsPerToken).round();
+      final tokens = (contextChars / charsPerToken).round();
+      inTokens += tokens;
+      cachedTokens += (tokens * assumedCacheShare).round();
       outTokens += (answerChars / charsPerToken).round();
       return;
     }

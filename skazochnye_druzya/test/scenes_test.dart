@@ -203,4 +203,39 @@ void main() {
     // Убираем бесконечные анимации персонажа перед концом теста.
     await t.pumpWidget(const SizedBox());
   });
+
+  group('звонок: отдельный промпт друга', () {
+    test('о прошлом звонке — не новый звонок', () {
+      final others = characters.where((c) => c.id != 'pig');
+      expect(
+          SceneDetector.detectCall(
+              'Как здорово, что мы позвонили Зайке!', others),
+          isNull);
+      expect(
+          SceneDetector.detectCall('А теперь я позвоню Лисичке!', others)?.id,
+          'fox');
+    });
+
+    test('у друга на звонке нет «давай позвоним», у главного — есть', () {
+      final pig = characters.firstWhere((c) => c.id == 'pig');
+      final bunny = characters.firstWhere((c) => c.id == 'bunny');
+      final friend =
+          buildInstructions(bunny, const ChildProfile(), canCall: false);
+      expect(friend, isNot(contains('Давай позвоним')));
+      final ctx = callContext(pig, 'Поросёнок Боря: Давай позвоним Зайке!');
+      expect(ctx, contains('а не Поросёнок Боря'));
+      expect(ctx, contains('не проси ничего нажимать'));
+      expect(ctx, contains('Давай позвоним Зайке'));
+      final main = buildInstructions(pig, const ChildProfile());
+      expect(main, contains('Ничего нажимать малышу не нужно'));
+    });
+
+    test('после звонка главный персонаж знает, что сказал друг', () {
+      final bunny = characters.firstWhere((c) => c.id == 'bunny');
+      final s = afterCallInstruction(bunny, 'Привет! Я собираю цветочки.');
+      expect(s, contains('Зайка Зоя говорила'));
+      expect(s, contains('собираю цветочки'));
+      expect(s, contains('Больше не звони'));
+    });
+  });
 }

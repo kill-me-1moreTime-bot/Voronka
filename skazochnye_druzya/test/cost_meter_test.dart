@@ -58,6 +58,8 @@ void main() {
       ..addResponse(usage: null, contextChars: 6000, answerChars: 90);
     expect(m.estimated, isTrue);
     expect(m.inTokens, 2000);
+    // Доля кеша — как в детализации биллинга.
+    expect(m.cachedTokens, 740);
     expect(m.outTokens, 30);
     expect(m.summary(), contains('оценка'));
   });

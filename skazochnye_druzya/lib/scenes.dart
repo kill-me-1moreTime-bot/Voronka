@@ -182,7 +182,9 @@ class SceneDetector {
     Iterable<CharacterProfile> friends,
   ) {
     final t = _norm(text);
-    if (!t.contains('позвон')) return null;
+    // Только приглашение («позвоним», «позвоню»), а не рассказ о прошлом
+    // звонке («как хорошо, что мы позвонили»).
+    if (!RegExp('позвон(им|ю)$_r').hasMatch(t)) return null;
     for (final f in friends) {
       if (nameStems(f).any(t.contains)) return f;
     }
