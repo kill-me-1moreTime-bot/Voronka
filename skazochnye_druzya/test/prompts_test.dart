@@ -160,4 +160,9 @@ void main() {
     expect(own, contains('в уютной будке'));
     expect(own, contains('единственный дом'));
   });
+
+  test('нашли в прятках — радуется, а не зовёт искать снова', () {
+    expect(foundInstruction, contains('Ты меня нашёл'));
+    expect(foundInstruction, contains('не говори «найди меня»'));
+  });
 }

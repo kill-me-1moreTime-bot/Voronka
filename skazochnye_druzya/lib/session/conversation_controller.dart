@@ -635,15 +635,20 @@ class ConversationController extends ChangeNotifier {
     if (s is! HideScene || s.place != place) return false;
     scene = null;
     DebugLog.add('[Сцена] малыш нашёл персонажа');
-    if (state == TalkState.listening) {
+    if (state == TalkState.listening || state == TalkState.childSpeaking) {
       _stopListeningTimers();
       _mic.muted = true;
       _ask(foundInstruction);
     } else {
+      // Персонаж ещё говорит или думает: обрадуется, как только договорит.
+      // Иначе находка терялась, и он снова звал «найди меня».
+      _foundPending = true;
       notifyListeners();
     }
     return true;
   }
+
+  bool _foundPending = false;
 
   /// Кнопка-домик: персонаж рассказывает, где живёт, и рисуется картина.
   void showHome() {
@@ -662,6 +667,13 @@ class ConversationController extends ChangeNotifier {
     }
     if (_wrapRequested) {
       _sayGoodbye();
+      return;
+    }
+    if (_foundPending) {
+      _foundPending = false;
+      scene = null; // ответ мог снова спрятать персонажа — он уже найден
+      _mic.muted = true;
+      _ask(foundInstruction);
       return;
     }
     _client.markListening();
