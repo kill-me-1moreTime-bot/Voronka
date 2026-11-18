@@ -28,9 +28,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Версия закреплена — та же, на которой собирают локально. Свежий
+      # stable (3.50) объявил material.dart устаревшим, и analyze падал
+      # на замечаниях, хотя ошибок в коде нет. Обновлять — вместе с кодом.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.9
           cache: true
 
       - run: flutter pub get
