@@ -171,10 +171,30 @@ class RealtimeClient {
   /// её не шлём: пока персонаж думает и говорит, микрофон и так молчит.
   void markListening() => _audioLogged = false;
 
-  void requestResponse({String? instructions}) => _send({
-        'type': 'response.create',
-        if (instructions != null) 'response': {'instructions': instructions},
+  void requestResponse() => _send({'type': 'response.create'});
+
+  /// Указание модели на этот ход («попрощайся», «начни игру»).
+  /// Отдельным сообщением в разговоре: инструкции внутри response.create
+  /// Яндекс, судя по журналам, не выполняет — персонаж отвечал как обычно.
+  void addSystemNote(String text) => _send({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'message',
+          'role': noteRole,
+          'content': [
+            {
+              'type': 'input_text',
+              'text': noteRole == 'system'
+                  ? text
+                  : '[Подсказка приложения, вслух не повторяй] $text',
+            },
+          ],
+        },
       });
+
+  /// Роль служебных сообщений. Если сервер не примет «system», дальше
+  /// шлём от «user» с пометкой — до перезапуска приложения.
+  static String noteRole = 'system';
 
   void cancelResponse() => _send({'type': 'response.cancel'});
 
@@ -193,7 +213,12 @@ class RealtimeClient {
 
   bool _audioLogged = false;
 
+  /// Для тестов: куда смотреть отправленные события вместо сокета.
+  @visibleForTesting
+  void Function(Map<String, dynamic>)? debugSink;
+
   void _send(Map<String, Object?> event) {
+    debugSink?.call(Map<String, dynamic>.from(event));
     final type = event['type'] as String? ?? '';
     // Звук с микрофона идёт десятками кусков — в журнал только первый
     // после каждой очистки буфера.

@@ -326,6 +326,12 @@ class ConversationController extends ChangeNotifier {
         }
         _onResponseDone(itemIds);
       case RealtimeError(:final message):
+        if (RealtimeClient.noteRole == 'system' &&
+            message.toLowerCase().contains('role')) {
+          RealtimeClient.noteRole = 'user';
+          DebugLog.add('[App] сервер не принял служебное сообщение — '
+              'дальше обычным, с пометкой');
+        }
         if (_toolsSent && !_sessionReady && identical(_client, _main)) {
           // Разговор не должен ломаться из-за памяти: в следующий раз
           // подключимся без функции.
@@ -678,18 +684,15 @@ class ConversationController extends ChangeNotifier {
     _ask(goodbyeInstruction);
   }
 
-  /// Просьба к модели. Инструкции ответа в протоколе Realtime заменяют
-  /// промпт сессии, поэтому промпт персонажа отправляется вместе с ними.
+  /// Просьба к модели: служебное сообщение с указанием и запрос ответа.
   static String _sec(Stopwatch w) =>
       (w.elapsedMilliseconds / 1000).toStringAsFixed(1);
 
   void _ask(String extra) {
     _wait.reset();
     _wait.start();
-    _client.requestResponse(
-      instructions: '${_callInstructions ?? _instructions}'
-          '\n\n## Сейчас\n$extra',
-    );
+    _client.addSystemNote('Сейчас: $extra');
+    _client.requestResponse();
     _set(TalkState.thinking);
   }
 

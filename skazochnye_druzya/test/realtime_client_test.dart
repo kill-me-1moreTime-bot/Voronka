@@ -186,4 +186,28 @@ void main() {
     expect(done[0].usage?['input_tokens'], 1200);
     expect(done[1].usage, isNull);
   });
+
+  group('служебное сообщение', () {
+    test('уходит отдельным сообщением system, а не внутри response.create', () {
+      final sent = <Map<String, dynamic>>[];
+      final c = RealtimeClient()..debugSink = sent.add;
+      c.addSystemNote('Сейчас: попрощайся');
+      c.requestResponse();
+      expect(sent[0]['type'], 'conversation.item.create');
+      expect(sent[0]['item']['role'], 'system');
+      expect(sent[0]['item']['content'][0]['text'], 'Сейчас: попрощайся');
+      expect(sent[1], {'type': 'response.create'});
+    });
+
+    test('запасной путь — от user с пометкой', () {
+      final sent = <Map<String, dynamic>>[];
+      final c = RealtimeClient()..debugSink = sent.add;
+      RealtimeClient.noteRole = 'user';
+      addTearDown(() => RealtimeClient.noteRole = 'system');
+      c.addSystemNote('Сейчас: попрощайся');
+      expect(sent[0]['item']['role'], 'user');
+      expect(sent[0]['item']['content'][0]['text'],
+          startsWith('[Подсказка приложения, вслух не повторяй]'));
+    });
+  });
 }
