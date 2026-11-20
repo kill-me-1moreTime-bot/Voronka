@@ -153,6 +153,14 @@ class _TalkScreenState extends State<TalkScreen> {
                       icon: const Icon(Icons.home_rounded),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
+                    // «Где ты живёшь» — маленькая, наверху: персонаж
+                    // рассказывает о доме, картина рисуется по его словам.
+                    IconButton.filledTonal(
+                      iconSize: 24,
+                      tooltip: 'Где ты живёшь',
+                      onPressed: _c.canStartGame ? _c.showHome : null,
+                      icon: const Icon(Icons.cottage_rounded),
+                    ),
                     const Spacer(),
                     // Журнал для взрослого — тоже долгим нажатием.
                     ParentGate(
@@ -388,12 +396,6 @@ class _Controls extends StatelessWidget {
             icon: const Icon(Icons.call_end_rounded),
           )
         else ...[
-          IconButton.filled(
-            iconSize: 40,
-            tooltip: 'Где ты живёшь',
-            onPressed: controller.canStartGame ? controller.showHome : null,
-            icon: const Icon(Icons.cottage_rounded),
-          ),
           IconButton.filled(
             iconSize: 40,
             tooltip: 'Угадай, кто я',
