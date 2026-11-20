@@ -27,4 +27,10 @@ void main() {
     await const ChildProfile(keepScreenOn: false).save();
     expect((await ChildProfile.load()).keepScreenOn, isFalse);
   });
+
+  test('пол: по умолчанию не указан, выбор сохраняется', () async {
+    expect((await ChildProfile.load()).gender, ChildGender.unknown);
+    await const ChildProfile(gender: ChildGender.girl).save();
+    expect((await ChildProfile.load()).gender, ChildGender.girl);
+  });
 }

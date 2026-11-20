@@ -133,7 +133,7 @@ void main() {
   test('имя известно — не спрашивает, как зовут', () {
     final p = buildInstructions(bear, const ChildProfile(name: 'Ева'));
     expect(p, contains('Имя малыша ты уже знаешь: Ева'));
-    expect(p, contains('Никогда не спрашивай, как его зовут'));
+    expect(p, contains('Никогда не спрашивай, как зовут малыша'));
     expect(greetingInstruction, contains('не про имя'));
     // Имени нет — правила нет, спросить можно.
     expect(buildInstructions(bear, const ChildProfile()),
@@ -162,8 +162,11 @@ void main() {
   });
 
   test('нашли в прятках — радуется, а не зовёт искать снова', () {
-    expect(foundInstruction, contains('Ты меня нашёл'));
-    expect(foundInstruction, contains('не говори «найди меня»'));
+    expect(foundInstruction(ChildGender.boy), contains('Ты меня нашёл'));
+    expect(foundInstruction(ChildGender.girl), contains('Ты меня нашла'));
+    expect(foundInstruction(ChildGender.unknown), isNot(contains('нашёл')));
+    expect(
+        foundInstruction(ChildGender.girl), contains('Не говори «найди меня»'));
   });
 
   test('промпт короткий: меньше 5000 символов у каждого', () {
@@ -188,5 +191,36 @@ void main() {
   test('день персонажа — без «ты бегает»', () {
     final p = buildInstructions(bear, const ChildProfile());
     expect(p, contains('Про тебя говорят: Мишка Топтыжка'));
+  });
+
+  group('пол ребёнка', () {
+    test('девочка — женский род', () {
+      final p = buildInstructions(
+          bear, const ChildProfile(name: 'Ева', gender: ChildGender.girl));
+      expect(p, contains('Малыш — девочка'));
+      expect(p, contains('«ты меня нашла!»'));
+      expect(p, isNot(contains('ты меня нашёл')));
+    });
+
+    test('мальчик — мужской род', () {
+      final p =
+          buildInstructions(bear, const ChildProfile(gender: ChildGender.boy));
+      expect(p, contains('Малыш — мальчик'));
+      expect(p, contains('«ты меня нашёл!»'));
+    });
+
+    test('не указан — без рода и не угадывать по имени', () {
+      final p = buildInstructions(bear, const ChildProfile(name: 'Саша'));
+      expect(p, contains('не угадывай по имени'));
+      expect(p, isNot(contains('ты меня нашёл')));
+      expect(p, isNot(contains('ты меня нашла')));
+      expect(p, isNot(contains('как его зовут')));
+    });
+
+    test('примеры для персонажа — без рода: подходят и Зайке', () {
+      final p = buildInstructions(bear, const ChildProfile());
+      expect(p, contains('«прячусь, найди меня!»'));
+      expect(p, isNot(contains('я спрятался')));
+    });
   });
 }

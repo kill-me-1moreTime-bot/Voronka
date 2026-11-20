@@ -49,7 +49,6 @@ class ConversationController extends ChangeNotifier {
   /// Счётчик расхода этого разговора (оценка в рублях).
   final cost = CostMeter(live: AppConfig.model == VoiceModel.live);
 
-
   /// Длины реплик — для оценки: на сервере остаются только последние.
   final _msgChars = <int>[];
   int _recentChars() {
@@ -697,7 +696,7 @@ class ConversationController extends ChangeNotifier {
     if (state == TalkState.listening || state == TalkState.childSpeaking) {
       _stopListeningTimers();
       _mic.muted = true;
-      _ask(foundInstruction);
+      _ask(foundInstruction(child.gender));
     } else {
       // Персонаж ещё говорит или думает: обрадуется, как только договорит.
       // Иначе находка терялась, и он снова звал «найди меня».
@@ -732,7 +731,7 @@ class ConversationController extends ChangeNotifier {
       _foundPending = false;
       scene = null; // ответ мог снова спрятать персонажа — он уже найден
       _mic.muted = true;
-      _ask(foundInstruction);
+      _ask(foundInstruction(child.gender));
       return;
     }
     _client.markListening();

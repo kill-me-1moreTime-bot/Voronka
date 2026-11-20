@@ -106,6 +106,21 @@ class _ParentSettingsScreenState extends State<ParentSettingsScreen> {
                     'Хранится только на этом телефоне и уходит в промпт.',
               ),
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('Обращаться как к:', style: t.bodyMedium),
+                for (final g in ChildGender.values)
+                  ChoiceChip(
+                    label: Text(g.label),
+                    selected: _p.gender == g,
+                    onSelected: (_) =>
+                        setState(() => _p = _p.copyWith(gender: g)),
+                  ),
+              ],
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _notes,
