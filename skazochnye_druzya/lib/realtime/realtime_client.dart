@@ -12,6 +12,13 @@ sealed class RealtimeEvent {
   const RealtimeEvent();
 }
 
+/// Сервер добавил реплику в разговор — нужен её id, чтобы потом удалить
+/// старые реплики и не платить за них на каждом ответе.
+class ItemCreated extends RealtimeEvent {
+  const ItemCreated(this.id);
+  final String id;
+}
+
 class SessionReady extends RealtimeEvent {
   const SessionReady();
 }
@@ -281,6 +288,9 @@ class RealtimeClient {
         _keepFinal(m['transcript']);
       case 'conversation.item.input_audio_transcription.completed':
         _emit(UserTranscript(m['transcript'] as String? ?? ''));
+      case 'conversation.item.created' || 'conversation.item.added':
+        final id = (m['item'] as Map?)?['id'];
+        if (id is String) _emit(ItemCreated(id));
       case 'response.output_item.done':
         final item = m['item'];
         if (item is Map && item['type'] == 'function_call') {

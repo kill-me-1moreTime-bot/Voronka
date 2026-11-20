@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'characters.dart';
 import 'child_memory.dart';
+import 'session/conversation_controller.dart';
 import 'ui/home_screen.dart';
 
 Future<void> main() async {
@@ -11,6 +12,7 @@ Future<void> main() async {
   // Персонажи из assets/characters.json — до первого экрана.
   await loadCharacters();
   await ChildMemory.load();
+  await ConversationController.loadTrimFlag();
   runApp(const SkazochnyeDruzyaApp());
 }
 

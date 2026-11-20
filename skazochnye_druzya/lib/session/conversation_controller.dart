@@ -14,6 +14,7 @@ import '../debug_log.dart';
 import '../prompts.dart';
 import '../realtime/realtime_client.dart';
 import '../safety/safety_filter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../scenes.dart';
 
 enum TalkState {
@@ -48,11 +49,48 @@ class ConversationController extends ChangeNotifier {
   /// Счётчик расхода этого разговора (оценка в рублях).
   final cost = CostMeter(live: AppConfig.model == VoiceModel.live);
 
-  /// Сколько символов разговора накопилось: сервер перечитывает его
-  /// вместе с промптом на каждый ответ.
-  int _historyChars = 0;
+
+  /// Длины реплик — для оценки: на сервере остаются только последние.
+  final _msgChars = <int>[];
+  int _recentChars() {
+    final n = trimBroken ? _msgChars.length : keepItems;
+    final from = _msgChars.length > n ? _msgChars.length - n : 0;
+    return _msgChars.skip(from).fold(0, (a, b) => a + b);
+  }
+
   bool _usageLogged = false;
   bool _costLogged = false;
+
+  // ── Короткая история ──────────────────────────────────────────────
+  /// Сколько последних реплик держать на сервере. Сервер перечитывает всю
+  /// историю на каждом ответе, и каждая реплика дорожает все следующие.
+  static const keepItems = 14;
+
+  /// id реплик главного соединения, по порядку.
+  final _items = <String>[];
+  DateTime? _lastTrimAt;
+
+  /// Сервер не принял удаление — больше не пробуем (запоминается).
+  static bool trimBroken = false;
+  static const _kTrimBroken = 'history_trim_broken';
+
+  static Future<void> loadTrimFlag() async {
+    final p = await SharedPreferences.getInstance();
+    trimBroken = p.getBool(_kTrimBroken) ?? false;
+  }
+
+  /// Удалить на сервере всё, что старше последних [keepItems] реплик.
+  void _trimHistory() {
+    if (trimBroken || !identical(_client, _main)) return;
+    final extra = _items.length - keepItems;
+    if (extra <= 0) return;
+    final old = _items.sublist(0, extra);
+    _items.removeRange(0, extra);
+    old.forEach(_main.deleteItem);
+    _lastTrimAt = DateTime.now();
+    DebugLog.add('[История] удалено старых реплик: ${old.length}, '
+        'осталось ${_items.length}');
+  }
 
   /// Что сейчас показано на экране: счёт, прятки, загадка, картина дома.
   Scene? scene;
@@ -114,10 +152,16 @@ class ConversationController extends ChangeNotifier {
   /// История на этот разговор — случайная из нескольких, чтобы
   /// разговоры не повторялись.
   late final String _hook = character.randomHook();
+
+  /// Три случайных факта на разговор вместо всех восьми — короче промпт,
+  /// а от разговора к разговору факты разные.
+  late final List<String> _facts =
+      (List.of(character.facts)..shuffle()).take(3).toList();
   late final String _instructions = buildInstructions(
     character,
     child,
     hook: _hook,
+    facts: _facts,
     memory: ChildMemory.facts,
     canRemember: ChildMemory.active,
   );
@@ -305,13 +349,14 @@ class ConversationController extends ChangeNotifier {
       case UserTranscript(:final text):
         if (text.trim().isNotEmpty) {
           log.add('Ребёнок: $text');
-          _historyChars += text.length;
+          _msgChars.add(text.length);
           // Что расслышал Яндекс — видно, когда «плохо понимает».
           DebugLog.add('[Ребёнок] $text');
         }
       case ResponseDone(:final itemIds, :final cancelled, :final usage):
         _responseOpen = false;
         _countCost(usage);
+        _trimHistory();
         if (_dropOpenResponse) {
           _dropOpenResponse = false;
           _audio.clear();
@@ -326,6 +371,16 @@ class ConversationController extends ChangeNotifier {
         }
         _onResponseDone(itemIds);
       case RealtimeError(:final message):
+        final t = _lastTrimAt;
+        if (t != null &&
+            DateTime.now().difference(t) < const Duration(seconds: 3)) {
+          // Ошибка сразу после удаления — сервер его не принимает.
+          trimBroken = true;
+          SharedPreferences.getInstance()
+              .then((p) => p.setBool(_kTrimBroken, true));
+          DebugLog.add('[История] сервер не принял удаление старых реплик — '
+              'больше не удаляем');
+        }
         if (RealtimeClient.noteRole == 'system' &&
             message.toLowerCase().contains('role')) {
           RealtimeClient.noteRole = 'user';
@@ -345,6 +400,8 @@ class ConversationController extends ChangeNotifier {
         if (!_closed) _fail('Связь прервалась.');
       case SessionReady():
         _sessionReady = true;
+      case ItemCreated(:final id):
+        if (identical(_client, _main)) _items.add(id);
       case FunctionCall(:final name, :final callId, :final arguments):
         _onFunctionCall(name, callId, arguments);
     }
@@ -380,6 +437,7 @@ class ConversationController extends ChangeNotifier {
       log.add('[заблокировано: ${verdict.reason}] $text');
       DebugLog.add('[Safety] заблокировано: ${verdict.reason}');
       itemIds.forEach(_client.deleteItem);
+      _items.removeWhere(itemIds.contains);
       _safetyRetries++;
       if (_safetyRetries <= 2) {
         _ask(_safetyRetries == 1
@@ -482,10 +540,11 @@ class ConversationController extends ChangeNotifier {
     }
     cost.addResponse(
       usage: usage,
-      contextChars: (_callInstructions ?? _instructions).length + _historyChars,
+      contextChars:
+          (_callInstructions ?? _instructions).length + _recentChars(),
       answerChars: _transcript.length,
     );
-    _historyChars += _transcript.length;
+    _msgChars.add(_transcript.length);
     DebugLog.add('[Расход] ${cost.summary()}');
   }
 

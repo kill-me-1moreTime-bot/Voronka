@@ -165,4 +165,28 @@ void main() {
     expect(foundInstruction, contains('Ты меня нашёл'));
     expect(foundInstruction, contains('не говори «найди меня»'));
   });
+
+  test('промпт короткий: меньше 5000 символов у каждого', () {
+    for (final c in characters) {
+      final p = buildInstructions(
+        c,
+        const ChildProfile(name: 'Ева', notes: 'Любит динозавров.'),
+        memory: const ['кота зовут Барсик'],
+        canRemember: true,
+      );
+      expect(p.length, lessThan(5000), reason: '${c.id}: ${p.length}');
+    }
+  });
+
+  test('в промпт идут только выбранные факты', () {
+    final p = buildInstructions(bear, const ChildProfile(),
+        facts: [bear.facts[5], bear.facts[6], bear.facts[7]]);
+    expect(p, contains(bear.facts[5]));
+    expect(p, isNot(contains(bear.facts[0])));
+  });
+
+  test('день персонажа — без «ты бегает»', () {
+    final p = buildInstructions(bear, const ChildProfile());
+    expect(p, contains('Про тебя говорят: Мишка Топтыжка'));
+  });
 }

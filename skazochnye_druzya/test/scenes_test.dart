@@ -163,7 +163,7 @@ void main() {
       final p = buildInstructions(bear, const ChildProfile());
       expect(p, contains('Давай позвоним'));
       expect(p, contains('только сказочным друзьям'));
-      expect(p, contains('## Что малыш видит на экране'));
+      expect(p, contains('## Игры и экран'));
     });
   });
 

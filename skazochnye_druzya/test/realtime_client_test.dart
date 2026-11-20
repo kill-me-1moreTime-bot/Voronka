@@ -210,4 +210,16 @@ void main() {
           startsWith('[Подсказка приложения, вслух не повторяй]'));
     });
   });
+
+  test('id новой реплики доходит до контроллера — для короткой истории',
+      () async {
+    final ev = await run([
+      {
+        'type': 'conversation.item.created',
+        'item': {'id': 'item_1', 'type': 'message'},
+      },
+      {'type': 'conversation.item.created', 'item': {}},
+    ]);
+    expect(ev.whereType<ItemCreated>().map((e) => e.id), ['item_1']);
+  });
 }
